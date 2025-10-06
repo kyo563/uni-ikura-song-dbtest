@@ -105,7 +105,6 @@
   <script>
     // ==== 固定：/macros/s/<ID>/exec のみ ====
     const DEPLOY_ID = 'AKfycbxQjIogH4P0uRGmXk8QviXBcXp5BV5dxgaBt2jsDNY-hFqx-rXic3SfEx-v_WirNDrqvw';
-'.replace(/[^A-Za-z0-9_-]/g,'');
     const BASE = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
     const HARD_LIMIT = 10000;
 
@@ -117,7 +116,7 @@
     async function copyPair(title, artist){ await copyText(`${(title||'').trim()} / ${(artist||'').trim()}`.trim()); }
     $('dm-copy').addEventListener('click', ()=>copyText($('dm-select').value||''));
 
-    const urlFromText = s => { if(!s) return ''; const m=String(s).match(/https?:\/\/\S+/); return m ? m[0].replace(/[)\\]\\s]+$/,'') : ''; };
+    const urlFromText = s => { if(!s) return ''; const m=String(s).match(/https?:\/\/\S+/); return m ? m[0].replace(/[)\]\s]+$/,'') : ''; };
     const extractDate8 = s => { const m=/^(\d{8})/.exec(String(s||'')); return m ? parseInt(m[1],10) : 0; };
     function showPage(id){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); $(id).classList.add('active'); }
 
@@ -155,7 +154,7 @@
       const qs = `?callback=onGviz&sheet=perf&limit=${HARD_LIMIT}&v=${Date.now()}`;
       // 1) JSONP
       injectScript(BASE + qs);
-      // 2) 1秒後未着なら iframe フォールバック（/u/* を使わない）
+      // 2) 1秒後未着なら iframe フォールバック
       setTimeout(()=>{
         if(!__jsonpHit && !__iframeTried){
           __iframeTried = true;
