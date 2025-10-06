@@ -4,12 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <meta name="theme-color" content="#ffb744">
-  <title>雲丹ゐくら歌唱曲DB</title> 
+  <title>雲丹ゐくら歌唱曲DB</title>
+
+  <!-- 速度対策：DNSプリフェッチ & プレコネクト -->
+  <link rel="dns-prefetch" href="https://script.google.com">
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
 
   <style>
     :root{
       --bg:#ffb744; --card:#ffffff; --text:#1a1a1a; --muted:#6b7280; --line:#e5e7eb;
       --thead:#ffe0b5; --focus:#3897c9; --chip-bg:#f3f4f6; --chip-text:#111827;
+      --link:#2563eb; --pill-bg:#f6f7f9; /* 淡い灰 */
     }
     *{box-sizing:border-box}
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
@@ -20,8 +25,8 @@
     .row .search{flex:1 1 auto;min-width:0}
 
     .toolbar{
-      display:flex;align-items:center;justify-content:space-between; /* 左右端に配置 */
-      gap:8px; margin-top:8px; flex-wrap:wrap; /* 端末が狭いときは折り返す */
+      display:flex;align-items:center;justify-content:space-between;
+      gap:8px;margin-top:8px;flex-wrap:wrap;
     }
     /* 左側：件数（最短表示） */
     .limit-wrap{display:flex;align-items:center;gap:6px}
@@ -30,7 +35,7 @@
     #limit{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
 
     /* 右側：弾幕（表示3文字＋コピー短縮） */
-    .dm-group{display:flex;align-items:center;gap:6px}
+    .dm-group{display:flex;align-items:center;gap:6px;margin-left:auto}
     #dm-select{width:auto;min-width:84px;padding:6px 8px;font-size:14px;line-height:1.2}
     .dm-group .btn{padding:6px 10px;font-size:13px;white-space:nowrap}
 
@@ -61,17 +66,17 @@
       .btn{padding:8px 12px;font-size:14px}
     }
 
+    /* 囲みリンク（C/D）— 淡い灰背景＋青文字・省略可能 */
     .btn-pill{
-      display:inline-block;border:1px solid var(--line);background:#f6f7f9;color:#1d4ed8;
+      display:inline-block;border:1px solid var(--line);background:var(--pill-bg);color:var(--link);
       border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.2;text-decoration:none;
       white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis
     }
-    .btn-pill:hover{background:#eef2ff;text-decoration:underline}
+    .btn-pill:hover{background:#eef2f7;text-decoration:none}
     .btn-pill:active{transform:translateY(1px)}
 
-    /* 操作列（C/Dリンクとコピー）だけ 1px 小さく */
-    .ops .btn-pill{font-size:11px}
-    .ops .btn{font-size:11px}
+    /* 操作列（C/Dリンクとコピー）を 11pt に統一（PC＋モバイル） */
+    .ops .btn-pill, .ops .btn, .l2 .btn-pill, .l2 .btn { font-size:11pt; }
   </style>
 </head>
 <body>
@@ -83,7 +88,7 @@
       <input class="search" id="q" type="search" placeholder="曲名／アーティスト名で検索（例：群青日和／椎名林檎）" autocomplete="off">
     </div>
 
-    <!-- 2段目：左=件数 / 右=弾幕（space-betweenで左右端揃え） -->
+    <!-- 2段目：左=件数 / 右=弾幕 -->
     <div class="toolbar">
       <div class="limit-wrap">
         <label for="limit">件数</label>
@@ -120,32 +125,29 @@
 
   <script>
     /* ===== 設定 ===== */
-    // ★ 新デプロイID（iframeフォールバック対応のGAS）
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzi_3OjqVRu7XhvnHazzEBd0tgPE0zTa-rAIkboMtMP7R9AphUiQGPrCa3gdWhwZn97pw/exec';
-    const HARD_LIMIT = 20000; // 全件選択時の最大描画ガード
+    // あなたのデプロイID（GAS WebApp）
+    const BASE = 'https://script.google.com/macros/s/AKfycbzi_3OjqVRu7XhvnHazzEBd0tgPE0zTa-rAIkboMtMP7R9AphUiQGPrCa3gdWhwZn97pw/exec';
+    const SHEET_KEY = 'perf'; // サーバ側のデフォルトシートキー
+    const INITIAL_FETCH = 300; // 初回は必要十分な件数のみ取得（高速化）
+    const HARD_LIMIT = 20000;  // 全件要求時のサーバ上限ガード
 
-    const state = { rows: [], debounce: null };
+    const state = { rows: [], total: 0, fetchedLimit: 0, debounce: null };
 
-    /* ===== JSONP コールバック（既存のまま） ===== */
+    /* ===== JSONP コールバック ===== */
     function onGviz(payload) {
       try {
         if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
           $('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
           return;
         }
-        const rows = payload.rows
-          .map(r => [
-            r.artist || '',
-            r.title  || '',
-            r.cText  || '',
-            r.dText  || '',
-            r.cUrl   || '',
-            r.dUrl   || ''
-          ])
-          .filter(([a,b]) => ((a||'')+(b||'')).trim() !== '');
+        // rows: { artist,title,cText,dText,cUrl,dUrl } を配列に整形
+        const rows = payload.rows.map(r => [
+          r.artist || '', r.title || '', r.cText || '', r.dText || '', r.cUrl || '', r.dUrl || ''
+        ]).filter(([a,b]) => ((a||'')+(b||'')).trim() !== '');
 
         state.rows = rows;
-        $('status').textContent = `読み込み完了：${rows.length}件`;
+        state.total = Number(payload.matched || payload.total || rows.length);
+        $('status').textContent = `読み込み完了：${state.rows.length}件（全${state.total}件）`;
         render();
       } catch (e) {
         $('status').textContent = '読み込みに失敗しました';
@@ -156,7 +158,7 @@
 
     /* ===== ユーティリティ ===== */
     function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
-    function scheduleSearch(){ clearTimeout(state.debounce); state.debounce = setTimeout(render, 200); }
+    function scheduleSearch(){ clearTimeout(state.debounce); state.debounce = setTimeout(render, 160); }
     function $(id){ return document.getElementById(id); }
 
     function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
@@ -171,18 +173,13 @@
     }
 
     // 弾幕コピー
-    document.addEventListener('DOMContentLoaded', () => {
-      const btn = $('dm-copy');
-      if (btn) {
-        btn.addEventListener('click', async ()=>{
-          const text = $('dm-select').value || '';
-          try{
-            if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
-            else { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
-            showToast('弾幕をコピーしました');
-          }catch{ showToast('弾幕のコピーに失敗しました'); }
-        });
-      }
+    $('dm-copy').addEventListener('click', async ()=>{
+      const text = $('dm-select').value || '';
+      try{
+        if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+        else { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+        showToast('弾幕をコピーしました');
+      }catch{ showToast('弾幕のコピーに失敗しました'); }
     });
 
     function urlFromText(s){
@@ -203,7 +200,9 @@
 
       const q = normalize($('q').value || '');
       const raw = $('limit').value;
-      const limit = raw === 'all' ? Math.min(HARD_LIMIT, state.rows.length) : Math.min(parseInt(raw,10)||20, HARD_LIMIT);
+      const limit = raw === 'all'
+        ? Math.min(HARD_LIMIT, state.total || state.rows.length)
+        : Math.min(parseInt(raw,10)||20, HARD_LIMIT);
       const limitLabel = raw === 'all' ? '全件' : `${limit}件`;
 
       let filtered = state.rows;
@@ -216,8 +215,8 @@
       const rows = filtered.slice(0, limit);
 
       $('status').textContent = q
-        ? `${rows.length}件ヒット（全${filtered.length}件）／表示上限 ${limitLabel}`
-        : `表示中 ${rows.length}件（全${state.rows.length}件）／表示上限 ${limitLabel}`;
+        ? `${rows.length}件ヒット（全${filtered.length}件／総${state.total}件）／表示上限 ${limitLabel}`
+        : `表示中 ${rows.length}件（総${state.total}件）／表示上限 ${limitLabel}`;
 
       if (rows.length === 0) { hint.textContent = q ? '該当なし' : '検索結果がここに表示されます。'; return; }
       hint.textContent = '';
@@ -238,7 +237,7 @@
 
         const tdOps=document.createElement('td'); const ops=document.createElement('div'); ops.className='ops';
 
-        // C列リンク：文字列そのまま（囲み・青文字・淡灰背景）
+        // C列リンク：文字列そのまま（囲み）
         const cHref = cUrl || urlFromText(cText);
         if (cHref) {
           const aC=document.createElement('a');
@@ -249,7 +248,7 @@
           ops.appendChild(aC);
         }
 
-        // D列リンク：▶前回yyyy/mm/dd（囲み・青文字・淡灰背景）
+        // D列リンク：▶前回yyyy/mm/dd（囲み）
         const dHref = dUrl || urlFromText(dText);
         const dLabel = formatYmdLabel(dText);
         if (dHref) {
@@ -314,55 +313,32 @@
       $('mblist').style.display='block';
     }
 
-    /* ===== データ取得（JSONP→失敗時はiframeフォールバック） ===== */
-    function loadData(limit){
-      const cb = 'onGviz';
-      const v  = Date.now();
-      let fired = false;
-
-      // 1.2秒待ってもJSONP未着なら iframe に切替
-      const watchdog = setTimeout(() => {
-        if (fired) return;
-        loadIframeFallback(limit, cb, v);
-      }, 1200);
-
-      // JSONP
-      const s = document.createElement('script');
-      s.src = `${API_URL}?callback=${cb}&limit=${encodeURIComponent(limit)}&v=${v}`;
-      s.onerror = () => {
-        if (fired) return;
-        clearTimeout(watchdog);
-        loadIframeFallback(limit, cb, v);
-      };
+    /* ===== データ取得（JSONP: 初回は軽量・全件時は追加取得） ===== */
+    function fetchRows(limit){
+      // 同一URLならブラウザ/中継CDNがキャッシュしやすいよう、キャッシュバスターは付けない
+      const url = `${BASE}?callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}`;
+      const s=document.createElement('script');
+      s.src=url; s.async=true;
+      s.onerror=()=>{ $('status').textContent='データ取得に失敗しました（ネットワーク/ブロック）'; };
       document.head.appendChild(s);
-
-      // onGvizが呼ばれたらウォッチドッグ停止
-      const orig = window[cb];
-      window[cb] = function(payload){
-        fired = true;
-        clearTimeout(watchdog);
-        if (typeof orig === 'function') orig(payload);
-      };
+      state.fetchedLimit = limit;
     }
 
-    function loadIframeFallback(limit, cb, v){
-      const ifr = document.createElement('iframe');
-      ifr.src = `${API_URL}?frame=1&callback=${cb}&limit=${encodeURIComponent(limit)}&v=${v}`;
-      ifr.style.cssText = 'display:none;width:0;height:0;border:0';
-      document.body.appendChild(ifr);
-      const st = document.getElementById('status');
-      if (st) st.textContent = '読み込み中…（フォールバック適用）';
-    }
-
-    // 初回起動
-    document.addEventListener('DOMContentLoaded', () => {
-      loadData(HARD_LIMIT);
-    });
+    // 初回：必要十分（INITIAL_FETCH）のみ取得
+    fetchRows(INITIAL_FETCH);
 
     /* ===== イベント ===== */
-    document.addEventListener('DOMContentLoaded', () => {
-      $('q').addEventListener('input', scheduleSearch);
-      $('limit').addEventListener('change', render);
+    $('q').addEventListener('input', scheduleSearch);
+    $('limit').addEventListener('change', ()=>{
+      // 「全件」選択 & 未取得なら追加フェッチしてから描画
+      const raw = $('limit').value;
+      if (raw === 'all' && state.fetchedLimit < HARD_LIMIT) {
+        $('status').textContent = '全件を取得しています…';
+        fetchRows(HARD_LIMIT);
+        // onGviz -> render が走る
+      } else {
+        render();
+      }
     });
   </script>
 </body>
