@@ -4,17 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <meta name="theme-color" content="#e6f6ff">
-  <title>雲丹ゐくらDB</title> 
+  <title>雲丹ゐくらDB</title>
   <style>
-    :root{
-      --bg:#e6f6ff; --card:#ffffff; --text:#1a1a1a; --muted:#6b7280; --line:#e5e7eb;
-      --thead:#dff1ff; --focus:#3897c9; --tab-bg:#ffffff; --tab-active:#c8e7ff; --tab-border:#cbd5e1; --link:#2563eb;
-      --chip-bg:#f3f4f6; --chip-text:#111827;
-    }
+    :root{ --bg:#e6f6ff; --card:#fff; --text:#1a1a1a; --muted:#6b7280; --line:#e5e7eb; --thead:#dff1ff; --focus:#3897c9; --tab-bg:#fff; --tab-active:#c8e7ff; --tab-border:#cbd5e1; --link:#2563eb; --chip-bg:#f3f4f6; --chip-text:#111827; }
     *{box-sizing:border-box}
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
-
     .topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;margin-bottom:8px}
     .tabs{display:flex;gap:8px;flex-wrap:wrap}
     .tab{appearance:none;border:1px solid var(--tab-border);background:var(--tab-bg);color:var(--text);border-radius:999px;padding:8px 14px;font-size:14px;cursor:pointer}
@@ -22,12 +17,10 @@
     .tab:focus{outline:3px solid var(--focus);outline-offset:2px}
     .limit-wrap{display:flex;align-items:center;gap:8px}
     #limit{padding:6px 10px;font-size:14px;line-height:1.2;width:auto;min-width:120px}
-
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .row>*{flex:1}
     input[type="search"],select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font-size:16px;background:#fff;color:var(--text);outline:none}
-    input[type="search"]:focus,select:focus,.btn:focus,.link-icon:focus,.link-btn:focus{outline:3px solid var(--focus);outline-offset:2px}
-
+    input[type="search"]:focus,select:focus,.btn:focus,.link-icon:focus{outline:3px solid var(--focus);outline-offset:2px}
     .dm-wrap{display:flex;align-items:center;gap:8px;margin-top:8px}
     .dm-select-wrap{flex:7 1 0}
     .dm-btn-wrap{flex:3 1 0;display:flex}
@@ -36,11 +29,9 @@
     .btn:hover{background:#f9fafb}
     .btn:active{transform:translateY(1px)}
     .btn-full{width:100%}
-
     .muted{color:var(--muted);font-size:13px}
     .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(17,24,39,.92);color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s}
     .toast.show{opacity:1}
-
     table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}
     th,td{border-bottom:1px solid var(--line);padding:10px 8px;font-size:15px;vertical-align:top}
     th{position:sticky;top:0;background:var(--thead);z-index:1;font-weight:700}
@@ -51,19 +42,7 @@
     .link-icon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;line-height:1;text-decoration:none;font-size:18px;border-radius:8px}
     .link-icon:hover{background:#f3f4f6}
     .link-icon:active{transform:translateY(1px)}
-
-    .kind-chip{
-      display:inline-flex;align-items:center;
-      max-width:100%;
-      padding:4px 8px;
-      border-radius:999px;
-      font-size:13px;
-      background:var(--chip-bg);
-      color:var(--chip-text);
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-      border:1px solid var(--line);
-    }
-
+    .kind-chip{display:inline-flex;align-items:center;max-width:100%;padding:4px 8px;border-radius:999px;font-size:13px;background:var(--chip-bg);color:var(--chip-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line)}
     @media (max-width:768px){
       table{display:none}
       .mobile-list{display:block;margin-top:10px}
@@ -74,7 +53,6 @@
       .dm-select-wrap{flex:7 1 0}
       .dm-btn-wrap{flex:3 1 0}
     }
-
     .page{display:none}.page.active{display:block}
     .history-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
     .back{appearance:none;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font-size:14px;cursor:pointer}
@@ -155,118 +133,108 @@
     // ===== GAS デプロイID =====
     const DEPLOY_ID = 'AKfycbz3dNCpijcCsBhcPlo5i7VtlGIO-InVGqqYj7YKMwdU2WO9NVJaGUgkJaTWwKR0JCQo1w';
 
-    // 変更点①: /u/N を廃止し、素の /macros/s/ のみ試行
+    // まずは素の /macros/s/ のみ（/u/N は使わない）
     const CANDIDATES = [
-      (id)=>`https://script.google.com/macros/s/${id}/exec`, // まずは素の /s/ のみ
+      (id)=>`https://script.google.com/macros/s/${id}/exec`,
     ];
 
     const HARD_LIMIT = 10000;
 
-    const state = {
-      rows: [],
-      grouped: null,
-      debounce: null,
-      lastScroll: 0,
-      histKey: null
-    };
+    const state = { rows: [], grouped: null, debounce: null, lastScroll: 0, histKey: null };
 
     const $ = id => document.getElementById(id);
     const normalize = s => (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim();
     const showToast = msg => { const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); };
     async function copyText(text){
-      try{
-        if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
         else{ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
-        showToast('コピーしました');
-      }catch{ showToast('コピーに失敗しました'); }
+        showToast('コピーしました'); }catch{ showToast('コピーに失敗しました'); }
     }
-    async function copyPair(title, artist){
-      const text = `${(title||'').trim()} / ${(artist||'').trim()}`.trim();
-      await copyText(text);
-    }
-    $('dm-copy').addEventListener('click', ()=>{ const v = $('dm-select').value || ''; copyText(v); });
+    async function copyPair(title, artist){ await copyText(`${(title||'').trim()} / ${(artist||'').trim()}`.trim()); }
+    $('dm-copy').addEventListener('click', ()=> copyText($('dm-select').value || '') );
 
     const urlFromText = s => { if(!s) return ''; const m=String(s).match(/https?:\/\/\S+/); return m ? m[0].replace(/[)\]\s]+$/,'') : ''; };
     const extractDate8 = s => { const m=/^(\d{8})/.exec(String(s||'')); return m ? parseInt(m[1],10) : 0; };
 
     function showPage(id){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); $(id).classList.add('active'); }
 
-    // ===== JSONP 受信（一度ヒットしたら以後は追加ロードを無視） =====
-    let __jsonpHit = false;
-    let __watchdog = null;
-    let __usingUrl = '';
+    // ===== JSONP 受信 =====
+    let __jsonpHit = false, __watchdog = null, __usingUrl = '', __iframeTried = false;
 
     function onGviz(payload){
-      if (__jsonpHit) return; // 二重着弾ガード
+      if (__jsonpHit) return;
       __jsonpHit = true;
       try{ clearTimeout(__watchdog); }catch(e){}
       try{
         if (!payload || payload.ok !== true || !Array.isArray(payload.rows)) throw new Error('bad payload');
 
-        const rows = payload.rows
-          .map(r=>({
-            artist: r.artist ?? '',
-            title : r.title  ?? '',
-            kind  : r.note   ?? r.kind ?? '',
-            dText : r.dText  ?? r.text ?? '',
-            dUrl  : r.dUrl   ?? r.url  ?? '',
-            _na   : normalize(r.artist ?? ''),
-            _nt   : normalize(r.title  ?? '')
-          }))
-          .filter(r => ((r.artist||'')+(r.title||'')).trim()!=='' );
+        const rows = payload.rows.map(r=>({
+          artist: r.artist ?? '',
+          title : r.title  ?? '',
+          kind  : r.note   ?? r.kind ?? '',
+          dText : r.dText  ?? r.text ?? '',
+          dUrl  : r.dUrl   ?? r.url  ?? '',
+          _na   : normalize(r.artist ?? ''),
+          _nt   : normalize(r.title  ?? '')
+        })).filter(r => ((r.artist||'')+(r.title||'')).trim()!=='' );
 
         state.rows = rows;
         $('status').textContent = `読み込み完了：${rows.length}件`;
         buildHistoryIndex(rows);
         render();
-
-        console.log('[JSONP] SUCCESS via', __usingUrl);
+        console.log('[DATA] via', __usingUrl);
       }catch(e){
         console.error(e);
         $('status').textContent = '読み込みに失敗しました';
       }
     }
-    // グローバル公開（GASのcallback=onGviz が呼ぶ）
     window.onGviz = onGviz;
 
     function injectScript(src){
       const s=document.createElement('script');
-      s.src=src;
-      s.async=true;
-      s.onerror=()=>{ if (!__jsonpHit) console.warn('[JSONP] error', src); };
+      s.src=src; s.async=true;
+      s.onerror=()=>{ if (!__jsonpHit) console.warn('[JSONP] onerror', src); };
       document.head.appendChild(s);
-      return s;
     }
 
-    // 変更点②: クエリから authuser を完全に削除
-    function requestPerfWithFallback(){
-      const qs = `?callback=onGviz&sheet=perf&limit=${HARD_LIMIT}&v=${Date.now()}`;
-      let i = 0;
-      const tryNext = ()=>{
-        if (__jsonpHit) return;
-        if (i >= CANDIDATES.length){
-          $('status').textContent = 'データ取得に失敗しました（JSONP未着／API_URLとデプロイ設定を確認）';
-          return;
-        }
-        const base = CANDIDATES[i++](DEPLOY_ID);
-        const url = base + qs;
-        __usingUrl = url;
-        console.log('[JSONP] TRY', url);
-        injectScript(url);
-        // 600ms 後に次候補…（今は候補1つだけなので実質1回）
-        setTimeout(tryNext, 600);
-      };
+    // JSONP → 失敗/ORB時は iframe で再試行（frame=1）
+    function requestPerf(){
+      const base = CANDIDATES[0](DEPLOY_ID);
+      const qs   = `?callback=onGviz&sheet=perf&limit=${HARD_LIMIT}&v=${Date.now()}`;
+      __usingUrl = base + qs;
 
-      tryNext();
+      // 1) JSONP（<script>）
+      injectScript(__usingUrl);
+
+      // 2) 1秒待ってヒットしなければ iframe フォールバック（ORB回避）
+      setTimeout(()=>{
+        if (!__jsonpHit && !__iframeTried) {
+          __iframeTried = true;
+          requestPerfViaIframe();
+        }
+      }, 1000);
+
+      // 3) 全体の見切り
       try{ clearTimeout(__watchdog); }catch(e){}
       __watchdog = setTimeout(()=>{
-        if(!__jsonpHit) $('status').textContent = 'データ取得に失敗しました（JSONP未着／API_URLとデプロイ設定を確認）';
+        if(!__jsonpHit) $('status').textContent = 'データ取得に失敗しました（JSONP/iframeいずれも未着）';
       }, 15000);
+    }
+
+    function requestPerfViaIframe(){
+      const base = CANDIDATES[0](DEPLOY_ID);
+      const url  = `${base}?frame=1&callback=onGviz&sheet=perf&limit=${HARD_LIMIT}&v=${Date.now()}`;
+      const ifr = document.createElement('iframe');
+      ifr.src = url;
+      ifr.loading = 'eager';
+      ifr.style.cssText = 'display:none;width:0;height:0;border:0';
+      document.body.appendChild(ifr);
+      console.log('[FALLBACK iframe]', url);
     }
 
     // ===== 履歴集計 =====
     function buildHistoryIndex(rows){
-      const map = new Map(); // key: `${_na}|${_nt}` => [{date,url,kind}]
+      const map = new Map();
       for(const r of rows){
         const key = `${r._na}|${r._nt}`;
         const url = r.dUrl || urlFromText(r.dText);
@@ -282,10 +250,8 @@
       state.histKey = { artist, title };
       $('hist-title').textContent = `${artist || ''} / ${title || ''}`;
 
-      const wrap = $('hist-list');
-      const empty = $('hist-empty');
-      wrap.innerHTML = '';
-      empty.style.display = 'none';
+      const wrap = $('hist-list'); const empty = $('hist-empty');
+      wrap.innerHTML = ''; empty.style.display = 'none';
 
       const key = `${normalize(artist)}|${normalize(title)}`;
       const list = (state.grouped && state.grouped.get(key)) || [];
@@ -302,15 +268,12 @@
           const dateLabel = date ? `${yyyy}/${String(mm).padStart(2,'0')}/${String(dd).padStart(2,'0')}` : '----/--/--';
 
           const row = document.createElement('div'); row.className='history-item';
-
           const left = document.createElement('div'); left.className='history-left';
           const dt = document.createElement('span'); dt.className = 'history-date'; dt.textContent = dateLabel; left.appendChild(dt);
           if ((kind||'').trim() !== '') { const k = document.createElement('span'); k.className = 'kind-chip'; k.textContent = kind; left.appendChild(k); }
-
           const right = document.createElement('div');
           if (url) { const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.textContent='▶ 開く'; right.appendChild(a); }
           else { const span=document.createElement('span'); span.className='muted'; span.textContent='リンクなし'; right.appendChild(span); }
-
           row.appendChild(left); row.appendChild(right); frag.appendChild(row);
         }
         wrap.appendChild(frag);
@@ -366,36 +329,18 @@
         const tbody=document.createElement('tbody');
         rows.forEach(({artist,title,kind,dText,dUrl})=>{
           const tr=document.createElement('tr');
-
           let td=document.createElement('td'); td.textContent=artist||''; tr.appendChild(td);
           td=document.createElement('td'); td.textContent=title||''; tr.appendChild(td);
 
           const tdOps=document.createElement('td');
           const ops=document.createElement('div'); ops.className='ops';
-
-          if ((kind||'').trim()!==''){
-            const k=document.createElement('span'); k.className='kind-chip'; k.textContent=kind;
-            ops.appendChild(k);
-          }
-
+          if ((kind||'').trim()!==''){ const k=document.createElement('span'); k.className='kind-chip'; k.textContent=kind; ops.appendChild(k); }
           const url = latestUrl({dText,dUrl});
-          if (url){
-            const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.className='link-icon'; a.textContent='▶'; a.title='リンクを開く';
-            ops.appendChild(a);
-          }
-
+          if (url){ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.className='link-icon'; a.textContent='▶'; a.title='リンクを開く'; ops.appendChild(a); }
           const hbtn=document.createElement('button'); hbtn.className='btn'; hbtn.textContent='履歴';
-          hbtn.addEventListener('click', ()=>{
-            state.lastScroll = window.scrollY || document.documentElement.scrollTop || 0;
-            showPage('page-history');
-            renderHistory(artist, title);
-          });
+          hbtn.addEventListener('click', ()=>{ state.lastScroll = window.scrollY || document.documentElement.scrollTop || 0; showPage('page-history'); renderHistory(artist, title); });
           ops.appendChild(hbtn);
-
-          const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
-          btn.addEventListener('click', ()=>copyPair(title,artist));
-          ops.appendChild(btn);
-
+          const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー'; btn.addEventListener('click', ()=>copyPair(title,artist)); ops.appendChild(btn);
           tdOps.appendChild(ops); tr.appendChild(tdOps); tbody.appendChild(tr);
         });
         table.appendChild(tbody); tableWrap.appendChild(table);
@@ -408,32 +353,13 @@
           const sep=document.createElement('span'); sep.className='sep'; sep.textContent='/';
           const t1=document.createElement('span'); t1.className='title'; t1.textContent=title||'';
           l1.appendChild(a1); l1.appendChild(sep); l1.appendChild(t1);
-
           const l2=document.createElement('div'); l2.className='l2';
-
-          if ((kind||'').trim()!==''){
-            const k=document.createElement('span'); k.className='kind-chip'; k.textContent=kind;
-            l2.appendChild(k);
-          }
-
-          const url = latestUrl({dText,dUrl});
-          if (url){
-            const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.className='link-icon'; a.textContent='▶'; a.title='リンクを開く';
-            l2.appendChild(a);
-          }
-
+          if ((kind||'').trim()!==''){ const k=document.createElement('span'); k.className='kind-chip'; k.textContent=kind; l2.appendChild(k); }
+          const url = (dUrl || urlFromText(dText));
+          if (url){ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.className='link-icon'; a.textContent='▶'; a.title='リンクを開く'; l2.appendChild(a); }
           const hbtn=document.createElement('button'); hbtn.className='btn'; hbtn.textContent='履歴';
-          hbtn.addEventListener('click', ()=>{
-            state.lastScroll = window.scrollY || document.documentElement.scrollTop || 0;
-            showPage('page-history');
-            renderHistory(artist, title);
-          });
-          l2.appendChild(hbtn);
-
-          const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
-          btn.addEventListener('click', ()=>copyPair(title,artist));
-          l2.appendChild(btn);
-
+          hbtn.addEventListener('click', ()=>{ state.lastScroll = window.scrollY || document.documentElement.scrollTop || 0; showPage('page-history'); renderHistory(artist, title); }); l2.appendChild(hbtn);
+          const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー'; btn.addEventListener('click', ()=>copyPair(title,artist)); l2.appendChild(btn);
           item.appendChild(l1); item.appendChild(l2); $('mblist').appendChild(item);
         });
         $('mblist').style.display = 'block'; $('table').style.display = 'none';
@@ -443,14 +369,12 @@
     $('btn-back').addEventListener('click', ()=>{ showPage('page-list'); window.scrollTo({ top: state.lastScroll || 0 }); });
     window.addEventListener('resize', ()=>{ clearTimeout(state.debounce); state.debounce=setTimeout(render,150); });
 
-    // 起動：DOM構築後に候補URLを自動試行
     window.addEventListener('DOMContentLoaded', ()=>{
       document.getElementById('tab-perf').addEventListener('click', ()=>{});
       document.getElementById('q').addEventListener('input', ()=>{ clearTimeout(state.debounce); state.debounce=setTimeout(render,200); });
       document.getElementById('limit').addEventListener('change', render);
-
       $('status').textContent = '読み込み中…';
-      requestPerfWithFallback();
+      requestPerf();
     });
   </script>
 </body>
