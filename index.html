@@ -4,35 +4,32 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <meta name="theme-color" content="#ffb744">
-  <title>雲丹ゐくら歌唱曲DB</title>
-
-  <!-- 接続の先行確立で初回の待ち時間を短縮 -->
-  <link rel="preconnect" href="https://script.google.com" crossorigin>
-  <link rel="dns-prefetch" href="https://script.google.com">
+  <title>雲丹ゐくら歌唱曲DB</title> 
 
   <style>
     :root{
       --bg:#ffb744; --card:#ffffff; --text:#1a1a1a; --muted:#6b7280; --line:#e5e7eb;
       --thead:#ffe0b5; --focus:#3897c9; --chip-bg:#f3f4f6; --chip-text:#111827;
-      --link:#2563eb;
     }
     *{box-sizing:border-box}
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 
-    /* ====== ヘッダー ====== */
+    /* ====== ヘッダー：1段目=検索、2段目=左右に揃えたツールバー ====== */
     .row{display:flex;gap:8px;align-items:center}
     .row .search{flex:1 1 auto;min-width:0}
 
     .toolbar{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:8px;margin-top:8px;flex-wrap:wrap;
+      display:flex;align-items:center;justify-content:space-between; /* 左右端に配置 */
+      gap:8px; margin-top:8px; flex-wrap:wrap; /* 端末が狭いときは折り返す */
     }
+    /* 左側：件数（最短表示） */
     .limit-wrap{display:flex;align-items:center;gap:6px}
     .limit-wrap label,
     .dm-group label{font-size:12px;color:var(--muted);white-space:nowrap}
     #limit{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
 
+    /* 右側：弾幕（表示3文字＋コピー短縮） */
     .dm-group{display:flex;align-items:center;gap:6px}
     #dm-select{width:auto;min-width:84px;padding:6px 8px;font-size:14px;line-height:1.2}
     .dm-group .btn{padding:6px 10px;font-size:13px;white-space:nowrap}
@@ -64,36 +61,29 @@
       .btn{padding:8px 12px;font-size:14px}
     }
 
-    /* pill（囲み） */
     .btn-pill{
-      display:inline-block;border:1px solid var(--line);background:#fff;color:var(--text);
+      display:inline-block;border:1px solid var(--line);background:#f6f7f9;color:#1d4ed8;
       border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.2;text-decoration:none;
       white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis
     }
-    .btn-pill:hover{ text-decoration:none }
+    .btn-pill:hover{background:#eef2ff;text-decoration:underline}
+    .btn-pill:active{transform:translateY(1px)}
 
-    /* 操作列のフォントを1pt小さく（C/D/コピー） */
-    .ops .btn-pill{font-size:13px}
-    .ops .btn{font-size:13px}
-
-    /* C/Dリンク（a.btn-pill）：青文字＋淡い灰色のフラット背景 */
-    a.btn-pill{
-      color:var(--link);
-      background-color:var(--chip-bg);
-      border-color:var(--line);
-    }
-    a.btn-pill:visited{color:var(--link)}
-    a.btn-pill:hover{text-decoration:underline}
+    /* 操作列（C/Dリンクとコピー）だけ 1px 小さく */
+    .ops .btn-pill{font-size:11px}
+    .ops .btn{font-size:11px}
   </style>
 </head>
 <body>
 
-  <!-- 検索カード -->
+  <!-- ===== 検索UI ===== -->
   <div class="card">
+    <!-- 1段目：検索 -->
     <div class="row">
       <input class="search" id="q" type="search" placeholder="曲名／アーティスト名で検索（例：群青日和／椎名林檎）" autocomplete="off">
     </div>
 
+    <!-- 2段目：左=件数 / 右=弾幕（space-betweenで左右端揃え） -->
     <div class="toolbar">
       <div class="limit-wrap">
         <label for="limit">件数</label>
@@ -108,6 +98,7 @@
       <div class="dm-group" aria-label="弾幕コピー">
         <label for="dm-select">弾幕</label>
         <select id="dm-select" title="弾幕を選択">
+          <!-- 表示は3文字、値はフル -->
           <option value="🍣🧡🍣🧡🍣🧡">🍣🧡🍣</option>
           <option value="🍣🧡🎶🍣🧡🎶">🍣🧡🎶</option>
         </select>
@@ -118,7 +109,7 @@
     <div class="muted" id="status">読み込み中…</div>
   </div>
 
-  <!-- 結果 -->
+  <!-- ===== 結果表示 ===== -->
   <div class="card" style="margin-top:12px;">
     <div class="muted" id="hint">検索結果がここに表示されます。</div>
     <div id="table"></div>
@@ -129,34 +120,39 @@
 
   <script>
     /* ===== 設定 ===== */
+    // ★ 新デプロイID（iframeフォールバック対応のGAS）
     const API_URL = 'https://script.google.com/macros/s/AKfycbzi_3OjqVRu7XhvnHazzEBd0tgPE0zTa-rAIkboMtMP7R9AphUiQGPrCa3gdWhwZn97pw/exec';
-    const HARD_LIMIT = 20000;          // 全件の上限（保険）
-    const FIRST_FETCH_LIMIT = 50;      // 起動直後の軽量フェッチ件数
-    const CACHE_KEY = 'perfCache_v1';  // localStorage キー（スキーマ変更時はvを上げる）
-    const CACHE_TTL_MS = 24*60*60*1000;// 24時間
+    const HARD_LIMIT = 20000; // 全件選択時の最大描画ガード
 
-    let activeToken = 0;               // JSONPリクエストの最新判定トークン
     const state = { rows: [], debounce: null };
 
-    /* ===== JSONP 応答を標準処理 ===== */
+    /* ===== JSONP コールバック（既存のまま） ===== */
     function onGviz(payload) {
       try {
         if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
-          document.getElementById('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
+          $('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
           return;
         }
         const rows = payload.rows
-          .map(r => [ r.artist||'', r.title||'', r.cText||'', r.dText||'', r.cUrl||'', r.dUrl||'' ])
+          .map(r => [
+            r.artist || '',
+            r.title  || '',
+            r.cText  || '',
+            r.dText  || '',
+            r.cUrl   || '',
+            r.dUrl   || ''
+          ])
           .filter(([a,b]) => ((a||'')+(b||'')).trim() !== '');
+
         state.rows = rows;
-        document.getElementById('status').textContent = `読み込み完了：${rows.length}件`;
+        $('status').textContent = `読み込み完了：${rows.length}件`;
         render();
       } catch (e) {
-        document.getElementById('status').textContent = '読み込みに失敗しました';
+        $('status').textContent = '読み込みに失敗しました';
         console.error(e);
       }
     }
-    window.onGviz = onGviz; // 念のため残す（互換性）
+    window.onGviz = onGviz;
 
     /* ===== ユーティリティ ===== */
     function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
@@ -174,10 +170,11 @@
       }catch{ showToast('コピーに失敗しました'); }
     }
 
-    document.addEventListener('DOMContentLoaded', ()=>{
-      const dmBtn = $('dm-copy');
-      if(dmBtn){
-        dmBtn.addEventListener('click', async ()=>{
+    // 弾幕コピー
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = $('dm-copy');
+      if (btn) {
+        btn.addEventListener('click', async ()=>{
           const text = $('dm-select').value || '';
           try{
             if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
@@ -198,62 +195,15 @@
       return m ? `${m[1]}/${m[2]}/${m[3]}` : null;
     }
 
-    /* ====== 高速化 1：キャッシュで即描画 ====== */
-    (function bootWithCache(){
-      try{
-        const raw = localStorage.getItem(CACHE_KEY);
-        if(!raw) return;
-        const {rows, ts} = JSON.parse(raw);
-        if(!rows || !Array.isArray(rows)) return;
-        state.rows = rows;
-        $('status').textContent = `キャッシュから表示：${rows.length}件` + ((Date.now() - (ts||0) > CACHE_TTL_MS)?'（更新中…）':'');
-        render();
-      }catch(_){}
-    })();
-
-    /* ====== 高速化 2：JSONP（トークン制御・キャッシュ更新） ====== */
-    function loadJsonp(limit, cbBaseName){
-      const token = ++activeToken;
-      const callback = `${cbBaseName}_${token}`;
-      window[callback] = function(payload){
-        if(token !== activeToken) return;          // 古い応答は無視
-        try{
-          onGviz(payload);                          // 標準処理
-          if(payload && payload.ok && Array.isArray(payload.rows)){
-            const rows = payload.rows
-              .map(r => [ r.artist||'', r.title||'', r.cText||'', r.dText||'', r.cUrl||'', r.dUrl||'' ])
-              .filter(([a,b]) => ((a||'')+(b||'')).trim() !== '');
-            localStorage.setItem(CACHE_KEY, JSON.stringify({ rows, ts: Date.now() }));
-          }
-        }finally{
-          try{ delete window[callback]; }catch(_){}
-        }
-      };
-      const s = document.createElement('script');
-      s.src = `${API_URL}?callback=${callback}&limit=${encodeURIComponent(limit)}&v=${Date.now()}`;
-      s.onerror = ()=>{ $('status').textContent = 'データ取得に失敗しました（ネットワーク/ブロック）'; };
-      document.head.appendChild(s);
-    }
-
-    /* ====== 高速化 3：二段階ロード ======
-       1) 起動直後は FIRST_FETCH_LIMIT 件のみ（軽量）で即描画
-       2) 1秒後に全件（HARD_LIMIT）をバックグラウンドで取得→上書き描画＆キャッシュ更新
-    */
-    (function fastBoot(){
-      loadJsonp(FIRST_FETCH_LIMIT, 'onGviz');      // 軽量フェッチ
-      setTimeout(()=> loadJsonp(HARD_LIMIT, 'onGviz'), 1000);  // 全量フェッチ
-    })();
-
-    /* ====== 描画（DocumentFragment で塊差し込み） ====== */
+    /* ===== 描画 ===== */
     function render(){
       const tableWrap = $('table'); tableWrap.innerHTML = '';
-      const listWrap  = $('mblist'); listWrap.innerHTML = '';
+      const listWrap = $('mblist'); listWrap.innerHTML = '';
       const hint = $('hint');
 
       const q = normalize($('q').value || '');
       const raw = $('limit').value;
-      const limit = raw === 'all' ? Math.min(HARD_LIMIT, state.rows.length)
-                                  : Math.min(parseInt(raw,10)||20, HARD_LIMIT);
+      const limit = raw === 'all' ? Math.min(HARD_LIMIT, state.rows.length) : Math.min(parseInt(raw,10)||20, HARD_LIMIT);
       const limitLabel = raw === 'all' ? '全件' : `${limit}件`;
 
       let filtered = state.rows;
@@ -272,19 +222,15 @@
       if (rows.length === 0) { hint.textContent = q ? '該当なし' : '検索結果がここに表示されます。'; return; }
       hint.textContent = '';
 
-      // ==== PCテーブル ====
+      /* ==== PCテーブル ==== */
       const table = document.createElement('table');
       const thead = document.createElement('thead');
       const trh = document.createElement('tr');
-      ['アーティスト名','曲名','操作'].forEach(h=>{
-        const th=document.createElement('th'); th.textContent=h; trh.appendChild(th);
-      });
+      ['アーティスト名','曲名','操作'].forEach(h=>{ const th=document.createElement('th'); th.textContent=h; trh.appendChild(th); });
       thead.appendChild(trh); table.appendChild(thead);
 
       const tbody = document.createElement('tbody');
-      const tfrag = document.createDocumentFragment();
-
-      for(const [artist, title, cText, dText, cUrl, dUrl] of rows){
+      rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
         const tr=document.createElement('tr');
 
         let td=document.createElement('td'); td.textContent=artist||''; tr.appendChild(td);
@@ -292,6 +238,7 @@
 
         const tdOps=document.createElement('td'); const ops=document.createElement('div'); ops.className='ops';
 
+        // C列リンク：文字列そのまま（囲み・青文字・淡灰背景）
         const cHref = cUrl || urlFromText(cText);
         if (cHref) {
           const aC=document.createElement('a');
@@ -302,6 +249,7 @@
           ops.appendChild(aC);
         }
 
+        // D列リンク：▶前回yyyy/mm/dd（囲み・青文字・淡灰背景）
         const dHref = dUrl || urlFromText(dText);
         const dLabel = formatYmdLabel(dText);
         if (dHref) {
@@ -317,16 +265,13 @@
         btn.addEventListener('click',()=>copyPair(title,artist));
         ops.appendChild(btn);
 
-        tdOps.appendChild(ops); tr.appendChild(tdOps);
-        tfrag.appendChild(tr);
-      }
-      tbody.appendChild(tfrag);
+        tdOps.appendChild(ops); tr.appendChild(tdOps); tbody.appendChild(tr);
+      });
       table.appendChild(tbody);
       tableWrap.appendChild(table);
 
-      // ==== モバイル2行カード ====
-      const lfrag = document.createDocumentFragment();
-      for(const [artist, title, cText, dText, cUrl, dUrl] of rows){
+      /* ==== スマホ2行カード ==== */
+      rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
         const item=document.createElement('div'); item.className='item';
 
         const l1=document.createElement('div'); l1.className='l1';
@@ -363,15 +308,62 @@
         l2.appendChild(btn);
 
         item.appendChild(l1); item.appendChild(l2);
-        lfrag.appendChild(item);
-      }
-      listWrap.appendChild(lfrag);
-      listWrap.style.display='block';
+        $('mblist').appendChild(item);
+      });
+
+      $('mblist').style.display='block';
     }
 
-    // 入力イベント
-    $('q').addEventListener('input', scheduleSearch);
-    $('limit').addEventListener('change', render);
+    /* ===== データ取得（JSONP→失敗時はiframeフォールバック） ===== */
+    function loadData(limit){
+      const cb = 'onGviz';
+      const v  = Date.now();
+      let fired = false;
+
+      // 1.2秒待ってもJSONP未着なら iframe に切替
+      const watchdog = setTimeout(() => {
+        if (fired) return;
+        loadIframeFallback(limit, cb, v);
+      }, 1200);
+
+      // JSONP
+      const s = document.createElement('script');
+      s.src = `${API_URL}?callback=${cb}&limit=${encodeURIComponent(limit)}&v=${v}`;
+      s.onerror = () => {
+        if (fired) return;
+        clearTimeout(watchdog);
+        loadIframeFallback(limit, cb, v);
+      };
+      document.head.appendChild(s);
+
+      // onGvizが呼ばれたらウォッチドッグ停止
+      const orig = window[cb];
+      window[cb] = function(payload){
+        fired = true;
+        clearTimeout(watchdog);
+        if (typeof orig === 'function') orig(payload);
+      };
+    }
+
+    function loadIframeFallback(limit, cb, v){
+      const ifr = document.createElement('iframe');
+      ifr.src = `${API_URL}?frame=1&callback=${cb}&limit=${encodeURIComponent(limit)}&v=${v}`;
+      ifr.style.cssText = 'display:none;width:0;height:0;border:0';
+      document.body.appendChild(ifr);
+      const st = document.getElementById('status');
+      if (st) st.textContent = '読み込み中…（フォールバック適用）';
+    }
+
+    // 初回起動
+    document.addEventListener('DOMContentLoaded', () => {
+      loadData(HARD_LIMIT);
+    });
+
+    /* ===== イベント ===== */
+    document.addEventListener('DOMContentLoaded', () => {
+      $('q').addEventListener('input', scheduleSearch);
+      $('limit').addEventListener('change', render);
+    });
   </script>
 </body>
 </html>
