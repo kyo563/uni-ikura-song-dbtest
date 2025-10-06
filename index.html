@@ -68,25 +68,21 @@
       border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.2;text-decoration:none;
       white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis
     }
-    /* ← ここでは hover の背景を変えない（網掛けを消さないため） */
+    /* hover で背景は上書きしない（フラット背景のまま） */
     .btn-pill:hover{ text-decoration:none }
 
     /* 操作列だけ 1px 小さく（C/D/コピーのサイズ） */
     .ops .btn-pill{font-size:13px}
     .ops .btn{font-size:13px}
 
-    /* === 重要：リンク（a.btn-pill）として使う pill は青＋薄い灰色の網掛け === */
+    /* === C/Dリンク（a.btn-pill）：青文字＋淡い灰色のフラット背景 === */
     a.btn-pill{
       color: var(--link);
-      background-color: var(--chip-bg); /* 薄い灰色 */
-      background-image:
-        repeating-linear-gradient(45deg,
-          rgba(0,0,0,0.04) 0, rgba(0,0,0,0.04) 6px,
-          rgba(0,0,0,0) 6px, rgba(0,0,0,0) 12px);
+      background-color: var(--chip-bg); /* 淡い灰色 */
       border-color: var(--line);
     }
     a.btn-pill:visited{ color: var(--link); }
-    a.btn-pill:hover{ text-decoration: underline; } /* 背景は上書きしない */
+    a.btn-pill:hover{ text-decoration: underline; } /* 背景は変えない */
   </style>
 </head>
 <body>
@@ -237,7 +233,7 @@
 
         const tdOps=document.createElement('td'); const ops=document.createElement('div'); ops.className='ops';
 
-        // C列リンク（囲み＋網掛け＋青）
+        // C列リンク（青＋淡い灰色のフラット背景）
         const cHref = cUrl || urlFromText(cText);
         if (cHref) {
           const aC=document.createElement('a');
