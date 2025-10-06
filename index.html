@@ -15,26 +15,27 @@
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 
-    /* ====== ヘッダー行（1行で収める） ====== */
-    .row{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
-    .row > .search{flex:1 1 auto;min-width:0}
-    .row > .limit-wrap{flex:0 0 auto}
-    .row > .dm-group{flex:0 0 auto}
+    /* ====== ヘッダー：1段目=検索、2段目=左右に揃えたツールバー ====== */
+    .row{display:flex;gap:8px;align-items:center}
+    .row .search{flex:1 1 auto;min-width:0}
+
+    .toolbar{
+      display:flex;align-items:center;justify-content:space-between; /* 左右端に配置 */
+      gap:8px; margin-top:8px; flex-wrap:wrap; /* 端末が狭いときは折り返す */
+    }
+    /* 左側：件数（最短表示） */
+    .limit-wrap{display:flex;align-items:center;gap:6px}
+    .limit-wrap label,
+    .dm-group label{font-size:12px;color:var(--muted);white-space:nowrap}
+    #limit{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
+
+    /* 右側：弾幕（表示3文字＋コピー短縮） */
+    .dm-group{display:flex;align-items:center;gap:6px}
+    #dm-select{width:auto;min-width:84px;padding:6px 8px;font-size:14px;line-height:1.2}
+    .dm-group .btn{padding:6px 10px;font-size:13px;white-space:nowrap}
 
     input[type="search"],select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:15px;background:#fff;color:var(--text);outline:none}
     input[type="search"]:focus,select:focus,.btn:focus,.btn-pill:focus{outline:3px solid var(--focus);outline-offset:2px}
-
-    /* 件数セレクト（最短表示） */
-    .limit-wrap{display:flex;align-items:center;gap:6px;margin-left:6px} /* ← 弾幕コピーと件数の間に少しの余白 */
-    .limit-wrap label{font-size:12px;color:var(--muted);white-space:nowrap}
-    #limit{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
-
-    /* 弾幕UI（表示3文字＋ボタン短縮） */
-    .dm-group{display:flex;gap:6px;align-items:center}
-    /* 「件数」と同サイズのラベルを弾幕にも適用 */
-    .dm-group label{font-size:12px;color:var(--muted);white-space:nowrap}
-    #dm-select{width:auto;min-width:84px;padding:6px 8px;font-size:14px;line-height:1.2}
-    .dm-group .btn{padding:6px 10px;font-size:13px;white-space:nowrap}
 
     .muted{color:var(--muted);font-size:13px}
     .btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:10px;padding:8px 12px;font-size:14px;cursor:pointer}
@@ -51,8 +52,6 @@
     .ops{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 
     @media (max-width:768px){
-      .row{flex-wrap:wrap}
-      .limit-wrap,.dm-group{margin-top:6px}
       table{display:none}
       .mobile-list{display:block;margin-top:10px}
       .item{border-bottom:1px solid var(--line);padding:12px 2px;display:flex;flex-direction:column;gap:6px}
@@ -70,19 +69,22 @@
     .btn-pill:hover{background:#f9fafb;text-decoration:none}
     .btn-pill:active{transform:translateY(1px)}
 
-    /* ===== 操作列（C/Dリンクとコピー）だけ 1px 小さく ===== */
+    /* 操作列（C/Dリンクとコピー）だけ 1px 小さく */
     .ops .btn-pill{font-size:13px}
     .ops .btn{font-size:13px}
   </style>
 </head>
 <body>
 
-  <!-- ===== 検索UI（順序：件数 → 弾幕選択 → 弾幕コピー） ===== -->
+  <!-- ===== 検索UI ===== -->
   <div class="card">
+    <!-- 1段目：検索 -->
     <div class="row">
       <input class="search" id="q" type="search" placeholder="曲名／アーティスト名で検索（例：群青日和／椎名林檎）" autocomplete="off">
+    </div>
 
-      <!-- 件数（20件/50件/200件/全件） -->
+    <!-- 2段目：左=件数 / 右=弾幕（space-betweenで左右端揃え） -->
+    <div class="toolbar">
       <div class="limit-wrap">
         <label for="limit">件数</label>
         <select id="limit" aria-label="表示件数">
@@ -93,10 +95,10 @@
         </select>
       </div>
 
-      <!-- 弾幕（表示は3文字、値はフル） -->
       <div class="dm-group" aria-label="弾幕コピー">
         <label for="dm-select">弾幕</label>
         <select id="dm-select" title="弾幕を選択">
+          <!-- 表示は3文字、値はフル -->
           <option value="🍣🧡🍣🧡🍣🧡">🍣🧡🍣</option>
           <option value="🍣🧡🎶🍣🧡🎶">🍣🧡🎶</option>
         </select>
