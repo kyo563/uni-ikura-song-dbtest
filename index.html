@@ -54,7 +54,7 @@
     input[type="search"]:focus,
     select:focus,
     .btn:focus,
-    .link-icon:focus {
+    .btn-pill:focus {
       outline: 3px solid var(--focus);
       outline-offset: 2px;
     }
@@ -79,7 +79,7 @@
       color: var(--text);
       border-radius: 10px;
       padding: 8px 12px;
-      font-size: 14px;       /* 14px */
+      font-size: 14px;
       cursor: pointer;
     }
     .btn:hover { background: #f9fafb; }
@@ -107,7 +107,7 @@
       z-index: 1;
       font-weight: 700;
     }
-    /* 列配分：1=アーティスト 2=曲名 3=操作（Cリンク＋Dリンク（▶）＋コピー） */
+    /* 列配分：1=アーティスト 2=曲名 3=操作（Cリンク＋Dリンク＋コピー） */
     th:nth-child(1), td:nth-child(1) { width: 30%; }
     th:nth-child(2), td:nth-child(2) { width: 50%; }
     th:nth-child(3), td:nth-child(3) { width: 20%; }
@@ -116,15 +116,6 @@
       display: flex; align-items: center; justify-content: flex-end;
       gap: 8px; flex-wrap: wrap;
     }
-
-    /* リンク用のアイコン */
-    .link-icon{
-      display:inline-flex; align-items:center; justify-content:center;
-      width:36px; height:36px; line-height:1; text-decoration:none; font-size:18px;
-      border-radius:8px; color:#111827;
-    }
-    .link-icon:hover{ background:#f3f4f6; }
-    .link-icon:active{ transform:translateY(1px); }
 
     /* ========= スマホ：2行カード表示 ========= */
     @media (max-width: 768px) {
@@ -140,26 +131,30 @@
         display: flex; gap: 6px; flex-wrap: wrap;
       }
       .l1 .sep { opacity: .6; }
-      .l2 { /* 2行目：右端に Cリンク → Dリンク（▶） → コピー */
+      .l2 { /* 2行目：右端に Cリンク → Dリンク → コピー */
         display: flex; align-items: center; gap: 8px; justify-content: flex-end; flex-wrap: wrap;
       }
       .btn { padding: 8px 12px; font-size: 14px; }
     }
-    /* 文字列そのままをリンク表示するためのスタイル */
-.link-label{
-  display:inline-block;
-  max-width:320px;              /* 必要に応じて調整 */
-  padding:6px 10px;
-  border:1px solid var(--line);
-  border-radius:8px;
-  text-decoration:none;
-  color:var(--link);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.link-label:hover{ text-decoration:underline; background:#f9fafb; }
 
+    /* 文字列を“コピー風の囲み”で表示するリンク */
+    .btn-pill{
+      display:inline-block;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+      border-radius:10px;
+      padding:8px 12px;
+      font-size:14px;
+      line-height:1.2;
+      text-decoration:none;
+      white-space:nowrap;
+      max-width:320px;          /* 必要に応じて調整 */
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .btn-pill:hover{background:#f9fafb;text-decoration:none}
+    .btn-pill:active{transform:translateY(1px)}
   </style>
 </head>
 <body>
@@ -217,8 +212,7 @@
             r.cUrl   || '',
             r.dUrl   || ''
           ])
-          // A/Bどちらかが完全空欄は除外
-          .filter(([a,b]) => ((a||'')+(b||'')).trim() !== '');
+          .filter(([a,b]) => ((a||'')+(b||'')).trim() !== ''); // A/Bどちらか完全空欄は除外
 
         state.rows = rows; // [artist, title, cText, dText, cUrl, dUrl]
         $('status').textContent = `読み込み完了：${rows.length}件`;
@@ -255,13 +249,25 @@
       }
     }
 
-    // 文字列から最初のURLを抽出（API側で抽出済みでも保険として使用）
-    function urlFromText(s){ if(!s) return ''; const m = String(s).match(/https?:\/\/\S+/); return m ? m[0].replace(/[)\]\s]+$/, '') : ''; }
+    // テキストから最初のURLを抽出（保険）
+    function urlFromText(s){
+      if(!s) return '';
+      const m = String(s).match(/https?:\/\/\S+/);
+      return m ? m[0].replace(/[)\]\s]+$/, '') : '';
+    }
+
+    // D列の先頭 yyyymmdd → "yyyy/mm/dd" を返す
+    function formatYmdLabel(s){
+      const m = /^(\d{4})(\d{2})(\d{2})/.exec(String(s||''));
+      return m ? `${m[1]}/${m[2]}/${m[3]}` : null;
+    }
 
     /* ===== 描画（PC=テーブル／スマホ=2行カード） ===== */
     function render(){
-      const tableWrap = $('table'); tableWrap.innerHTML = '';
-      const listWrap  = $('mblist'); listWrap.innerHTML = '';
+      const tableWrap = $('table'); // div#table
+      tableWrap.innerHTML = '';
+      const listWrap  = $('mblist');
+      listWrap.innerHTML = '';
       const hint = $('hint');
 
       const q = normalize($('q').value || '');
@@ -284,7 +290,7 @@
       if (rows.length === 0) { hint.textContent = q ? '該当なし' : '検索結果がここに表示されます。'; return; }
       hint.textContent = '';
 
-      /* ==== PC：テーブル（操作列に Cリンク → Dリンク（▶） → コピー） ==== */
+      /* ==== PC：テーブル（操作列に Cリンク → Dリンク → コピー） ==== */
       const table = document.createElement('table');
       const thead = document.createElement('thead');
       const trh = document.createElement('tr');
@@ -301,28 +307,27 @@
         const tdOps = document.createElement('td');
         const ops = document.createElement('div'); ops.className = 'ops';
 
-        // C列リンク（APIの cUrl 優先、無ければ cText から抽出）
-        const url = latestUrl({ dText, dUrl });
-if (url) {
-  const label = (dText || 'リンク');                 // C列テキスト
-  const a = document.createElement('a');
-  a.href = url;
-  a.target = '_blank';
-  a.rel = 'noopener';
-  a.className = 'link-label';
-  a.title = label;                                    // ホバーで全文確認
-  a.textContent = label;                              // 表示テキスト
-  ops.appendChild(a);
-}
+        // --- C列リンク：文字列そのまま（囲み） ---
+        const cHref = cUrl || urlFromText(cText);
+        if (cHref) {
+          const aC = document.createElement('a');
+          aC.href = cHref; aC.target = '_blank'; aC.rel='noopener';
+          aC.className = 'btn-pill';
+          aC.title = cText || 'リンク';
+          aC.textContent = cText || 'リンク';
+          ops.appendChild(aC);
         }
 
-        // D列リンク（APIの dUrl 優先、無ければ dText から抽出）
+        // --- D列リンク：▶前回yyyy/mm/dd（囲み） ---
         const dHref = dUrl || urlFromText(dText);
+        const dLabel = formatYmdLabel(dText);
         if (dHref) {
-          const a = document.createElement('a');
-          a.href = dHref; a.target = '_blank'; a.rel='noopener';
-          a.className='link-icon'; a.title='D列リンクを開く'; a.textContent='▶';
-          ops.appendChild(a);
+          const aD = document.createElement('a');
+          aD.href = dHref; aD.target = '_blank'; aD.rel='noopener';
+          aD.className = 'btn-pill';
+          aD.title = dLabel ? `前回 ${dLabel}` : '前回';
+          aD.textContent = dLabel ? `▶前回${dLabel}` : '▶前回';
+          ops.appendChild(aD);
         }
 
         // コピー
@@ -337,7 +342,7 @@ if (url) {
       table.appendChild(tbody);
       tableWrap.appendChild(table);
 
-      /* ==== スマホ：2行カード（右端：Cリンク → Dリンク（▶） → コピー） ==== */
+      /* ==== スマホ：2行カード（右端：Cリンク → Dリンク → コピー） ==== */
       rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
         const item = document.createElement('div'); item.className = 'item';
 
@@ -349,20 +354,30 @@ if (url) {
 
         const l2 = document.createElement('div'); l2.className = 'l2';
 
+        // C列リンク
         const cHref = cUrl || urlFromText(cText);
         if (cHref) {
-          const a=document.createElement('a'); a.href=cHref; a.target='_blank'; a.rel='noopener';
-          a.className='link-icon'; a.textContent='C'; a.title='C列リンクを開く';
-          l2.appendChild(a);
+          const aC = document.createElement('a');
+          aC.href = cHref; aC.target='_blank'; aC.rel='noopener';
+          aC.className = 'btn-pill';
+          aC.title = cText || 'リンク';
+          aC.textContent = cText || 'リンク';
+          l2.appendChild(aC);
         }
 
+        // D列リンク
         const dHref = dUrl || urlFromText(dText);
+        const dLabel = formatYmdLabel(dText);
         if (dHref) {
-          const a=document.createElement('a'); a.href=dHref; a.target='_blank'; a.rel='noopener';
-          a.className='link-icon'; a.textContent='▶'; a.title='D列リンクを開く';
-          l2.appendChild(a);
+          const aD = document.createElement('a');
+          aD.href = dHref; aD.target='_blank'; aD.rel='noopener';
+          aD.className = 'btn-pill';
+          aD.title = dLabel ? `前回 ${dLabel}` : '前回';
+          aD.textContent = dLabel ? `▶前回${dLabel}` : '▶前回';
+          l2.appendChild(aD);
         }
 
+        // コピー
         const btn = document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
         btn.addEventListener('click', ()=> copyPair(title, artist));
         l2.appendChild(btn);
