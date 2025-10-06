@@ -15,42 +15,24 @@
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 
-    /* ====== ヘッダー行：1行に収める調整 ====== */
-    .row{
-      display:flex; gap:8px; align-items:center;
-      flex-wrap:nowrap;                /* 基本は折り返さない */
-    }
-    .row > .search{flex:1 1 auto; min-width:0;} /* 検索を可変にして他を固定幅化 */
-    .row > .dm-group{flex:0 0 auto}
+    /* ====== ヘッダー行（1行で収める） ====== */
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
+    .row > .search{flex:1 1 auto;min-width:0}
     .row > .limit-wrap{flex:0 0 auto}
+    .row > .dm-group{flex:0 0 auto}
 
-    .row-controls{margin-top:8px}
+    input[type="search"],select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:15px;background:#fff;color:var(--text);outline:none}
+    input[type="search"]:focus,select:focus,.btn:focus,.btn-pill:focus{outline:3px solid var(--focus);outline-offset:2px}
 
-    input[type="search"], select{
-      width:100%; padding:10px 12px;   /* パディング少し縮小 */
-      border:1px solid var(--line); border-radius:12px;
-      font-size:15px; background:#fff; color:var(--text); outline:none;
-    }
-    input[type="search"]:focus, select:focus, .btn:focus, .btn-pill:focus{outline:3px solid var(--focus);outline-offset:2px}
+    /* 件数セレクト（最短表示） */
+    .limit-wrap{display:flex;align-items:center;gap:6px;margin-left:6px} /* ← コピーと件数の間に“少しだけ”の余白 */
+    .limit-wrap label{font-size:12px;color:var(--muted);white-space:nowrap}
+    #limit{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
 
-    /* --- 弾幕UIをコンパクトに --- */
-    .dm-group{display:flex; gap:6px; align-items:center}
-    #dm-select{
-      width:auto; min-width:84px;      /* コンパクト幅 */
-      padding:6px 8px; font-size:14px; line-height:1.2;
-    }
-    .dm-group .btn{padding:6px 10px; font-size:13px; white-space:nowrap}
-
-    /* --- 表示件数セレクトを最小化 --- */
-    .limit-wrap{display:flex; align-items:center; gap:6px}
-    .limit-wrap label{font-size:12px; color:var(--muted); white-space:nowrap}
-    #limit{
-      width:auto; min-width:64px;      /* ぐっと狭く */
-      padding:6px 8px; font-size:13px; line-height:1.2;
-    }
-    @supports (-webkit-touch-callout:none){
-      #dm-select,#limit{padding-top:5px; padding-bottom:5px}
-    }
+    /* 弾幕UI（表示3文字＋ボタン短縮） */
+    .dm-group{display:flex;gap:6px;align-items:center}
+    #dm-select{width:auto;min-width:84px;padding:6px 8px;font-size:14px;line-height:1.2}
+    .dm-group .btn{padding:6px 10px;font-size:13px;white-space:nowrap}
 
     .muted{color:var(--muted);font-size:13px}
     .btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:10px;padding:8px 12px;font-size:14px;cursor:pointer}
@@ -67,9 +49,8 @@
     .ops{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 
     @media (max-width:768px){
-      /* 超狭幅でだけ折り返し許容（最後の手段） */
       .row{flex-wrap:wrap}
-      .dm-group,.limit-wrap{margin-top:6px}
+      .limit-wrap,.dm-group{margin-top:6px}
       table{display:none}
       .mobile-list{display:block;margin-top:10px}
       .item{border-bottom:1px solid var(--line);padding:12px 2px;display:flex;flex-direction:column;gap:6px}
@@ -90,30 +71,29 @@
 </head>
 <body>
 
-  <!-- ===== 検索UI（右に弾幕選択＋コピー、件数は極小） ===== -->
+  <!-- ===== 検索UI（順序：件数 → 弾幕選択 → 弾幕コピー） ===== -->
   <div class="card">
     <div class="row">
       <input class="search" id="q" type="search" placeholder="曲名／アーティスト名で検索（例：群青日和／椎名林檎）" autocomplete="off">
 
+      <!-- 件数（20件/50件/200件/全件） -->
+      <div class="limit-wrap">
+        <label for="limit">件数</label>
+        <select id="limit" aria-label="表示件数">
+          <option value="20" selected>20件</option>
+          <option value="50">50件</option>
+          <option value="200">200件</option>
+          <option value="all">全件</option>
+        </select>
+      </div>
+
+      <!-- 弾幕（表示は3文字、値はフル） -->
       <div class="dm-group" aria-label="弾幕コピー">
-        <!-- 表示3文字、値はフル -->
         <select id="dm-select" title="弾幕を選択">
           <option value="🍣🧡🍣🧡🍣🧡">🍣🧡🍣</option>
           <option value="🍣🧡🎶🍣🧡🎶">🍣🧡🎶</option>
         </select>
-        <!-- 「弾幕コピー」→「コピー」に短縮 -->
         <button id="dm-copy" class="btn" type="button" title="選択した弾幕をコピー">コピー</button>
-      </div>
-
-      <div class="limit-wrap">
-        <label for="limit">件数</label>
-        <!-- 20/50/200/全部（デフォルト20） 表示は最短、値はそのまま -->
-        <select id="limit" aria-label="表示件数">
-          <option value="20" selected>20</option>
-          <option value="50">50</option>
-          <option value="200">200</option>
-          <option value="all">全</option>
-        </select>
       </div>
     </div>
 
@@ -132,7 +112,7 @@
   <script>
     /* ===== 設定 ===== */
     const API_URL = 'https://script.google.com/macros/s/AKfycbyEf2jDL40t1j2KgAwhwehw2RVTDQq_aYYtfbFWYXcSBL__TgNSn3G9gK_L4BFDLVVDng/exec';
-    const HARD_LIMIT = 20000; // “全”選択時の最大描画件数ガード
+    const HARD_LIMIT = 20000; // 全件選択時の最大描画ガード
 
     const state = { rows: [], debounce: null };
 
@@ -143,7 +123,6 @@
           $('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
           return;
         }
-        // rows: { artist, title, cText, cUrl, dText, dUrl }
         const rows = payload.rows
           .map(r => [
             r.artist || '',
@@ -210,7 +189,7 @@
       const q = normalize($('q').value || '');
       const raw = $('limit').value;
       const limit = raw === 'all' ? Math.min(HARD_LIMIT, state.rows.length) : Math.min(parseInt(raw,10)||20, HARD_LIMIT);
-      const limitLabel = raw === 'all' ? '全' : `${limit}`;
+      const limitLabel = raw === 'all' ? '全件' : `${limit}件`;
 
       let filtered = state.rows;
       if (q) {
