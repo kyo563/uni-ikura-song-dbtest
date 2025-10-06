@@ -10,6 +10,7 @@
     :root{
       --bg:#ffb744; --card:#ffffff; --text:#1a1a1a; --muted:#6b7280; --line:#e5e7eb;
       --thead:#ffe0b5; --focus:#3897c9; --chip-bg:#f3f4f6; --chip-text:#111827;
+      --link:#2563eb; /* リンク色 */
     }
     *{box-sizing:border-box}
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
@@ -20,8 +21,8 @@
     .row .search{flex:1 1 auto;min-width:0}
 
     .toolbar{
-      display:flex;align-items:center;justify-content:space-between; /* 左右端に配置 */
-      gap:8px; margin-top:8px; flex-wrap:wrap; /* 端末が狭いときは折り返す */
+      display:flex;align-items:center;justify-content:space-between;
+      gap:8px; margin-top:8px; flex-wrap:wrap;
     }
     /* 左側：件数（最短表示） */
     .limit-wrap{display:flex;align-items:center;gap:6px}
@@ -61,6 +62,7 @@
       .btn{padding:8px 12px;font-size:14px}
     }
 
+    /* 基本の「囲みリンク」 */
     .btn-pill{
       display:inline-block;border:1px solid var(--line);background:#fff;color:var(--text);
       border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.2;text-decoration:none;
@@ -72,6 +74,19 @@
     /* 操作列（C/Dリンクとコピー）だけ 1px 小さく */
     .ops .btn-pill{font-size:13px}
     .ops .btn{font-size:13px}
+
+    /* === C/Dリンク（btn-pill）を青＋薄い灰色の網掛け背景に変更 === */
+    .ops .btn-pill{
+      color: var(--link) !important;
+      background-color: var(--chip-bg);                     /* 薄い灰色 */
+      background-image:
+        repeating-linear-gradient(45deg,
+          rgba(0,0,0,0.04) 0, rgba(0,0,0,0.04) 6px,         /* 細かな網掛け */
+          rgba(0,0,0,0) 6px, rgba(0,0,0,0) 12px);
+      border-color: var(--line);
+    }
+    .ops .btn-pill:visited{ color: var(--link) !important; }
+    .ops .btn-pill:hover{ text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -83,7 +98,7 @@
       <input class="search" id="q" type="search" placeholder="曲名／アーティスト名で検索（例：群青日和／椎名林檎）" autocomplete="off">
     </div>
 
-    <!-- 2段目：左=件数 / 右=弾幕（space-betweenで左右端揃え） -->
+    <!-- 2段目：左=件数 / 右=弾幕 -->
     <div class="toolbar">
       <div class="limit-wrap">
         <label for="limit">件数</label>
@@ -98,7 +113,6 @@
       <div class="dm-group" aria-label="弾幕コピー">
         <label for="dm-select">弾幕</label>
         <select id="dm-select" title="弾幕を選択">
-          <!-- 表示は3文字、値はフル -->
           <option value="🍣🧡🍣🧡🍣🧡">🍣🧡🍣</option>
           <option value="🍣🧡🎶🍣🧡🎶">🍣🧡🎶</option>
         </select>
@@ -170,13 +184,18 @@
     }
 
     // 弾幕コピー
-    $('dm-copy').addEventListener('click', async ()=>{
-      const text = $('dm-select').value || '';
-      try{
-        if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
-        else { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
-        showToast('弾幕をコピーしました');
-      }catch{ showToast('弾幕のコピーに失敗しました'); }
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const dmBtn = document.getElementById('dm-copy');
+      if(dmBtn){
+        dmBtn.addEventListener('click', async ()=>{
+          const text = document.getElementById('dm-select').value || '';
+          try{
+            if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+            else { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+            showToast('弾幕をコピーしました');
+          }catch{ showToast('弾幕のコピーに失敗しました'); }
+        });
+      }
     });
 
     function urlFromText(s){
@@ -191,12 +210,12 @@
 
     /* ===== 描画 ===== */
     function render(){
-      const tableWrap = $('table'); tableWrap.innerHTML = '';
-      const listWrap = $('mblist'); listWrap.innerHTML = '';
-      const hint = $('hint');
+      const tableWrap = document.getElementById('table'); tableWrap.innerHTML = '';
+      const listWrap = document.getElementById('mblist'); listWrap.innerHTML = '';
+      const hint = document.getElementById('hint');
 
-      const q = normalize($('q').value || '');
-      const raw = $('limit').value;
+      const q = normalize(document.getElementById('q').value || '');
+      const raw = document.getElementById('limit').value;
       const limit = raw === 'all' ? Math.min(HARD_LIMIT, state.rows.length) : Math.min(parseInt(raw,10)||20, HARD_LIMIT);
       const limitLabel = raw === 'all' ? '全件' : `${limit}件`;
 
@@ -209,7 +228,7 @@
       }
       const rows = filtered.slice(0, limit);
 
-      $('status').textContent = q
+      document.getElementById('status').textContent = q
         ? `${rows.length}件ヒット（全${filtered.length}件）／表示上限 ${limitLabel}`
         : `表示中 ${rows.length}件（全${state.rows.length}件）／表示上限 ${limitLabel}`;
 
@@ -232,7 +251,7 @@
 
         const tdOps=document.createElement('td'); const ops=document.createElement('div'); ops.className='ops';
 
-        // C列リンク：文字列そのまま（囲み）
+        // C列リンク：文字列そのまま（囲み＋網掛け）
         const cHref = cUrl || urlFromText(cText);
         if (cHref) {
           const aC=document.createElement('a');
@@ -243,7 +262,7 @@
           ops.appendChild(aC);
         }
 
-        // D列リンク：▶前回yyyy/mm/dd（囲み）
+        // D列リンク：▶前回yyyy/mm/dd（囲み＋網掛け）
         const dHref = dUrl || urlFromText(dText);
         const dLabel = formatYmdLabel(dText);
         if (dHref) {
@@ -302,10 +321,10 @@
         l2.appendChild(btn);
 
         item.appendChild(l1); item.appendChild(l2);
-        $('mblist').appendChild(item);
+        document.getElementById('mblist').appendChild(item);
       });
 
-      $('mblist').style.display='block';
+      document.getElementById('mblist').style.display='block';
     }
 
     /* ===== データ取得（JSONP） ===== */
@@ -313,13 +332,13 @@
       const s=document.createElement('script');
       const url=`${API_URL}?callback=onGviz&limit=${HARD_LIMIT}&v=${Date.now()}`;
       s.src=url;
-      s.onerror=()=>{ $('status').textContent='データ取得に失敗しました（ネットワーク/ブロック）'; };
+      s.onerror=()=>{ document.getElementById('status').textContent='データ取得に失敗しました（ネットワーク/ブロック）'; };
       document.head.appendChild(s);
     })();
 
     /* ===== イベント ===== */
-    $('q').addEventListener('input', scheduleSearch);
-    $('limit').addEventListener('change', render);
+    document.getElementById('q').addEventListener('input', scheduleSearch);
+    document.getElementById('limit').addEventListener('change', render);
   </script>
 </body>
 </html>
