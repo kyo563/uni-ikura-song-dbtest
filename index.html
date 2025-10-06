@@ -4,88 +4,54 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <meta name="theme-color" content="#e6f6ff">
-  <title>花彩音3kHz歌唱曲DB</title>
+  <title>雲丹ゐくらDB</title>
   <style>
-    :root{
-      --bg:#e6f6ff; --card:#ffffff; --text:#1a1a1a; --muted:#6b7280; --line:#e5e7eb;
-      --thead:#dff1ff; --focus:#3897c9; --tab-bg:#ffffff; --tab-active:#c8e7ff; --tab-border:#cbd5e1; --link:#2563eb;
-      --chip-bg:#f3f4f6; --chip-text:#111827;
-    }
+    :root{--bg:#e6f6ff;--card:#ffffff;--text:#1a1a1a;--muted:#6b7280;--line:#e5e7eb;--thead:#dff1ff;--focus:#3897c9;--tab-bg:#ffffff;--tab-active:#c8e7ff;--tab-border:#cbd5e1;--link:#2563eb;--chip-bg:#f3f4f6;--chip-text:#111827}
     *{box-sizing:border-box}
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
-
     .topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;margin-bottom:8px}
     .tabs{display:flex;gap:8px;flex-wrap:wrap}
     .tab{appearance:none;border:1px solid var(--tab-border);background:var(--tab-bg);color:var(--text);border-radius:999px;padding:8px 14px;font-size:14px;cursor:pointer}
     .tab[aria-selected="true"]{background:var(--tab-active);font-weight:700}
     .tab:focus{outline:3px solid var(--focus);outline-offset:2px}
     .limit-wrap{display:flex;align-items:center;gap:8px}
-    #limit{padding:6px 10px;font-size:14px;line-height:1.2;width:auto;min-width:120px}
-
+    #limit{padding:6px 10px;font-size:14px;line-height:1.2;min-width:120px}
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .row>*{flex:1}
     input[type="search"],select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font-size:16px;background:#fff;color:var(--text);outline:none}
-    input[type="search"]:focus,select:focus,.btn:focus,.link-icon:focus,.link-btn:focus{outline:3px solid var(--focus);outline-offset:2px}
-
+    input[type="search"]:focus,select:focus,.btn:focus,.link-icon:focus{outline:3px solid var(--focus);outline-offset:2px}
     .dm-wrap{display:flex;align-items:center;gap:8px;margin-top:8px}
     .dm-select-wrap{flex:7 1 0}
     .dm-btn-wrap{flex:3 1 0;display:flex}
     #dm-select{width:100%;padding:6px 10px;font-size:14px;line-height:1.2}
     .btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:10px;padding:8px 12px;font-size:14px;cursor:pointer}
-    .btn:hover{background:#f9fafb}
-    .btn:active{transform:translateY(1px)}
-    .btn-full{width:100%}
-
+    .btn:hover{background:#f9fafb}.btn:active{transform:translateY(1px)}.btn-full{width:100%}
     .muted{color:var(--muted);font-size:13px}
     .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(17,24,39,.92);color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s}
     .toast.show{opacity:1}
-
     table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}
     th,td{border-bottom:1px solid var(--line);padding:10px 8px;font-size:15px;vertical-align:top}
     th{position:sticky;top:0;background:var(--thead);z-index:1;font-weight:700}
-    th:nth-child(1),td:nth-child(1){width:28%}
-    th:nth-child(2),td:nth-child(2){width:40%}
-    th:nth-child(3),td:nth-child(3){width:32%}
+    th:nth-child(1),td:nth-child(1){width:28%} th:nth-child(2),td:nth-child(2){width:40%} th:nth-child(3),td:nth-child(3){width:32%}
     .ops{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
     .link-icon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;line-height:1;text-decoration:none;font-size:18px;border-radius:8px}
-    .link-icon:hover{background:#f3f4f6}
-    .link-icon:active{transform:translateY(1px)}
-
-    .kind-chip{
-      display:inline-flex;align-items:center;
-      max-width:100%;
-      padding:4px 8px;
-      border-radius:999px;
-      font-size:13px;
-      background:var(--chip-bg);
-      color:var(--chip-text);
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-      border:1px solid var(--line);
-    }
-
+    .link-icon:hover{background:#f3f4f6}.link-icon:active{transform:translateY(1px)}
+    .kind-chip{display:inline-flex;align-items:center;max-width:100%;padding:4px 8px;border-radius:999px;font-size:13px;background:var(--chip-bg);color:var(--chip-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line)}
     @media (max-width:768px){
-      table{display:none}
-      .mobile-list{display:block;margin-top:10px}
+      table{display:none}.mobile-list{display:block;margin-top:10px}
       .item{border-bottom:1px solid var(--line);padding:12px 2px;display:flex;flex-direction:column;gap:6px}
-      .l1{font-size:16px;line-height:1.6;font-weight:700;display:flex;gap:6px;flex-wrap:wrap}
-      .l1 .sep{opacity:.6}
+      .l1{font-size:16px;line-height:1.6;font-weight:700;display:flex;gap:6px;flex-wrap:wrap}.l1 .sep{opacity:.6}
       .l2{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}
-      .dm-select-wrap{flex:7 1 0}
-      .dm-btn-wrap{flex:3 1 0}
+      .dm-select-wrap{flex:7 1 0}.dm-btn-wrap{flex:3 1 0}
     }
-
     .page{display:none}.page.active{display:block}
     .history-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
     .back{appearance:none;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font-size:14px;cursor:pointer}
-    .back:hover{background:#f9fafb}
-    .title{font-weight:700}
-    .history-list{margin-top:8px}
-    .history-item{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding:10px 4px;gap:8px}
-    .history-left{display:flex;align-items:center;gap:8px;min-width:0}
-    .history-date{white-space:nowrap;color:#374151}
-    .history-item a{color:var(--link);text-decoration:none}
-    .history-item a:hover{text-decoration:underline}
+    .back:hover{background:#f9fafb}.title{font-weight:700}
+    .history-list{margin-top:8px}.history-item{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding:10px 4px;gap:8px}
+    .history-left{display:flex;align-items:center;gap:8px;min-width:0}.history-date{white-space:nowrap;color:#374151}
+    .history-item a{color:var(--link);text-decoration:none}.history-item a:hover{text-decoration:underline}
     .skeleton{height:16px;background:#eef6ff;border-radius:6px;margin:6px 0}
   </style>
 </head>
@@ -119,9 +85,7 @@
             <option value="✨⚛️🌐🎵✨⚛️🌐🎵✨⚛️🌐🎵✨⚛️🌐🎵">✨⚛️🌐🎵（キラ音符）</option>
           </select>
         </div>
-        <div class="dm-btn-wrap">
-          <button id="dm-copy" class="btn btn-full" type="button" title="選択した弾幕をコピー">コピー</button>
-        </div>
+        <div class="dm-btn-wrap"><button id="dm-copy" class="btn btn-full" type="button">コピー</button></div>
       </div>
 
       <div class="muted" id="status">読み込み中…</div>
@@ -137,10 +101,7 @@
   <!-- 履歴ページ -->
   <div id="page-history" class="page">
     <div class="card">
-      <div class="history-header">
-        <button id="btn-back" class="back">← 戻る</button>
-        <div class="title" id="hist-title">/</div>
-      </div>
+      <div class="history-header"><button id="btn-back" class="back">← 戻る</button><div class="title" id="hist-title">/</div></div>
       <div class="muted" id="hist-sub">歌唱履歴を新しい順に表示します。</div>
     </div>
     <div class="card" style="margin-top:12px;">
@@ -152,9 +113,10 @@
   <div id="toast" class="toast" role="status" aria-live="polite">コピーしました</div>
 
   <script>
-    // ===== あなたのデプロイID =====
+    // ===== デプロイID（GAS） =====
     const DEPLOY_ID = 'AKfycbz3dNCpijcCsBhcPlo5i7VtlGIO-InVGqqYj7YKMwdU2WO9NVJaGUgkJaTWwKR0JCQo1w';
-    // 候補（素の /s/ → u/0..u/5 を順に試す）
+
+    // /s/ と /u/N/s/ の両系統を順番に試行（JSONP用）
     const CANDIDATES = [
       (id)=>`https://script.google.com/macros/s/${id}/exec`,
       (id)=>`https://script.google.com/macros/u/0/s/${id}/exec`,
@@ -185,40 +147,35 @@
         showToast('コピーしました');
       }catch{ showToast('コピーに失敗しました'); }
     }
-    async function copyPair(title, artist){
-      const text = `${(title||'').trim()} / ${(artist||'').trim()}`.trim();
-      await copyText(text);
-    }
-    $('dm-copy').addEventListener('click', ()=>{ const v = $('dm-select').value || ''; copyText(v); });
+    async function copyPair(title, artist){ await copyText(`${(title||'').trim()} / ${(artist||'').trim()}`.trim()); }
+    $('dm-copy').addEventListener('click', ()=>{ copyText($('dm-select').value || ''); });
 
     const urlFromText = s => { if(!s) return ''; const m=String(s).match(/https?:\/\/\S+/); return m ? m[0].replace(/[)\]\s]+$/,'') : ''; };
     const extractDate8 = s => { const m=/^(\d{8})/.exec(String(s||'')); return m ? parseInt(m[1],10) : 0; };
-
     function showPage(id){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); $(id).classList.add('active'); }
 
-    // ===== JSONP 受信（一度ヒットしたら以後は追加ロードを無視） =====
+    // ===== JSONP 受信口 =====
     let __jsonpHit = false;
     let __watchdog = null;
     let __usingUrl = '';
 
     function onGviz(payload){
-      if (__jsonpHit) return; // 二重着弾ガード
+      if (__jsonpHit) return; // 二重ガード
       __jsonpHit = true;
       try{ clearTimeout(__watchdog); }catch(e){}
       try{
         if (!payload || payload.ok !== true || !Array.isArray(payload.rows)) throw new Error('bad payload');
 
-        const rows = payload.rows
-          .map(r=>({
-            artist: r.artist ?? '',
-            title : r.title  ?? '',
-            kind  : r.note   ?? r.kind ?? '',
-            dText : r.dText  ?? r.text ?? '',
-            dUrl  : r.dUrl   ?? r.url  ?? '',
-            _na   : normalize(r.artist ?? ''),
-            _nt   : normalize(r.title  ?? '')
-          }))
-          .filter(r => ((r.artist||'')+(r.title||'')).trim()!=='' );
+        const rows = payload.rows.map(r => ({
+          artist: r.artist ?? '',
+          title : r.title  ?? '',
+          // GSのC列 "備考(note)" を UI 表示では kind として扱う
+          kind  : r.note   ?? r.kind ?? '',
+          dText : r.dText  ?? r.text ?? '',
+          dUrl  : r.dUrl   ?? r.url  ?? '',
+          _na   : normalize(r.artist ?? ''),
+          _nt   : normalize(r.title  ?? '')
+        })).filter(r => ((r.artist||'')+(r.title||'')).trim()!=='');
 
         state.rows = rows;
         $('status').textContent = `読み込み完了：${rows.length}件`;
@@ -231,7 +188,6 @@
         $('status').textContent = '読み込みに失敗しました';
       }
     }
-    // グローバル公開（GASのcallback=onGviz が呼ぶ）
     window.onGviz = onGviz;
 
     function injectScript(src){
@@ -243,9 +199,9 @@
       return s;
     }
 
-    // 候補URLを順に試す。最初に onGviz が来た時点で打ち切る。
+    // 候補URLを順に試す（onGvizが来た時点で停止）
     function requestPerfWithFallback(){
-      const qs = `?callback=onGviz&sheet=perf&authuser=0&v=${Date.now()}`;
+      const qs = `?callback=onGviz&sheet=perf&limit=${HARD_LIMIT}&authuser=0&v=${Date.now()}`;
       let i = 0;
       const tryNext = ()=>{
         if (__jsonpHit) return;
@@ -258,8 +214,7 @@
         __usingUrl = url;
         console.log('[JSONP] TRY', url);
         injectScript(url);
-        // 600ms 間隔で次を試す（先にヒットすれば onGviz が止める）
-        setTimeout(tryNext, 600);
+        setTimeout(tryNext, 600); // 600ms 間隔で次を試す
       };
 
       tryNext();
@@ -271,7 +226,7 @@
 
     // ===== 履歴集計 =====
     function buildHistoryIndex(rows){
-      const map = new Map(); // key: `${_na}|${_nt}` => [{date,url,kind}]
+      const map = new Map();
       for(const r of rows){
         const key = `${r._na}|${r._nt}`;
         const url = r.dUrl || urlFromText(r.dText);
@@ -324,6 +279,7 @@
       requestAnimationFrame(drawChunk);
     }
 
+    // ===== レンダリング =====
     function render(){
       const tableWrap = $('table'); tableWrap.innerHTML = '';
       const listWrap  = $('mblist'); listWrap.innerHTML = '';
@@ -445,15 +401,14 @@
       }
     }
 
+    // 戻るボタン・リサイズ・初期化
     $('btn-back').addEventListener('click', ()=>{ showPage('page-list'); window.scrollTo({ top: state.lastScroll || 0 }); });
     window.addEventListener('resize', ()=>{ clearTimeout(state.debounce); state.debounce=setTimeout(render,150); });
 
-    // 起動：DOM構築後に候補URLを自動試行
     window.addEventListener('DOMContentLoaded', ()=>{
       document.getElementById('tab-perf').addEventListener('click', ()=>{});
       document.getElementById('q').addEventListener('input', ()=>{ clearTimeout(state.debounce); state.debounce=setTimeout(render,200); });
       document.getElementById('limit').addEventListener('change', render);
-
       $('status').textContent = '読み込み中…';
       requestPerfWithFallback();
     });
