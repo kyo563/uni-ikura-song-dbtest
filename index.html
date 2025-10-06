@@ -52,7 +52,17 @@
     .link-icon:hover{background:#f3f4f6}
     .link-icon:active{transform:translateY(1px)}
 
-    .kind-chip{display:inline-flex;align-items:center;max-width:100%;padding:4px 8px;border-radius:999px;font-size:13px;background:var(--chip-bg);color:var(--chip-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line)}
+    .kind-chip{
+      display:inline-flex;align-items:center;
+      max-width:100%;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:13px;
+      background:var(--chip-bg);
+      color:var(--chip-text);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      border:1px solid var(--line);
+    }
 
     @media (max-width:768px){
       table{display:none}
@@ -85,7 +95,6 @@
     <div class="card">
       <div class="topbar">
         <div class="tabs" role="tablist" aria-label="検索対象">
-          <!-- 単一タブ：Performance Record 固定 -->
           <button id="tab-perf" class="tab" role="tab" aria-selected="true" data-tab="perf">歌唱曲</button>
         </div>
         <div class="limit-wrap">
@@ -125,7 +134,7 @@
     </div>
   </div>
 
-  <!-- 履歴ページ（同一データから集計表示） -->
+  <!-- 履歴ページ（perfから集計） -->
   <div id="page-history" class="page">
     <div class="card">
       <div class="history-header">
@@ -143,10 +152,10 @@
   <div id="toast" class="toast" role="status" aria-live="polite">コピーしました</div>
 
   <script>
-    // ★ あなたのGASデプロイIDを使用（JSONPで呼び出し）
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwGmnb5Se6WNXBzvIq_j0siN6a3klSY6r4-xSC_h84vAsEth9NennSw3iwU_xM7t_-LJw/exec';
+    // ★ あなたのGASデプロイID（JSONPで呼び出し）
+    const API_URL = 'https://script.google.com/macros/s/AKfycbz3dNCpijcCsBhcPlo5i7VtlGIO-InVGqqYj7YKMwdU2WO9NVJaGUgkJaTWwKR0JCQo1w/exec';
     const HARD_LIMIT = 10000;
-    const ARCHIVE_VERSION = 'perf.v1';
+    const CACHE_VER = 'perf.v1';
 
     const state = {
       rows: [],              // perfの行（正規化フィールド付き）
@@ -177,16 +186,16 @@
 
     function showPage(id){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); $(id).classList.add('active'); }
 
-    // ---- データ取得（JSONP） ----
+    // ---- データ取得（JSONP：callback=onGviz） ----
     let __jsonpHit = false;
     function jsonp(url){ const s=document.createElement('script'); s.src=url; s.onerror=()=>{ $('status').textContent='データ取得に失敗しました（ネットワーク/ブロック）'; }; document.head.appendChild(s); }
     function requestPerf(){
-      const url = `${API_URL}?callback=onPerf&sheet=perf&limit=${HARD_LIMIT}&v=${Date.now()}`;
+      const url = `${API_URL}?callback=onGviz&sheet=perf&limit=${HARD_LIMIT}&v=${Date.now()}`;
       jsonp(url);
     }
 
     // 受信ハンドラ（GASのrowsスキーマ：artist,title,note,dText,dUrl）
-    function onPerf(payload){
+    function onGviz(payload){
       __jsonpHit = true;
       try{
         if (!payload || payload.ok !== true || !Array.isArray(payload.rows)) throw new Error('payload');
@@ -194,7 +203,7 @@
           .map(r=>({
             artist: r.artist ?? '',
             title : r.title  ?? '',
-            note  : r.note   ?? '',
+            note  : r.note   ?? r.kind ?? '',
             dText : r.dText  ?? r.text ?? '',
             dUrl  : r.dUrl   ?? r.url  ?? '',
             _na   : normalize(r.artist ?? ''),
@@ -207,7 +216,7 @@
         render();
       }catch(e){ console.error(e); $('status').textContent='読み込みに失敗しました'; }
     }
-    window.onPerf = onPerf;
+    window.onGviz = onGviz;
 
     setTimeout(()=>{ if(!__jsonpHit) $('status').textContent = 'データ取得に失敗しました（API_URL/デプロイ設定を確認）'; }, 4000);
 
@@ -221,10 +230,9 @@
         if(!map.has(key)) map.set(key, []);
         map.get(key).push({date,url,note:r.note});
       }
-      // 新しい順に並べ替え
       for(const arr of map.values()) arr.sort((a,b)=> b.date - a.date || (a.url>b.url?1:-1));
       state.grouped = map;
-      try{ localStorage.setItem('perfCacheVersion', ARCHIVE_VERSION); localStorage.setItem('perfCacheJson', JSON.stringify(rows)); }catch{}
+      try{ localStorage.setItem('perfCacheVersion', CACHE_VER); localStorage.setItem('perfCacheJson', JSON.stringify(rows)); }catch{}
     }
 
     // ---- レンダリング ----
@@ -253,7 +261,12 @@
         ? `${rows.length}件ヒット（全${filtered.length}件）／表示上限 ${limitLabel}`
         : `表示中 ${rows.length}件（全${state.rows.length}件）／表示上限 ${limitLabel}`;
 
-      if(rows.length===0){ hint.textContent = q ? '該当なし' : '検索結果がここに表示されます。'; tableWrap.style.display='none'; listWrap.style.display='none'; return; }
+      if(rows.length===0){
+        hint.textContent = q ? '該当なし' : '検索結果がここに表示されます。';
+        tableWrap.style.display = 'none';
+        listWrap.style.display  = 'none';
+        return;
+      }
       hint.textContent = '';
 
       const isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -269,6 +282,7 @@
 
         rows.forEach(({artist,title,note,dText,dUrl})=>{
           const tr=document.createElement('tr');
+
           let td=document.createElement('td'); td.textContent=artist||''; tr.appendChild(td);
           td=document.createElement('td'); td.textContent=title||''; tr.appendChild(td);
 
@@ -276,17 +290,27 @@
           const ops=document.createElement('div'); ops.className='ops';
 
           if ((note||'').trim()!==''){
-            const k=document.createElement('span'); k.className='kind-chip'; k.textContent=note; ops.appendChild(k);
+            const k=document.createElement('span'); k.className='kind-chip'; k.textContent=note;
+            ops.appendChild(k);
           }
 
           const url = latestUrl({dText,dUrl});
-          if (url){ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.className='link-icon'; a.textContent='▶'; a.title='リンクを開く'; ops.appendChild(a); }
+          if (url){
+            const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.className='link-icon'; a.textContent='▶'; a.title='リンクを開く';
+            ops.appendChild(a);
+          }
 
           const hbtn=document.createElement('button'); hbtn.className='btn'; hbtn.textContent='履歴';
-          hbtn.addEventListener('click', ()=>{ state.lastScroll = window.scrollY || document.documentElement.scrollTop || 0; showPage('page-history'); renderHistory(artist, title); });
+          hbtn.addEventListener('click', ()=>{
+            state.lastScroll = window.scrollY || document.documentElement.scrollTop || 0;
+            showPage('page-history');
+            renderHistory(artist, title);
+          });
           ops.appendChild(hbtn);
 
-          const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー'; btn.addEventListener('click', ()=>copyPair(title,artist)); ops.appendChild(btn);
+          const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
+          btn.addEventListener('click', ()=>copyPair(title,artist));
+          ops.appendChild(btn);
 
           tdOps.appendChild(ops); tr.appendChild(tdOps); tbody.appendChild(tr);
         });
@@ -302,11 +326,29 @@
           l1.appendChild(a1); l1.appendChild(sep); l1.appendChild(t1);
 
           const l2=document.createElement('div'); l2.className='l2';
-          if ((note||'').trim()!==''){ const k=document.createElement('span'); k.className='kind-chip'; k.textContent=note; l2.appendChild(k); }
+
+          if ((note||'').trim()!==''){
+            const k=document.createElement('span'); k.className='kind-chip'; k.textContent=note;
+            l2.appendChild(k);
+          }
+
           const url = latestUrl({dText,dUrl});
-          if (url){ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.className='link-icon'; a.textContent='▶'; a.title='リンクを開く'; l2.appendChild(a); }
-          const hbtn=document.createElement('button'); hbtn.className='btn'; hbtn.textContent='履歴'; hbtn.addEventListener('click', ()=>{ state.lastScroll = window.scrollY || document.documentElement.scrollTop || 0; showPage('page-history'); renderHistory(artist, title); }); l2.appendChild(hbtn);
-          const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー'; btn.addEventListener('click', ()=>copyPair(title,artist)); l2.appendChild(btn);
+          if (url){
+            const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.className='link-icon'; a.textContent='▶'; a.title='リンクを開く';
+            l2.appendChild(a);
+          }
+
+          const hbtn=document.createElement('button'); hbtn.className='btn'; hbtn.textContent='履歴';
+          hbtn.addEventListener('click', ()=>{
+            state.lastScroll = window.scrollY || document.documentElement.scrollTop || 0;
+            showPage('page-history');
+            renderHistory(artist, title);
+          });
+          l2.appendChild(hbtn);
+
+          const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
+          btn.addEventListener('click', ()=>copyPair(title,artist));
+          l2.appendChild(btn);
 
           item.appendChild(l1); item.appendChild(l2); $('mblist').appendChild(item);
         });
@@ -317,7 +359,11 @@
     function renderHistory(artist, title){
       state.histKey = { artist, title };
       $('hist-title').textContent = `${artist || ''} / ${title || ''}`;
-      const wrap = $('hist-list'); const empty = $('hist-empty'); wrap.innerHTML = ''; empty.style.display = 'none';
+
+      const wrap = $('hist-list');
+      const empty = $('hist-empty');
+      wrap.innerHTML = '';
+      empty.style.display = 'none';
 
       if (!state.grouped){
         for(let i=0;i<6;i++){ const sk=document.createElement('div'); sk.className='skeleton'; wrap.appendChild(sk); }
@@ -340,12 +386,15 @@
           const dateLabel = date ? `${yyyy}/${String(mm).padStart(2,'0')}/${String(dd).padStart(2,'0')}` : '----/--/--';
 
           const row = document.createElement('div'); row.className='history-item';
+
           const left = document.createElement('div'); left.className='history-left';
           const dt = document.createElement('span'); dt.className = 'history-date'; dt.textContent = dateLabel; left.appendChild(dt);
           if ((note||'').trim() !== '') { const k = document.createElement('span'); k.className = 'kind-chip'; k.textContent = note; left.appendChild(k); }
+
           const right = document.createElement('div');
           if (url) { const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.textContent='▶ 開く'; right.appendChild(a); }
           else { const span=document.createElement('span'); span.className='muted'; span.textContent='リンクなし'; right.appendChild(span); }
+
           row.appendChild(left); row.appendChild(right); frag.appendChild(row);
         }
         wrap.appendChild(frag);
@@ -354,7 +403,7 @@
       requestAnimationFrame(drawChunk);
     }
 
-    $('btn-back').addEventListener('click', ()=>{ showPage('page-list'); window.scrollTo({ top: state.lastScroll || 0, behavior:'instant' }); });
+    $('btn-back').addEventListener('click', ()=>{ showPage('page-list'); window.scrollTo({ top: state.lastScroll || 0 }); });
     window.addEventListener('resize', ()=>{ clearTimeout(state.debounce); state.debounce=setTimeout(render,150); });
 
     (function init(){
@@ -367,7 +416,13 @@
       try{
         const ver = localStorage.getItem('perfCacheVersion');
         const json = localStorage.getItem('perfCacheJson');
-        if(ver===ARCHIVE_VERSION && json){ const rows = JSON.parse(json); state.rows = rows; buildHistoryIndex(rows); $('status').textContent=`キャッシュから読み込み：${rows.length}件`; render(); }
+        if(ver===CACHE_VER && json){
+          const rows = JSON.parse(json);
+          state.rows = rows;
+          buildHistoryIndex(rows);
+          $('status').textContent=`キャッシュから読み込み：${rows.length}件`;
+          render();
+        }
       }catch{}
 
       requestPerf();
