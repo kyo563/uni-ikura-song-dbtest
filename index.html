@@ -186,17 +186,41 @@
 
     function showPage(id){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); $(id).classList.add('active'); }
 
-    // ---- データ取得（JSONP：callback=onGviz） ----
+    // ---- データ取得（JSONP：callback=onGviz & authuser=0） ----
     let __jsonpHit = false;
-    function jsonp(url){ const s=document.createElement('script'); s.src=url; s.onerror=()=>{ $('status').textContent='データ取得に失敗しました（ネットワーク/ブロック）'; }; document.head.appendChild(s); }
+    let __watchdog = null;
+
+    function jsonp(url){
+      console.log('[JSONP] GET', url);  // 実際のURLを必ず確認できます
+      const s=document.createElement('script');
+      s.src=url;
+      s.async = true;
+      s.onerror=()=>{ $('status').textContent='データ取得に失敗しました（ネットワーク/ブロック）'; };
+      document.head.appendChild(s);
+    }
+
     function requestPerf(){
-      const url = `${API_URL}?callback=onGviz&sheet=perf&limit=${HARD_LIMIT}&v=${Date.now()}`;
+      const q = [
+        'sheet=perf',
+        `limit=${HARD_LIMIT}`,
+        'callback=onGviz',
+        'authuser=0',          // 302→ログイン画面避け
+        `_=${Date.now()}`
+      ].join('&');
+      const url = `${API_URL}${API_URL.includes('?') ? '&' : '?'}${q}`;
       jsonp(url);
+
+      // 誤爆を避けるため十分長く＆onGvizで確実にクリア
+      try{ clearTimeout(__watchdog); }catch(e){}
+      __watchdog = setTimeout(()=>{
+        if(!__jsonpHit) $('status').textContent = 'データ取得に失敗しました（API_URL/デプロイ設定を確認）';
+      }, 12000);
     }
 
     // 受信ハンドラ（GASのrowsスキーマ：artist,title,note,dText,dUrl）
     function onGviz(payload){
       __jsonpHit = true;
+      try{ clearTimeout(__watchdog); }catch(e){}
       try{
         if (!payload || payload.ok !== true || !Array.isArray(payload.rows)) throw new Error('payload');
         const rows = payload.rows
@@ -217,8 +241,6 @@
       }catch(e){ console.error(e); $('status').textContent='読み込みに失敗しました'; }
     }
     window.onGviz = onGviz;
-
-    setTimeout(()=>{ if(!__jsonpHit) $('status').textContent = 'データ取得に失敗しました（API_URL/デプロイ設定を確認）'; }, 4000);
 
     // ---- 履歴用の集計（同一アーティスト×曲名でまとめ、dText先頭yyyymmddを日付として採用） ----
     function buildHistoryIndex(rows){
