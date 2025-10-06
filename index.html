@@ -145,6 +145,21 @@
       }
       .btn { padding: 8px 12px; font-size: 14px; }
     }
+    /* 文字列そのままをリンク表示するためのスタイル */
+.link-label{
+  display:inline-block;
+  max-width:320px;              /* 必要に応じて調整 */
+  padding:6px 10px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  text-decoration:none;
+  color:var(--link);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.link-label:hover{ text-decoration:underline; background:#f9fafb; }
+
   </style>
 </head>
 <body>
@@ -287,12 +302,18 @@
         const ops = document.createElement('div'); ops.className = 'ops';
 
         // C列リンク（APIの cUrl 優先、無ければ cText から抽出）
-        const cHref = cUrl || urlFromText(cText);
-        if (cHref) {
-          const a = document.createElement('a');
-          a.href = cHref; a.target = '_blank'; a.rel='noopener';
-          a.className='link-icon'; a.title='C列リンクを開く'; a.textContent='C';
-          ops.appendChild(a);
+        const url = latestUrl({ dText, dUrl });
+if (url) {
+  const label = (dText || 'リンク');                 // C列テキスト
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.className = 'link-label';
+  a.title = label;                                    // ホバーで全文確認
+  a.textContent = label;                              // 表示テキスト
+  ops.appendChild(a);
+}
         }
 
         // D列リンク（APIの dUrl 優先、無ければ dText から抽出）
