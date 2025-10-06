@@ -25,12 +25,14 @@
     input[type="search"]:focus,select:focus,.btn:focus,.btn-pill:focus{outline:3px solid var(--focus);outline-offset:2px}
 
     /* 件数セレクト（最短表示） */
-    .limit-wrap{display:flex;align-items:center;gap:6px;margin-left:6px} /* ← コピーと件数の間に“少しだけ”の余白 */
+    .limit-wrap{display:flex;align-items:center;gap:6px;margin-left:6px} /* ← 弾幕コピーと件数の間に少しの余白 */
     .limit-wrap label{font-size:12px;color:var(--muted);white-space:nowrap}
     #limit{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
 
     /* 弾幕UI（表示3文字＋ボタン短縮） */
     .dm-group{display:flex;gap:6px;align-items:center}
+    /* 「件数」と同サイズのラベルを弾幕にも適用 */
+    .dm-group label{font-size:12px;color:var(--muted);white-space:nowrap}
     #dm-select{width:auto;min-width:84px;padding:6px 8px;font-size:14px;line-height:1.2}
     .dm-group .btn{padding:6px 10px;font-size:13px;white-space:nowrap}
 
@@ -67,6 +69,10 @@
     }
     .btn-pill:hover{background:#f9fafb;text-decoration:none}
     .btn-pill:active{transform:translateY(1px)}
+
+    /* ===== 操作列（C/Dリンクとコピー）だけ 1px 小さく ===== */
+    .ops .btn-pill{font-size:13px}
+    .ops .btn{font-size:13px}
   </style>
 </head>
 <body>
@@ -89,6 +95,7 @@
 
       <!-- 弾幕（表示は3文字、値はフル） -->
       <div class="dm-group" aria-label="弾幕コピー">
+        <label for="dm-select">弾幕</label>
         <select id="dm-select" title="弾幕を選択">
           <option value="🍣🧡🍣🧡🍣🧡">🍣🧡🍣</option>
           <option value="🍣🧡🎶🍣🧡🎶">🍣🧡🎶</option>
