@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <meta name="theme-color" content="#e6f6ff">
-  <title>花彩音3kHz 歌枠DB（Performance Record）</title>
+  <title>雲丹ゐくら歌唱DB（Performance Record）</title>
   <style>
     :root{
-      --bg:#e6f6ff; --card:#ffffff; --text:#1a1a1a; --muted:#6b7280; --line:#e5e7eb;
+      --bg:#e6f6ff; --card:#ffffff; --text:#1a11a1a; --muted:#6b7280; --line:#e5e7eb;
       --thead:#dff1ff; --focus:#3897c9; --tab-bg:#ffffff; --tab-active:#c8e7ff; --tab-border:#cbd5e1; --link:#2563eb;
       --chip-bg:#f3f4f6; --chip-text:#111827;
     }
@@ -152,8 +152,11 @@
   <div id="toast" class="toast" role="status" aria-live="polite">コピーしました</div>
 
   <script>
-    // ★ あなたのGASデプロイID（JSONPで呼び出し）
-    const API_URL = 'https://script.google.com/macros/s/AKfycbz3dNCpijcCsBhcPlo5i7VtlGIO-InVGqqYj7YKMwdU2WO9NVJaGUgkJaTWwKR0JCQo1w/exec';
+    // ★ 固定URL：callback=onGviz & authuser=0 を強制付与（IDは指定のもの）
+    const FIXED_JSONP_URL =
+      'https://script.google.com/macros/s/AKfycbz3dNCpijcCsBhcPlo5i7VtlGIO-InVGqqYj7YKMwdU2WO9NVJaGUgkJaTWwKR0JCQo1w/exec' +
+      '?sheet=perf&limit=10000&callback=onGviz&authuser=0&_=';
+
     const HARD_LIMIT = 10000;
     const CACHE_VER = 'perf.v1';
 
@@ -186,31 +189,19 @@
 
     function showPage(id){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); $(id).classList.add('active'); }
 
-    // ---- データ取得（JSONP：callback=onGviz & authuser=0） ----
+    // ---- データ取得（JSONP：固定URLで叩く） ----
     let __jsonpHit = false;
     let __watchdog = null;
 
-    function jsonp(url){
-      console.log('[JSONP] GET', url);  // 実際のURLを必ず確認できます
+    function requestPerf(){
+      const url = FIXED_JSONP_URL + Date.now();
+      console.log('[JSONP] GET', url);  // 実URLを必ず確認
       const s=document.createElement('script');
       s.src=url;
       s.async = true;
       s.onerror=()=>{ $('status').textContent='データ取得に失敗しました（ネットワーク/ブロック）'; };
       document.head.appendChild(s);
-    }
 
-    function requestPerf(){
-      const q = [
-        'sheet=perf',
-        `limit=${HARD_LIMIT}`,
-        'callback=onGviz',
-        'authuser=0',          // 302→ログイン画面避け
-        `_=${Date.now()}`
-      ].join('&');
-      const url = `${API_URL}${API_URL.includes('?') ? '&' : '?'}${q}`;
-      jsonp(url);
-
-      // 誤爆を避けるため十分長く＆onGvizで確実にクリア
       try{ clearTimeout(__watchdog); }catch(e){}
       __watchdog = setTimeout(()=>{
         if(!__jsonpHit) $('status').textContent = 'データ取得に失敗しました（API_URL/デプロイ設定を確認）';
