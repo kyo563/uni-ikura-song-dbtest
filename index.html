@@ -152,16 +152,25 @@
   <div id="toast" class="toast" role="status" aria-live="polite">コピーしました</div>
 
   <script>
-    // --- JSONPのベースURL（あなたのデプロイID）
-    const API_URL = 'https://script.google.com/macros/s/AKfycbz3dNCpijcCsBhcPlo5i7VtlGIO-InVGqqYj7YKMwdU2WO9NVJaGUgkJaTWwKR0JCQo1w/exec';
+    // ===== あなたのデプロイID =====
+    const DEPLOY_ID = 'AKfycbz3dNCpijcCsBhcPlo5i7VtlGIO-InVGqqYj7YKMwdU2WO9NVJaGUgkJaTWwKR0JCQo1w';
+    // 候補（素の /s/ → u/0..u/5 を順に試す）
+    const CANDIDATES = [
+      (id)=>`https://script.google.com/macros/s/${id}/exec`,
+      (id)=>`https://script.google.com/macros/u/0/s/${id}/exec`,
+      (id)=>`https://script.google.com/macros/u/1/s/${id}/exec`,
+      (id)=>`https://script.google.com/macros/u/2/s/${id}/exec`,
+      (id)=>`https://script.google.com/macros/u/3/s/${id}/exec`,
+      (id)=>`https://script.google.com/macros/u/4/s/${id}/exec`,
+      (id)=>`https://script.google.com/macros/u/5/s/${id}/exec`,
+    ];
+
     const HARD_LIMIT = 10000;
 
     const state = {
-      current: 'perf',
-      cache: { perf:null },
       rows: [],
+      grouped: null,
       debounce: null,
-      grouped: null, // 履歴用
       lastScroll: 0,
       histKey: null
     };
@@ -187,19 +196,23 @@
 
     function showPage(id){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); $(id).classList.add('active'); }
 
-    // ===== JSONP: /macros/u/0/ を強制し、callback=onGviz&authuser=0 を必ず付与 =====
+    // ===== JSONP 受信（一度ヒットしたら以後は追加ロードを無視） =====
     let __jsonpHit = false;
-    window.onGviz = function onGviz(payload){
+    let __watchdog = null;
+    let __usingUrl = '';
+
+    function onGviz(payload){
+      if (__jsonpHit) return; // 二重着弾ガード
       __jsonpHit = true;
+      try{ clearTimeout(__watchdog); }catch(e){}
       try{
         if (!payload || payload.ok !== true || !Array.isArray(payload.rows)) throw new Error('bad payload');
 
-        // GASのスキーマ: artist, title, note(=備考), dText, dUrl
         const rows = payload.rows
           .map(r=>({
             artist: r.artist ?? '',
             title : r.title  ?? '',
-            kind  : r.note   ?? r.kind ?? '', // 表示チップ用
+            kind  : r.note   ?? r.kind ?? '',
             dText : r.dText  ?? r.text ?? '',
             dUrl  : r.dUrl   ?? r.url  ?? '',
             _na   : normalize(r.artist ?? ''),
@@ -207,38 +220,56 @@
           }))
           .filter(r => ((r.artist||'')+(r.title||'')).trim()!=='' );
 
-        state.cache.perf = rows;
         state.rows = rows;
         $('status').textContent = `読み込み完了：${rows.length}件`;
-
         buildHistoryIndex(rows);
         render();
+
+        console.log('[JSONP] SUCCESS via', __usingUrl);
       }catch(e){
         console.error(e);
         $('status').textContent = '読み込みに失敗しました';
       }
-    };
+    }
+    // グローバル公開（GASのcallback=onGviz が呼ぶ）
+    window.onGviz = onGviz;
 
-    function jsonp(url){
+    function injectScript(src){
       const s=document.createElement('script');
-      s.src=url;
+      s.src=src;
       s.async=true;
-      s.onerror=()=>{ if ($('page-list').classList.contains('active')) $('status').textContent='データ取得に失敗しました（ネットワーク/ブロック）'; };
+      s.onerror=()=>{ if (!__jsonpHit) console.warn('[JSONP] error', src); };
       document.head.appendChild(s);
+      return s;
     }
 
-    function requestDataPerf(){
-      // ここで /macros/u/0/ を強制（u/数字 有無を吸収して必ず u/0 に置換）
-      const base = API_URL.replace(/\/macros\/(?:u\/\d+\/)?/,'/macros/u/0/');
-      const url  = `${base}?callback=onGviz&sheet=perf&authuser=0&v=${Date.now()}`;
-      console.log('[JSONP] GET', url);
-      jsonp(url);
+    // 候補URLを順に試す。最初に onGviz が来た時点で打ち切る。
+    function requestPerfWithFallback(){
+      const qs = `?callback=onGviz&sheet=perf&authuser=0&v=${Date.now()}`;
+      let i = 0;
+      const tryNext = ()=>{
+        if (__jsonpHit) return;
+        if (i >= CANDIDATES.length){
+          $('status').textContent = 'データ取得に失敗しました（JSONP未着／API_URLとデプロイ設定を確認）';
+          return;
+        }
+        const base = CANDIDATES[i++](DEPLOY_ID);
+        const url = base + qs;
+        __usingUrl = url;
+        console.log('[JSONP] TRY', url);
+        injectScript(url);
+        // 600ms 間隔で次を試す（先にヒットすれば onGviz が止める）
+        setTimeout(tryNext, 600);
+      };
 
-      // Watchdog: 12秒内に onGviz が来なければ警告
-      setTimeout(()=>{ if(!__jsonpHit) $('status').textContent='データ取得に失敗しました（JSONP未着／API_URLとデプロイ設定を確認）'; }, 12000);
+      tryNext();
+      try{ clearTimeout(__watchdog); }catch(e){}
+      __watchdog = setTimeout(()=>{
+        if(!__jsonpHit) $('status').textContent = 'データ取得に失敗しました（JSONP未着／API_URLとデプロイ設定を確認）';
+      }, 15000);
     }
 
-    // ===== 履歴集計（同一 曲×アーティスト ごとに dText 先頭 yyyymmdd を日付として集計）=====
+    // ===== 履歴集計 =====
     function buildHistoryIndex(rows){
       const map = new Map(); // key: `${_na}|${_nt}` => [{date,url,kind}]
       for(const r of rows){
@@ -298,7 +329,7 @@
       const listWrap  = $('mblist'); listWrap.innerHTML = '';
       const hint = $('hint');
 
-      if (!state.cache[state.current]) {
+      if (!state.rows || state.rows.length===0){
         $('status').textContent = '読み込み中…';
         tableWrap.style.display = 'none';
         listWrap.style.display  = 'none';
@@ -310,14 +341,14 @@
       const limitParsed = (rawLimit === 'all') ? Number.POSITIVE_INFINITY : parseInt(rawLimit,10) || 10;
       const effectiveLimit = Math.min(limitParsed, HARD_LIMIT);
 
-      let filtered = state.cache[state.current] || [];
+      let filtered = state.rows;
       if(q){ filtered = filtered.filter(r => r._na.includes(q) || r._nt.includes(q)); }
       const rows = filtered.slice(0, effectiveLimit);
 
       const limitLabel = (rawLimit === 'all') ? '全て' : `${effectiveLimit}件`;
       $('status').textContent = q
         ? `${rows.length}件ヒット（全${filtered.length}件）／表示上限 ${limitLabel}`
-        : `表示中 ${rows.length}件（全${(state.cache[state.current]||[]).length}件）／表示上限 ${limitLabel}`;
+        : `表示中 ${rows.length}件（全${state.rows.length}件）／表示上限 ${limitLabel}`;
 
       if(rows.length===0){
         hint.textContent = q ? '該当なし' : '検索結果がここに表示されます。';
@@ -417,16 +448,14 @@
     $('btn-back').addEventListener('click', ()=>{ showPage('page-list'); window.scrollTo({ top: state.lastScroll || 0 }); });
     window.addEventListener('resize', ()=>{ clearTimeout(state.debounce); state.debounce=setTimeout(render,150); });
 
-    // 起動：DOM構築後に必ず叩く（Network確認用ログ付き）
+    // 起動：DOM構築後に候補URLを自動試行
     window.addEventListener('DOMContentLoaded', ()=>{
-      console.log('[BOOT] DOM ready -> requestDataPerf()');
-      // 初期タブ（perfのみ）
-      document.getElementById('tab-perf').addEventListener('click', ()=>{/*単一タブ*/});
+      document.getElementById('tab-perf').addEventListener('click', ()=>{});
       document.getElementById('q').addEventListener('input', ()=>{ clearTimeout(state.debounce); state.debounce=setTimeout(render,200); });
       document.getElementById('limit').addEventListener('change', render);
 
-      // リクエスト
-      requestDataPerf();
+      $('status').textContent = '読み込み中…';
+      requestPerfWithFallback();
     });
   </script>
 </body>
