@@ -116,7 +116,7 @@
     // ===== デプロイID（GAS） =====
     const DEPLOY_ID = 'AKfycbz3dNCpijcCsBhcPlo5i7VtlGIO-InVGqqYj7YKMwdU2WO9NVJaGUgkJaTWwKR0JCQo1w';
 
-    // /s/ と /u/N/s/ の両系統を順番に試行（JSONP用）
+    // /s/ と /u/N/s/ を順番に試行（JSONP）
     const CANDIDATES = [
       (id)=>`https://script.google.com/macros/s/${id}/exec`,
       (id)=>`https://script.google.com/macros/u/0/s/${id}/exec`,
@@ -129,13 +129,7 @@
 
     const HARD_LIMIT = 10000;
 
-    const state = {
-      rows: [],
-      grouped: null,
-      debounce: null,
-      lastScroll: 0,
-      histKey: null
-    };
+    const state = { rows: [], grouped: null, debounce: null, lastScroll: 0, histKey: null };
 
     const $ = id => document.getElementById(id);
     const normalize = s => (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim();
@@ -150,218 +144,176 @@
     async function copyPair(title, artist){ await copyText(`${(title||'').trim()} / ${(artist||'').trim()}`.trim()); }
     $('dm-copy').addEventListener('click', ()=>{ copyText($('dm-select').value || ''); });
 
-    const urlFromText = s => { if(!s) return ''; const m=String(s).match(/https?:\/\/\S+/); return m ? m[0].replace(/[)\]\s]+$/,'') : ''; };
-    const extractDate8 = s => { const m=/^(\d{8})/.exec(String(s||'')); return m ? parseInt(m[1],10) : 0; };
+    const urlFromText=s=>{ if(!s) return ''; const m=String(s).match(/https?:\/\/\S+/); return m?m[0].replace(/[)\]\s]+$/,''):''; };
+    const extractDate8=s=>{ const m=/^(\d{8})/.exec(String(s||'')); return m?parseInt(m[1],10):0; };
     function showPage(id){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); $(id).classList.add('active'); }
 
-    // ===== JSONP 受信口 =====
-    let __jsonpHit = false;
-    let __watchdog = null;
-    let __usingUrl = '';
-
+    // ===== JSONP受信 =====
+    let __jsonpHit=false, __watchdog=null, __usingUrl='';
     function onGviz(payload){
-      if (__jsonpHit) return; // 二重ガード
-      __jsonpHit = true;
+      if(__jsonpHit) return;
+      __jsonpHit=true;
       try{ clearTimeout(__watchdog); }catch(e){}
       try{
-        if (!payload || payload.ok !== true || !Array.isArray(payload.rows)) throw new Error('bad payload');
-
-        const rows = payload.rows.map(r => ({
-          artist: r.artist ?? '',
-          title : r.title  ?? '',
-          // GSのC列 "備考(note)" を UI 表示では kind として扱う
-          kind  : r.note   ?? r.kind ?? '',
-          dText : r.dText  ?? r.text ?? '',
-          dUrl  : r.dUrl   ?? r.url  ?? '',
-          _na   : normalize(r.artist ?? ''),
-          _nt   : normalize(r.title  ?? '')
-        })).filter(r => ((r.artist||'')+(r.title||'')).trim()!=='');
-
-        state.rows = rows;
-        $('status').textContent = `読み込み完了：${rows.length}件`;
+        if(!payload || payload.ok!==true || !Array.isArray(payload.rows)) throw new Error('bad payload');
+        const rows = payload.rows.map(r=>({
+          artist:r.artist??'',
+          title :r.title ??'',
+          kind  :r.note  ?? r.kind ?? '',
+          dText :r.dText ?? r.text ?? '',
+          dUrl  :r.dUrl  ?? r.url  ?? '',
+          _na   :normalize(r.artist??''),
+          _nt   :normalize(r.title ??'')
+        })).filter(r=>((r.artist||'')+(r.title||'')).trim()!=='');
+        state.rows=rows;
+        $('status').textContent=`読み込み完了：${rows.length}件`;
         buildHistoryIndex(rows);
         render();
-
         console.log('[JSONP] SUCCESS via', __usingUrl);
       }catch(e){
         console.error(e);
-        $('status').textContent = '読み込みに失敗しました';
+        $('status').textContent='読み込みに失敗しました';
       }
     }
-    window.onGviz = onGviz;
+    window.onGviz=onGviz;
 
     function injectScript(src){
       const s=document.createElement('script');
-      s.src=src;
-      s.async=true;
-      s.onerror=()=>{ if (!__jsonpHit) console.warn('[JSONP] error', src); };
+      s.src=src; s.async=true;
+      s.onerror=()=>{ if(!__jsonpHit) console.warn('[JSONP] error', src); };
       document.head.appendChild(s);
       return s;
     }
 
-    // 候補URLを順に試す（onGvizが来た時点で停止）
+    // 候補URLを順に試す（authuser 付けない）
     function requestPerfWithFallback(){
-      const qs = `?callback=onGviz&sheet=perf&limit=${HARD_LIMIT}&authuser=0&v=${Date.now()}`;
-      let i = 0;
-      const tryNext = ()=>{
-        if (__jsonpHit) return;
-        if (i >= CANDIDATES.length){
-          $('status').textContent = 'データ取得に失敗しました（JSONP未着／API_URLとデプロイ設定を確認）';
+      const qs = `?callback=onGviz&sheet=perf&limit=${HARD_LIMIT}&v=${Date.now()}`;
+      let i=0;
+      const tryNext=()=>{
+        if(__jsonpHit) return;
+        if(i>=CANDIDATES.length){
+          $('status').textContent='データ取得に失敗しました（JSONP未着／API_URLとデプロイ設定を確認）';
           return;
         }
-        const base = CANDIDATES[i++](DEPLOY_ID);
-        const url = base + qs;
-        __usingUrl = url;
+        const base=CANDIDATES[i++](DEPLOY_ID);
+        const url=base+qs;
+        __usingUrl=url;
         console.log('[JSONP] TRY', url);
         injectScript(url);
-        setTimeout(tryNext, 600); // 600ms 間隔で次を試す
+        setTimeout(tryNext, 600);
       };
-
       tryNext();
       try{ clearTimeout(__watchdog); }catch(e){}
-      __watchdog = setTimeout(()=>{
-        if(!__jsonpHit) $('status').textContent = 'データ取得に失敗しました（JSONP未着／API_URLとデプロイ設定を確認）';
+      __watchdog=setTimeout(()=>{
+        if(!__jsonpHit) $('status').textContent='データ取得に失敗しました（JSONP未着／API_URLとデプロイ設定を確認）';
       }, 15000);
     }
 
     // ===== 履歴集計 =====
     function buildHistoryIndex(rows){
-      const map = new Map();
+      const map=new Map();
       for(const r of rows){
-        const key = `${r._na}|${r._nt}`;
-        const url = r.dUrl || urlFromText(r.dText);
-        const date = extractDate8(r.dText);
-        if(!map.has(key)) map.set(key, []);
+        const key=`${r._na}|${r._nt}`;
+        const url=r.dUrl||urlFromText(r.dText);
+        const date=extractDate8(r.dText);
+        if(!map.has(key)) map.set(key,[]);
         map.get(key).push({date,url,kind:r.kind});
       }
-      for(const arr of map.values()) arr.sort((a,b)=> b.date - a.date || (a.url>b.url?1:-1));
-      state.grouped = map;
+      for(const arr of map.values()) arr.sort((a,b)=> b.date-a.date || (a.url>b.url?1:-1));
+      state.grouped=map;
     }
 
-    function renderHistory(artist, title){
-      state.histKey = { artist, title };
-      $('hist-title').textContent = `${artist || ''} / ${title || ''}`;
-
-      const wrap = $('hist-list');
-      const empty = $('hist-empty');
-      wrap.innerHTML = '';
-      empty.style.display = 'none';
-
-      const key = `${normalize(artist)}|${normalize(title)}`;
-      const list = (state.grouped && state.grouped.get(key)) || [];
-      if (list.length===0){ empty.style.display = 'block'; return; }
-      $('hist-sub').textContent = '新しい順に表示しています。';
-
-      const CHUNK = 50; let i = 0;
+    function renderHistory(artist,title){
+      state.histKey={artist,title};
+      $('hist-title').textContent=`${artist||''} / ${title||''}`;
+      const wrap=$('hist-list'), empty=$('hist-empty');
+      wrap.innerHTML=''; empty.style.display='none';
+      const key=`${normalize(artist)}|${normalize(title)}`;
+      const list=(state.grouped&&state.grouped.get(key))||[];
+      if(list.length===0){ empty.style.display='block'; return; }
+      $('hist-sub').textContent='新しい順に表示しています。';
+      const CHUNK=50; let i=0;
       function drawChunk(){
-        const frag = document.createDocumentFragment();
-        const end = Math.min(i+CHUNK, list.length);
+        const frag=document.createDocumentFragment();
+        const end=Math.min(i+CHUNK, list.length);
         for(; i<end; i++){
-          const {date,url,kind} = list[i];
-          const yyyy = Math.floor(date/10000), mm=Math.floor((date%10000)/100), dd=date%100;
-          const dateLabel = date ? `${yyyy}/${String(mm).padStart(2,'0')}/${String(dd).padStart(2,'0')}` : '----/--/--';
-
-          const row = document.createElement('div'); row.className='history-item';
-
-          const left = document.createElement('div'); left.className='history-left';
-          const dt = document.createElement('span'); dt.className = 'history-date'; dt.textContent = dateLabel; left.appendChild(dt);
-          if ((kind||'').trim() !== '') { const k = document.createElement('span'); k.className = 'kind-chip'; k.textContent = kind; left.appendChild(k); }
-
-          const right = document.createElement('div');
-          if (url) { const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.textContent='▶ 開く'; right.appendChild(a); }
+          const {date,url,kind}=list[i];
+          const yyyy=Math.floor(date/10000), mm=Math.floor((date%10000)/100), dd=date%100;
+          const dateLabel=date?`${yyyy}/${String(mm).padStart(2,'0')}/${String(dd).padStart(2,'0')}`:'----/--/--';
+          const row=document.createElement('div'); row.className='history-item';
+          const left=document.createElement('div'); left.className='history-left';
+          const dt=document.createElement('span'); dt.className='history-date'; dt.textContent=dateLabel; left.appendChild(dt);
+          if((kind||'').trim()!==''){ const k=document.createElement('span'); k.className='kind-chip'; k.textContent=kind; left.appendChild(k); }
+          const right=document.createElement('div');
+          if(url){ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.textContent='▶ 開く'; right.appendChild(a); }
           else { const span=document.createElement('span'); span.className='muted'; span.textContent='リンクなし'; right.appendChild(span); }
-
           row.appendChild(left); row.appendChild(right); frag.appendChild(row);
         }
         wrap.appendChild(frag);
-        if (i < list.length) requestAnimationFrame(drawChunk);
+        if(i<list.length) requestAnimationFrame(drawChunk);
       }
       requestAnimationFrame(drawChunk);
     }
 
     // ===== レンダリング =====
     function render(){
-      const tableWrap = $('table'); tableWrap.innerHTML = '';
-      const listWrap  = $('mblist'); listWrap.innerHTML = '';
-      const hint = $('hint');
+      const tableWrap=$('table'); tableWrap.innerHTML='';
+      const listWrap=$('mblist'); listWrap.innerHTML='';
+      const hint=$('hint');
 
-      if (!state.rows || state.rows.length===0){
-        $('status').textContent = '読み込み中…';
-        tableWrap.style.display = 'none';
-        listWrap.style.display  = 'none';
-        return;
+      if(!state.rows || state.rows.length===0){
+        $('status').textContent='読み込み中…';
+        tableWrap.style.display='none'; listWrap.style.display='none'; return;
       }
 
-      const q = normalize($('q').value||'');
-      const rawLimit = $('limit').value;
-      const limitParsed = (rawLimit === 'all') ? Number.POSITIVE_INFINITY : parseInt(rawLimit,10) || 10;
-      const effectiveLimit = Math.min(limitParsed, HARD_LIMIT);
+      const q=normalize($('q').value||'');
+      const rawLimit=$('limit').value;
+      const limitParsed=(rawLimit==='all')?Number.POSITIVE_INFINITY:parseInt(rawLimit,10)||10;
+      const effectiveLimit=Math.min(limitParsed, HARD_LIMIT);
 
-      let filtered = state.rows;
-      if(q){ filtered = filtered.filter(r => r._na.includes(q) || r._nt.includes(q)); }
-      const rows = filtered.slice(0, effectiveLimit);
+      let filtered=state.rows;
+      if(q){ filtered=filtered.filter(r=> r._na.includes(q)||r._nt.includes(q)); }
+      const rows=filtered.slice(0, effectiveLimit);
 
-      const limitLabel = (rawLimit === 'all') ? '全て' : `${effectiveLimit}件`;
+      const limitLabel=(rawLimit==='all')?'全て':`${effectiveLimit}件`;
       $('status').textContent = q
         ? `${rows.length}件ヒット（全${filtered.length}件）／表示上限 ${limitLabel}`
         : `表示中 ${rows.length}件（全${state.rows.length}件）／表示上限 ${limitLabel}`;
 
       if(rows.length===0){
-        hint.textContent = q ? '該当なし' : '検索結果がここに表示されます。';
-        tableWrap.style.display = 'none';
-        listWrap.style.display  = 'none';
-        return;
+        hint.textContent=q?'該当なし':'検索結果がここに表示されます。';
+        tableWrap.style.display='none'; listWrap.style.display='none'; return;
       }
-      hint.textContent = '';
+      hint.textContent='';
 
-      const isMobile = window.matchMedia('(max-width: 768px)').matches;
-      const latestUrl = (r)=> r.dUrl || urlFromText(r.dText);
+      const isMobile=window.matchMedia('(max-width: 768px)').matches;
+      const latestUrl=r=> r.dUrl || urlFromText(r.dText);
 
-      if (!isMobile) {
+      if(!isMobile){
         const table=document.createElement('table');
         const thead=document.createElement('thead');
         const trh=document.createElement('tr');
         ['アーティスト名','曲名','操作'].forEach(h=>{ const th=document.createElement('th'); th.textContent=h; trh.appendChild(th); });
         thead.appendChild(trh); table.appendChild(thead);
-
         const tbody=document.createElement('tbody');
         rows.forEach(({artist,title,kind,dText,dUrl})=>{
           const tr=document.createElement('tr');
-
           let td=document.createElement('td'); td.textContent=artist||''; tr.appendChild(td);
           td=document.createElement('td'); td.textContent=title||''; tr.appendChild(td);
-
-          const tdOps=document.createElement('td');
-          const ops=document.createElement('div'); ops.className='ops';
-
-          if ((kind||'').trim()!==''){
-            const k=document.createElement('span'); k.className='kind-chip'; k.textContent=kind;
-            ops.appendChild(k);
-          }
-
-          const url = latestUrl({dText,dUrl});
-          if (url){
-            const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.className='link-icon'; a.textContent='▶'; a.title='リンクを開く';
-            ops.appendChild(a);
-          }
-
+          const tdOps=document.createElement('td'); const ops=document.createElement('div'); ops.className='ops';
+          if((kind||'').trim()!==''){ const k=document.createElement('span'); k.className='kind-chip'; k.textContent=kind; ops.appendChild(k); }
+          const url=latestUrl({dText,dUrl});
+          if(url){ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.className='link-icon'; a.textContent='▶'; a.title='リンクを開く'; ops.appendChild(a); }
           const hbtn=document.createElement('button'); hbtn.className='btn'; hbtn.textContent='履歴';
-          hbtn.addEventListener('click', ()=>{
-            state.lastScroll = window.scrollY || document.documentElement.scrollTop || 0;
-            showPage('page-history');
-            renderHistory(artist, title);
-          });
+          hbtn.addEventListener('click', ()=>{ state.lastScroll=window.scrollY||document.documentElement.scrollTop||0; showPage('page-history'); renderHistory(artist,title); });
           ops.appendChild(hbtn);
-
           const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
-          btn.addEventListener('click', ()=>copyPair(title,artist));
-          ops.appendChild(btn);
-
+          btn.addEventListener('click', ()=>copyPair(title,artist)); ops.appendChild(btn);
           tdOps.appendChild(ops); tr.appendChild(tdOps); tbody.appendChild(tr);
         });
         table.appendChild(tbody); tableWrap.appendChild(table);
-        tableWrap.style.display = 'block'; listWrap.style.display = 'none';
-      } else {
+        tableWrap.style.display='block'; listWrap.style.display='none';
+      }else{
         rows.forEach(({artist,title,kind,dText,dUrl})=>{
           const item=document.createElement('div'); item.className='item';
           const l1=document.createElement('div'); l1.className='l1';
@@ -369,39 +321,21 @@
           const sep=document.createElement('span'); sep.className='sep'; sep.textContent='/';
           const t1=document.createElement('span'); t1.className='title'; t1.textContent=title||'';
           l1.appendChild(a1); l1.appendChild(sep); l1.appendChild(t1);
-
           const l2=document.createElement('div'); l2.className='l2';
-
-          if ((kind||'').trim()!==''){
-            const k=document.createElement('span'); k.className='kind-chip'; k.textContent=kind;
-            l2.appendChild(k);
-          }
-
-          const url = latestUrl({dText,dUrl});
-          if (url){
-            const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.className='link-icon'; a.textContent='▶'; a.title='リンクを開く';
-            l2.appendChild(a);
-          }
-
+          if((kind||'').trim()!==''){ const k=document.createElement('span'); k.className='kind-chip'; k.textContent=kind; l2.appendChild(k); }
+          const url=latestUrl({dText,dUrl});
+          if(url){ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.className='link-icon'; a.textContent='▶'; a.title='リンクを開く'; l2.appendChild(a); }
           const hbtn=document.createElement('button'); hbtn.className='btn'; hbtn.textContent='履歴';
-          hbtn.addEventListener('click', ()=>{
-            state.lastScroll = window.scrollY || document.documentElement.scrollTop || 0;
-            showPage('page-history');
-            renderHistory(artist, title);
-          });
+          hbtn.addEventListener('click', ()=>{ state.lastScroll=window.scrollY||document.documentElement.scrollTop||0; showPage('page-history'); renderHistory(artist,title); });
           l2.appendChild(hbtn);
-
           const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
-          btn.addEventListener('click', ()=>copyPair(title,artist));
-          l2.appendChild(btn);
-
+          btn.addEventListener('click', ()=>copyPair(title,artist)); l2.appendChild(btn);
           item.appendChild(l1); item.appendChild(l2); $('mblist').appendChild(item);
         });
-        $('mblist').style.display = 'block'; $('table').style.display = 'none';
+        $('mblist').style.display='block'; $('table').style.display='none';
       }
     }
 
-    // 戻るボタン・リサイズ・初期化
     $('btn-back').addEventListener('click', ()=>{ showPage('page-list'); window.scrollTo({ top: state.lastScroll || 0 }); });
     window.addEventListener('resize', ()=>{ clearTimeout(state.debounce); state.debounce=setTimeout(render,150); });
 
@@ -409,7 +343,7 @@
       document.getElementById('tab-perf').addEventListener('click', ()=>{});
       document.getElementById('q').addEventListener('input', ()=>{ clearTimeout(state.debounce); state.debounce=setTimeout(render,200); });
       document.getElementById('limit').addEventListener('change', render);
-      $('status').textContent = '読み込み中…';
+      $('status').textContent='読み込み中…';
       requestPerfWithFallback();
     });
   </script>
