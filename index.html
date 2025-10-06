@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <meta name="theme-color" content="#e6f6ff">
-  <title>雲丹ゐくら歌唱DB（Performance Record）</title>
+  <title>雲丹ゐくらDB（Performance Record）</title>
   <style>
     :root{
       --bg:#e6f6ff; --card:#ffffff; --text:#1a1a1a; --muted:#6b7280; --line:#e5e7eb;
@@ -213,6 +213,7 @@
       __jsonpHit = true;
       try{ clearTimeout(__watchdog); }catch(e){}
       try{
+        console.log('onGviz payload', payload);
         if (!payload || payload.ok !== true || !Array.isArray(payload.rows)) throw new Error('payload');
         const rows = payload.rows
           .map(r=>({
@@ -416,16 +417,11 @@
       requestAnimationFrame(drawChunk);
     }
 
-    $('btn-back').addEventListener('click', ()=>{ showPage('page-list'); window.scrollTo({ top: state.lastScroll || 0 }); });
-    window.addEventListener('resize', ()=>{ clearTimeout(state.debounce); state.debounce=setTimeout(render,150); });
-
-    (function init(){
-      $('tab-perf').addEventListener('click', ()=>{ /* 単一タブのため見た目だけ */ });
-      $('q').addEventListener('input', ()=>{ clearTimeout(state.debounce); state.debounce=setTimeout(render,200); });
-      $('limit').addEventListener('change', render);
-      showPage('page-list');
-
-      // ローカルキャッシュ（任意）
+    // ====== 強制ブート：DOM構築完了後に必ず requestPerf() を叩く ======
+    console.log('[BOOT] script loaded');
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('[BOOT] DOM ready, calling requestPerf()');
+      // キャッシュからの即時描画（任意）
       try{
         const ver = localStorage.getItem('perfCacheVersion');
         const json = localStorage.getItem('perfCacheJson');
@@ -437,9 +433,8 @@
           render();
         }
       }catch{}
-
-      requestPerf();
-    })();
+      try { requestPerf(); } catch (e) { console.error('[BOOT] requestPerf failed', e); }
+    });
   </script>
 </body>
 </html>
