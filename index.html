@@ -66,7 +66,7 @@
       .btn{padding:8px 12px;font-size:14px}
     }
 
-    /* 囲みリンク（C/D）— 淡い灰背景＋青文字・省略可能 */
+    /* 囲みリンク（C/D）— 淡い灰背景＋青文字 */
     .btn-pill{
       display:inline-block;border:1px solid var(--line);background:var(--pill-bg);color:var(--link);
       border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.2;text-decoration:none;
@@ -128,41 +128,28 @@
     // あなたのデプロイID（GAS WebApp）
     const BASE = 'https://script.google.com/macros/s/AKfycbzi_3OjqVRu7XhvnHazzEBd0tgPE0zTa-rAIkboMtMP7R9AphUiQGPrCa3gdWhwZn97pw/exec';
     const SHEET_KEY = 'perf'; // サーバ側のデフォルトシートキー
-    const INITIAL_FETCH = 300; // 初回は必要十分な件数のみ取得（高速化）
+    const INITIAL_FETCH = 200; // 初回は必要十分な件数のみ取得（高速化）
     const HARD_LIMIT = 20000;  // 全件要求時のサーバ上限ガード
 
     const state = { rows: [], total: 0, fetchedLimit: 0, debounce: null };
 
-    /* ===== JSONP コールバック ===== */
-    function onGviz(payload) {
-      try {
-        if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
-          $('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
-          return;
-        }
-        // rows: { artist,title,cText,dText,cUrl,dUrl } を配列に整形
-        const rows = payload.rows.map(r => [
-          r.artist || '', r.title || '', r.cText || '', r.dText || '', r.cUrl || '', r.dUrl || ''
-        ]).filter(([a,b]) => ((a||'')+(b||'')).trim() !== '');
-
-        state.rows = rows;
-        state.total = Number(payload.matched || payload.total || rows.length);
-        $('status').textContent = `読み込み完了：${state.rows.length}件（全${state.total}件）`;
-        render();
-      } catch (e) {
-        $('status').textContent = '読み込みに失敗しました';
-        console.error(e);
-      }
-    }
-    window.onGviz = onGviz;
-
-    /* ===== ユーティリティ ===== */
+    /* ===== 汎用 ===== */
+    function $(id){ return document.getElementById(id); }
     function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
     function scheduleSearch(){ clearTimeout(state.debounce); state.debounce = setTimeout(render, 160); }
-    function $(id){ return document.getElementById(id); }
-
     function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
+    function coerceBool(v){
+      // GASのチェックボックスは true/false、または "TRUE"/"FALSE"、✓ などになり得るため吸収
+      if (v === true) return true;
+      if (v === false) return false;
+      const s = String(v||'').trim().toLowerCase();
+      if (!s) return undefined;
+      if (s === 'true' || s === '1' || s === '✓' || s === 'yes' || s === 'ok') return true;
+      if (s === 'false' || s === '0' || s === '✗' || s === 'no') return false;
+      return undefined;
+    }
 
+    /* ===== クリップボード ===== */
     async function copyPair(title, artist){
       const text = `${(title||'').trim()} / ${(artist||'').trim()}`.trim();
       try{
@@ -171,8 +158,6 @@
         showToast('コピーしました：' + text);
       }catch{ showToast('コピーに失敗しました'); }
     }
-
-    // 弾幕コピー
     $('dm-copy').addEventListener('click', async ()=>{
       const text = $('dm-select').value || '';
       try{
@@ -182,15 +167,43 @@
       }catch{ showToast('弾幕のコピーに失敗しました'); }
     });
 
-    function urlFromText(s){
-      if(!s) return '';
-      const m = String(s).match(/https?:\/\/\S+/);
-      return m ? m[0].replace(/[)\]\s]+$/, '') : '';
+    /* ===== リンク処理 ===== */
+    function urlFromText(s){ if(!s) return ''; const m=String(s).match(/https?:\/\/\S+/); return m ? m[0].replace(/[)\]\s]+$/, '') : ''; }
+    function formatYmdLabel(s){ const m=/^(\d{4})(\d{2})(\d{2})/.exec(String(s||'')); return m ? `${m[1]}/${m[2]}/${m[3]}` : null; }
+
+    /* ===== JSONP コールバック ===== */
+    function onGviz(payload) {
+      try {
+        if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
+          $('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
+          return;
+        }
+        // rows: { artist,title,cText,dText,cUrl,dUrl, pub? } を配列に整形
+        const rows = payload.rows
+          .map(r => {
+            const pub = coerceBool(r.pub ?? r.published ?? r.ok ?? r.okToShow);
+            return {
+              artist: r.artist || '',
+              title : r.title  || '',
+              cText : r.cText  || '',
+              dText : r.dText  || '',
+              cUrl  : r.cUrl   || '',
+              dUrl  : r.dUrl   || '',
+              pub   : (pub === undefined ? true : pub) // フラグ未提供なら全件表示
+            };
+          })
+          .filter(r => ((r.artist||'') + (r.title||'')).trim() !== '' && r.pub); // ★ 未チェックは除外
+
+        state.rows  = rows.map(r => [r.artist, r.title, r.cText, r.dText, r.cUrl, r.dUrl]);
+        state.total = Number(payload.matched || payload.total || state.rows.length);
+        $('status').textContent = `読み込み完了：${state.rows.length}件（全${state.total}件）`;
+        render();
+      } catch (e) {
+        $('status').textContent = '読み込みに失敗しました';
+        console.error(e);
+      }
     }
-    function formatYmdLabel(s){
-      const m = /^(\d{4})(\d{2})(\d{2})/.exec(String(s||''));
-      return m ? `${m[1]}/${m[2]}/${m[3]}` : null;
-    }
+    window.onGviz = onGviz;
 
     /* ===== 描画 ===== */
     function render(){
@@ -237,7 +250,7 @@
 
         const tdOps=document.createElement('td'); const ops=document.createElement('div'); ops.className='ops';
 
-        // C列リンク：文字列そのまま（囲み）
+        // C列リンク
         const cHref = cUrl || urlFromText(cText);
         if (cHref) {
           const aC=document.createElement('a');
@@ -248,7 +261,7 @@
           ops.appendChild(aC);
         }
 
-        // D列リンク：▶前回yyyy/mm/dd（囲み）
+        // D列リンク：▶前回yyyy/mm/dd
         const dHref = dUrl || urlFromText(dText);
         const dLabel = formatYmdLabel(dText);
         if (dHref) {
@@ -267,9 +280,9 @@
         tdOps.appendChild(ops); tr.appendChild(tdOps); tbody.appendChild(tr);
       });
       table.appendChild(tbody);
-      tableWrap.appendChild(table);
+      $('table').appendChild(table);
 
-      /* ==== スマホ2行カード ==== */
+      /* ==== モバイル2行カード ==== */
       rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
         const item=document.createElement('div'); item.className='item';
 
@@ -313,9 +326,9 @@
       $('mblist').style.display='block';
     }
 
-    /* ===== データ取得（JSONP: 初回は軽量・全件時は追加取得） ===== */
+    /* ===== データ取得（JSONP） ===== */
     function fetchRows(limit){
-      // 同一URLならブラウザ/中継CDNがキャッシュしやすいよう、キャッシュバスターは付けない
+      // 同一URLを維持しキャッシュを効かせるためクエリは固定（キャッシュバスターなし）
       const url = `${BASE}?callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}`;
       const s=document.createElement('script');
       s.src=url; s.async=true;
@@ -324,18 +337,16 @@
       state.fetchedLimit = limit;
     }
 
-    // 初回：必要十分（INITIAL_FETCH）のみ取得
+    // 初回：必要十分のみ取得
     fetchRows(INITIAL_FETCH);
 
     /* ===== イベント ===== */
     $('q').addEventListener('input', scheduleSearch);
     $('limit').addEventListener('change', ()=>{
-      // 「全件」選択 & 未取得なら追加フェッチしてから描画
       const raw = $('limit').value;
       if (raw === 'all' && state.fetchedLimit < HARD_LIMIT) {
         $('status').textContent = '全件を取得しています…';
         fetchRows(HARD_LIMIT);
-        // onGviz -> render が走る
       } else {
         render();
       }
