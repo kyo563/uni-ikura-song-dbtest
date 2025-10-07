@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffb744">
   <title>雲丹ゐくら歌唱曲DB</title>
 
-  <!-- 速度対策：DNSプリフェッチ & プレコネクト -->
+  <!-- パフォーマンス対策 -->
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="preconnect" href="https://script.google.com" crossorigin>
 
@@ -20,7 +20,7 @@
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 
-    /* ====== ヘッダー：1段目=検索、2段目=左右に揃えたツールバー ====== */
+    /* ===== ヘッダー：1段目=検索、2段目=左右に揃えたツールバー ===== */
     .row{display:flex;gap:8px;align-items:center}
     .row .search{flex:1 1 auto;min-width:0}
 
@@ -66,7 +66,7 @@
       .btn{padding:8px 12px;font-size:14px}
     }
 
-    /* 囲みリンク（C/D）— 淡い灰背景＋青文字 */
+    /* 囲みリンク（C/D）— 淡い灰背景＋青文字・省略可能 */
     .btn-pill{
       display:inline-block;border:1px solid var(--line);background:var(--pill-bg);color:var(--link);
       border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.2;text-decoration:none;
@@ -124,31 +124,43 @@
   <div id="toast" class="toast" role="status" aria-live="polite">コピーしました</div>
 
   <script>
-    /* ===== 設定 ===== */
-    // あなたのデプロイID（GAS WebApp）
- const BASE = 'https://script.google.com/macros/s/AKfycbxNiqbCG2QxEcPSwi3IpwcRw2jt8QLdx0lxDoLQziKQb-DBQGDcjEa73JnVXIgUATc7lA/exec';    const SHEET_KEY = 'perf'; // サーバ側のデフォルトシートキー
-    const INITIAL_FETCH = 200; // 初回は必要十分な件数のみ取得（高速化）
-    const HARD_LIMIT = 20000;  // 全件要求時のサーバ上限ガード
+    /* ========= 基本ユーティリティ ========= */
+    function $(id){ return document.getElementById(id); }
+    function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
+    function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
+
+    /* ========= 設定 ========= */
+    // ★ あなたの「exec」URL（今回の新しいデプロイ）
+    const BASE = 'https://script.google.com/macros/s/AKfycbxNiqbCG2QxEcPSwi3IpwcRw2jt8QLdx0lxDoLQziKQb-DBQGDcjEa73JnVXIgUATc7lA/exec';
+    const SHEET_KEY = 'perf';     // サーバ側デフォルト
+    const INITIAL_FETCH = 200;    // 初回は軽量に
+    const HARD_LIMIT = 20000;     // 全件時の上限
 
     const state = { rows: [], total: 0, fetchedLimit: 0, debounce: null };
 
-    /* ===== 汎用 ===== */
-    function $(id){ return document.getElementById(id); }
-    function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
-    function scheduleSearch(){ clearTimeout(state.debounce); state.debounce = setTimeout(render, 160); }
-    function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
-    function coerceBool(v){
-      // GASのチェックボックスは true/false、または "TRUE"/"FALSE"、✓ などになり得るため吸収
-      if (v === true) return true;
-      if (v === false) return false;
-      const s = String(v||'').trim().toLowerCase();
-      if (!s) return undefined;
-      if (s === 'true' || s === '1' || s === '✓' || s === 'yes' || s === 'ok') return true;
-      if (s === 'false' || s === '0' || s === '✗' || s === 'no') return false;
-      return undefined;
-    }
+    /* ========= JSONPコールバック（iframe経由で呼ばれる） ========= */
+    function onGviz(payload) {
+      try {
+        if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
+          $('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
+          return;
+        }
+        const rows = payload.rows
+          .map(r => [ r.artist||'', r.title||'', r.cText||'', r.dText||'', r.cUrl||'', r.dUrl||'' ])
+          .filter(([a,b]) => ((a||'')+(b||'')).trim() !== '');
 
-    /* ===== クリップボード ===== */
+        state.rows = rows;
+        state.total = Number(payload.matched || payload.total || rows.length);
+        $('status').textContent = `読み込み完了：${state.rows.length}件（全${state.total}件）`;
+        render();
+      } catch (e) {
+        console.error(e);
+        $('status').textContent = '読み込みに失敗しました';
+      }
+    }
+    window.onGviz = onGviz;
+
+    /* ========= クリップボード ========= */
     async function copyPair(title, artist){
       const text = `${(title||'').trim()} / ${(artist||'').trim()}`.trim();
       try{
@@ -166,45 +178,18 @@
       }catch{ showToast('弾幕のコピーに失敗しました'); }
     });
 
-    /* ===== リンク処理 ===== */
-    function urlFromText(s){ if(!s) return ''; const m=String(s).match(/https?:\/\/\S+/); return m ? m[0].replace(/[)\]\s]+$/, '') : ''; }
-    function formatYmdLabel(s){ const m=/^(\d{4})(\d{2})(\d{2})/.exec(String(s||'')); return m ? `${m[1]}/${m[2]}/${m[3]}` : null; }
-
-    /* ===== JSONP コールバック ===== */
-    function onGviz(payload) {
-      try {
-        if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
-          $('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
-          return;
-        }
-        // rows: { artist,title,cText,dText,cUrl,dUrl, pub? } を配列に整形
-        const rows = payload.rows
-          .map(r => {
-            const pub = coerceBool(r.pub ?? r.published ?? r.ok ?? r.okToShow);
-            return {
-              artist: r.artist || '',
-              title : r.title  || '',
-              cText : r.cText  || '',
-              dText : r.dText  || '',
-              cUrl  : r.cUrl   || '',
-              dUrl  : r.dUrl   || '',
-              pub   : (pub === undefined ? true : pub) // フラグ未提供なら全件表示
-            };
-          })
-          .filter(r => ((r.artist||'') + (r.title||'')).trim() !== '' && r.pub); // ★ 未チェックは除外
-
-        state.rows  = rows.map(r => [r.artist, r.title, r.cText, r.dText, r.cUrl, r.dUrl]);
-        state.total = Number(payload.matched || payload.total || state.rows.length);
-        $('status').textContent = `読み込み完了：${state.rows.length}件（全${state.total}件）`;
-        render();
-      } catch (e) {
-        $('status').textContent = '読み込みに失敗しました';
-        console.error(e);
-      }
+    /* ========= 小物 ========= */
+    function urlFromText(s){
+      if(!s) return '';
+      const m = String(s).match(/https?:\/\/\S+/);
+      return m ? m[0].replace(/[)\]\s]+$/, '') : '';
     }
-    window.onGviz = onGviz;
+    function formatYmdLabel(s){
+      const m = /^(\d{4})(\d{2})(\d{2})/.exec(String(s||'')); // 例: 20241005
+      return m ? `${m[1]}/${m[2]}/${m[3]}` : null;
+    }
 
-    /* ===== 描画 ===== */
+    /* ========= レンダリング ========= */
     function render(){
       const tableWrap = $('table'); tableWrap.innerHTML = '';
       const listWrap = $('mblist'); listWrap.innerHTML = '';
@@ -279,9 +264,9 @@
         tdOps.appendChild(ops); tr.appendChild(tdOps); tbody.appendChild(tr);
       });
       table.appendChild(tbody);
-      $('table').appendChild(table);
+      tableWrap.appendChild(table);
 
-      /* ==== モバイル2行カード ==== */
+      /* ==== モバイル：2行カード ==== */
       rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
         const item=document.createElement('div'); item.className='item';
 
@@ -325,27 +310,37 @@
       $('mblist').style.display='block';
     }
 
-    /* ===== データ取得（JSONP） ===== */
+    /* ========= データ取得（iframeフォールバック） ========= */
     function fetchRows(limit){
-      // 同一URLを維持しキャッシュを効かせるためクエリは固定（キャッシュバスターなし）
-      const url = `${BASE}?callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}`;
-      const s=document.createElement('script');
-      s.src=url; s.async=true;
-      s.onerror=()=>{ $('status').textContent='データ取得に失敗しました（ネットワーク/ブロック）'; };
-      document.head.appendChild(s);
+      const sep = BASE.includes('?') ? '&' : '?';
+      // GAS out_ は frame=1 で HTML を返し、iframe 内から parent.onGviz(...) を叩く
+      const url = `${BASE}${sep}callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&frame=1`;
+
+      let f = document.getElementById('jsonp-frame');
+      if (!f) {
+        f = document.createElement('iframe');
+        f.id = 'jsonp-frame';
+        f.style.display = 'none';
+        f.setAttribute('title','data-loader');
+        document.body.appendChild(f);
+      }
+      f.onerror = () => { $('status').textContent = 'データ取得に失敗しました（ネットワーク/ブロック）'; };
+      // 同じURLを維持 → ブラウザキャッシュ & GAS CacheService が効く
+      f.src = url;
+
       state.fetchedLimit = limit;
     }
 
-    // 初回：必要十分のみ取得
+    // 起動時：軽量取得
     fetchRows(INITIAL_FETCH);
 
-    /* ===== イベント ===== */
-    $('q').addEventListener('input', scheduleSearch);
+    /* ========= イベント ========= */
+    $('q').addEventListener('input', ()=>{ clearTimeout(state.debounce); state.debounce = setTimeout(render,160); });
     $('limit').addEventListener('change', ()=>{
       const raw = $('limit').value;
       if (raw === 'all' && state.fetchedLimit < HARD_LIMIT) {
         $('status').textContent = '全件を取得しています…';
-        fetchRows(HARD_LIMIT);
+        fetchRows(HARD_LIMIT); // onGviz → render
       } else {
         render();
       }
