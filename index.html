@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffb744">
   <title>雲丹ゐくら歌唱曲DB</title>
 
-  <!-- パフォーマンス対策 -->
+  <!-- 速度対策：DNSプリフェッチ & プレコネクト -->
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="preconnect" href="https://script.google.com" crossorigin>
 
@@ -20,7 +20,7 @@
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 
-    /* ===== ヘッダー：1段目=検索、2段目=左右に揃えたツールバー ===== */
+    /* ====== ヘッダー：1段目=検索、2段目=左右ツールバー ====== */
     .row{display:flex;gap:8px;align-items:center}
     .row .search{flex:1 1 auto;min-width:0}
 
@@ -28,13 +28,11 @@
       display:flex;align-items:center;justify-content:space-between;
       gap:8px;margin-top:8px;flex-wrap:wrap;
     }
-    /* 左側：件数（最短表示） */
     .limit-wrap{display:flex;align-items:center;gap:6px}
     .limit-wrap label,
     .dm-group label{font-size:12px;color:var(--muted);white-space:nowrap}
     #limit{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
 
-    /* 右側：弾幕（表示3文字＋コピー短縮） */
     .dm-group{display:flex;align-items:center;gap:6px;margin-left:auto}
     #dm-select{width:auto;min-width:84px;padding:6px 8px;font-size:14px;line-height:1.2}
     .dm-group .btn{padding:6px 10px;font-size:13px;white-space:nowrap}
@@ -75,7 +73,7 @@
     .btn-pill:hover{background:#eef2f7;text-decoration:none}
     .btn-pill:active{transform:translateY(1px)}
 
-    /* 操作列（C/Dリンクとコピー）を 11pt に統一（PC＋モバイル） */
+    /* 操作列（C/Dリンクとコピー）フォントを 11pt に統一（PC＋モバイル） */
     .ops .btn-pill, .ops .btn, .l2 .btn-pill, .l2 .btn { font-size:11pt; }
   </style>
 </head>
@@ -83,12 +81,10 @@
 
   <!-- ===== 検索UI ===== -->
   <div class="card">
-    <!-- 1段目：検索 -->
     <div class="row">
       <input class="search" id="q" type="search" placeholder="曲名／アーティスト名で検索" autocomplete="off">
     </div>
 
-    <!-- 2段目：左=件数 / 右=弾幕 -->
     <div class="toolbar">
       <div class="limit-wrap">
         <label for="limit">件数</label>
@@ -103,7 +99,6 @@
       <div class="dm-group" aria-label="弾幕コピー">
         <label for="dm-select">弾幕</label>
         <select id="dm-select" title="弾幕を選択">
-          <!-- 表示は3文字、値はフル -->
           <option value="🍣🧡🍣🧡🍣🧡">🍣🧡🍣</option>
           <option value="🍣🧡🎶🍣🧡🎶">🍣🧡🎶</option>
         </select>
@@ -124,43 +119,52 @@
   <div id="toast" class="toast" role="status" aria-live="polite">コピーしました</div>
 
   <script>
-    /* ========= 基本ユーティリティ ========= */
-    function $(id){ return document.getElementById(id); }
-    function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
-    function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
+    /* ===== 設定（★新デプロイURL） ===== */
+    const BASE = 'https://script.google.com/macros/s/AKfycbxf6Ifxokz6W9w6E1KOwQxapCgpZAR1WE1VPn9MDnMIXLfRuLAqZwx9HyVzMyuC6nITJA/exec';
+    const SHEET_KEY = 'perf';
+    const INITIAL_FETCH = 200;  // 初回は必要十分な件数のみ取得
+    const HARD_LIMIT = 20000;   // 全件要求時の上限
+    const JSONP_TIMEOUT_MS = 2800; // JSONP失敗時にiframeへフォールバック
 
-    /* ========= 設定 ========= */
-    // ★ あなたの「exec」URL（今回の新しいデプロイ）
-    const BASE = 'https://script.google.com/macros/s/AKfycbxNiqbCG2QxEcPSwi3IpwcRw2jt8QLdx0lxDoLQziKQb-DBQGDcjEa73JnVXIgUATc7lA/exec';
-    const SHEET_KEY = 'perf';     // サーバ側デフォルト
-    const INITIAL_FETCH = 200;    // 初回は軽量に
-    const HARD_LIMIT = 20000;     // 全件時の上限
+    const state = { rows: [], total: 0, fetchedLimit: 0, debounce: null, lastReqId: 0, usedIframe: false };
 
-    const state = { rows: [], total: 0, fetchedLimit: 0, debounce: null };
-
-    /* ========= JSONPコールバック（iframe経由で呼ばれる） ========= */
+    /* ===== JSONP コールバック ===== */
     function onGviz(payload) {
+      // iframe フォールバックからの postMessage でも到達する
       try {
         if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
           $('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
           return;
         }
-        const rows = payload.rows
-          .map(r => [ r.artist||'', r.title||'', r.cText||'', r.dText||'', r.cUrl||'', r.dUrl||'' ])
-          .filter(([a,b]) => ((a||'')+(b||'')).trim() !== '');
+        const rows = payload.rows.map(r => [
+          r.artist || '', r.title || '', r.cText || '', r.dText || '', r.cUrl || '', r.dUrl || ''
+        ]).filter(([a,b]) => ((a||'')+(b||'')).trim() !== '');
 
         state.rows = rows;
         state.total = Number(payload.matched || payload.total || rows.length);
         $('status').textContent = `読み込み完了：${state.rows.length}件（全${state.total}件）`;
         render();
       } catch (e) {
-        console.error(e);
         $('status').textContent = '読み込みに失敗しました';
+        console.error(e);
       }
     }
     window.onGviz = onGviz;
 
-    /* ========= クリップボード ========= */
+    // iframe（?frame=1）→ postMessage 受信ルート
+    window.addEventListener('message', (ev)=>{
+      const d = ev?.data;
+      if (!d || d.type !== 'gviz') return;
+      onGviz(d.payload);
+    });
+
+    /* ===== ユーティリティ ===== */
+    function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
+    function scheduleSearch(){ clearTimeout(state.debounce); state.debounce = setTimeout(render, 160); }
+    function $(id){ return document.getElementById(id); }
+
+    function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
+
     async function copyPair(title, artist){
       const text = `${(title||'').trim()} / ${(artist||'').trim()}`.trim();
       try{
@@ -169,6 +173,8 @@
         showToast('コピーしました：' + text);
       }catch{ showToast('コピーに失敗しました'); }
     }
+
+    // 弾幕コピー
     $('dm-copy').addEventListener('click', async ()=>{
       const text = $('dm-select').value || '';
       try{
@@ -178,18 +184,17 @@
       }catch{ showToast('弾幕のコピーに失敗しました'); }
     });
 
-    /* ========= 小物 ========= */
     function urlFromText(s){
       if(!s) return '';
       const m = String(s).match(/https?:\/\/\S+/);
       return m ? m[0].replace(/[)\]\s]+$/, '') : '';
     }
     function formatYmdLabel(s){
-      const m = /^(\d{4})(\d{2})(\d{2})/.exec(String(s||'')); // 例: 20241005
+      const m = /^(\d{4})(\d{2})(\d{2})/.exec(String(s||''));
       return m ? `${m[1]}/${m[2]}/${m[3]}` : null;
     }
 
-    /* ========= レンダリング ========= */
+    /* ===== 描画 ===== */
     function render(){
       const tableWrap = $('table'); tableWrap.innerHTML = '';
       const listWrap = $('mblist'); listWrap.innerHTML = '';
@@ -266,7 +271,7 @@
       table.appendChild(tbody);
       tableWrap.appendChild(table);
 
-      /* ==== モバイル：2行カード ==== */
+      /* ==== スマホ2行カード ==== */
       rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
         const item=document.createElement('div'); item.className='item';
 
@@ -310,37 +315,53 @@
       $('mblist').style.display='block';
     }
 
-    /* ========= データ取得（iframeフォールバック） ========= */
+    /* ===== データ取得（JSONP→失敗時iframeフォールバック） ===== */
     function fetchRows(limit){
-      const sep = BASE.includes('?') ? '&' : '?';
-      // GAS out_ は frame=1 で HTML を返し、iframe 内から parent.onGviz(...) を叩く
-      const url = `${BASE}${sep}callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&frame=1`;
-
-      let f = document.getElementById('jsonp-frame');
-      if (!f) {
-        f = document.createElement('iframe');
-        f.id = 'jsonp-frame';
-        f.style.display = 'none';
-        f.setAttribute('title','data-loader');
-        document.body.appendChild(f);
-      }
-      f.onerror = () => { $('status').textContent = 'データ取得に失敗しました（ネットワーク/ブロック）'; };
-      // 同じURLを維持 → ブラウザキャッシュ & GAS CacheService が効く
-      f.src = url;
-
+      const reqId = ++state.lastReqId;
+      const urlJsonp = `${BASE}?callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}`;
+      const s=document.createElement('script');
+      s.src=urlJsonp; s.async=true;
+      s.onerror=()=>{ tryIframeFallback(limit, reqId, 'network'); };
+      document.head.appendChild(s);
       state.fetchedLimit = limit;
+
+      // タイムアウトで iframe フォールバック
+      setTimeout(()=>{
+        if (reqId === state.lastReqId && !state.usedIframe && state.rows.length === 0) {
+          tryIframeFallback(limit, reqId, 'timeout');
+        }
+      }, JSONP_TIMEOUT_MS);
     }
 
-    // 起動時：軽量取得
+    function tryIframeFallback(limit, reqId, reason){
+      if (state.usedIframe) return;
+      state.usedIframe = true;
+      $('status').textContent = `別ルートで取得中…（${reason}）`;
+
+      // 既存 iframe を片付け
+      const old = document.getElementById('gviz-frame');
+      if (old) old.remove();
+
+      // iframe 埋め込み（?frame=1 は GS 側で postMessage へフォールバック可）
+      const urlFrame = `${BASE}?frame=1&callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}`;
+      const f = document.createElement('iframe');
+      f.id = 'gviz-frame';
+      f.src = urlFrame;
+      f.style.display = 'none';
+      f.width = 0; f.height = 0; f.tabIndex = -1;
+      document.body.appendChild(f);
+    }
+
+    // 初回：必要十分（INITIAL_FETCH）のみ取得
     fetchRows(INITIAL_FETCH);
 
-    /* ========= イベント ========= */
-    $('q').addEventListener('input', ()=>{ clearTimeout(state.debounce); state.debounce = setTimeout(render,160); });
+    /* ===== イベント ===== */
+    $('q').addEventListener('input', scheduleSearch);
     $('limit').addEventListener('change', ()=>{
       const raw = $('limit').value;
       if (raw === 'all' && state.fetchedLimit < HARD_LIMIT) {
         $('status').textContent = '全件を取得しています…';
-        fetchRows(HARD_LIMIT); // onGviz → render
+        fetchRows(HARD_LIMIT);
       } else {
         render();
       }
