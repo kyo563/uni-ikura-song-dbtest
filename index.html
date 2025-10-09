@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffb744">
   <title>雲丹ゐくら歌唱曲DB</title>
 
-  <!-- リダイレクト抑止：最初から /macros/ を使う。速度対策：DNS/Preconnect -->
+  <!-- リダイレクト抑止：最初から /macros/s/ を使う。速度対策：DNS/Preconnect -->
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="preconnect" href="https://script.google.com" crossorigin>
 
@@ -104,18 +104,17 @@
 
   <script>
     /* ===== 設定 ===== */
-    // デプロイURLは /macros/s/.../exec を必ず使用（/macro/s は不可）
     const BASE = 'https://script.google.com/macros/s/AKfycby7J-GfSI2xALneqE6yrd2vcCh4xiYfLb9F1R0dHWVnnWpFIW-SN-RjYUlDagNe7eLjEQ/exec';
     const SHEET_KEY = 'perf';
     const INITIAL_FETCH = 200;
     const HARD_LIMIT = 20000;
 
     // タイムアウトとヘッジ起動
-    const JSONP_TIMEOUT_MS = 6500; // モバイル回線＋GASコールドスタートを考慮
-    const IFRAME_KICK_MS   = 600;  // JSONP投下の600ms後にiframeも起動（先着勝ち）
+    const JSONP_TIMEOUT_MS = 6500;
+    const IFRAME_KICK_MS   = 600;
     const IFRAME_TIMEOUT_MS = 10000;
 
-    // postMessage 許可オリジン（googleusercontent か script.google.com）
+    // postMessage 許可オリジン
     const ORIGIN_ALLOW_RE = /(^https:\/\/[a-z0-9-]+\.googleusercontent\.com$)|(^https:\/\/script\.google\.com$)/i;
 
     /* ===== 状態 ===== */
@@ -273,7 +272,8 @@
         item.appendChild(l1); item.appendChild(l2); $('mblist').appendChild(item);
       });
 
-      $('mblist').style.display='block';
+      // ★ここで表示を強制しない（PCで二重描画になる原因）
+      // $('mblist').style.display = 'block';
     }
 
     /* ===== 取得：JSONPを先投下→600ms後にiframeも起動（先着勝ち） ===== */
@@ -295,19 +295,17 @@
       s.id = 'jsonp-tag';
       s.src = urlJsonp;
       s.async = true;
-      s.onerror = () => { /* すでに iframe を起動するので特別な表示は不要 */ };
+      s.onerror = () => { /* iframe を起動するので表示は不要 */ };
       document.head.appendChild(s);
 
       // 2) 600ms 後に iframe も起動（表示メッセージは出さない）
       setTimeout(() => {
-        if (state.delivered) return;      // JSONP が先に成功したら何もしない
+        if (state.delivered) return;
         startIframe(limit);
       }, IFRAME_KICK_MS);
 
       // 3) JSONP の最終タイムアウト（iframe 側が勝つ想定なので表示は出さない）
-      state.jsonpTimer = setTimeout(() => {
-        /* no-op */
-      }, JSONP_TIMEOUT_MS);
+      state.jsonpTimer = setTimeout(() => { /* no-op */ }, JSONP_TIMEOUT_MS);
     }
 
     function startIframe(limit){
