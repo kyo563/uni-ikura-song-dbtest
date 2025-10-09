@@ -2,6 +2,12 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
+
+  <!-- ★ モバイルの古いHTMLキャッシュ対策（効く範囲で） -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
   <meta name="theme-color" content="#ffb744">
   <title>雲丹ゐくら歌唱曲DB</title>
@@ -113,10 +119,14 @@
     const INITIAL_FETCH = 200;
     const HARD_LIMIT = 20000;
 
-    // タイムアウトとヘッジ起動
+    // ★ iOS系判定（トラックパッド付きMacの誤検出を避ける簡易版）
+    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    // タイムアウトとヘッジ起動（★iOS向けに微調整）
     const JSONP_TIMEOUT_MS = 6500;
-    const IFRAME_KICK_MS   = 600;
-    const IFRAME_TIMEOUT_MS = 10000;
+    const IFRAME_KICK_MS   = 400;   // ← 600 → 400（やや早める）
+    const IFRAME_TIMEOUT_MS = 15000; // ← 10000 → 15000（余裕を持たせる）
 
     // postMessage 許可オリジン
     const ORIGIN_ALLOW_RE = /(^https:\/\/[a-z0-9-]+\.googleusercontent\.com$)|(^https:\/\/script\.google\.com$)/i;
@@ -138,6 +148,10 @@
     const normalize = s => (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim();
     function scheduleSearch(){ clearTimeout(state.debounce); state.debounce = setTimeout(render, 160); }
     function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
+
+    // 文字列がURLらしいかの簡易判定（★モバイルSafariのhref厳格対策）
+    const looksUrl = s => /^https?:\/\//i.test(String(s||''));
+
     async function copyPair(title, artist){
       const text = `${(title||'').trim()} / ${(artist||'').trim()}`.trim();
       try{
@@ -236,10 +250,11 @@
 
         const tdOps=document.createElement('td'); const ops=document.createElement('div'); ops.className='ops';
 
-        const cHref = cUrl || urlFromText(cText);
+        // ★ URL厳格対策：cUrl/dUrlがURLでなければ cText/dText から抽出
+        const cHref = looksUrl(cUrl) ? cUrl : urlFromText(cText);
         if (cHref){ const a=document.createElement('a'); a.href=cHref; a.target='_blank'; a.rel='noopener'; a.className='btn-pill'; a.title=cText||'リンク'; a.textContent=cText||'リンク'; ops.appendChild(a); }
 
-        const dHref = dUrl || urlFromText(dText);
+        const dHref = looksUrl(dUrl) ? dUrl : urlFromText(dText);
         const dLabel = formatYmdLabel(dText);
         if (dHref){ const a=document.createElement('a'); a.href=dHref; a.target='_blank'; a.rel='noopener'; a.className='btn-pill'; a.title=dLabel?`前回 ${dLabel}`:'前回'; a.textContent=dLabel?`▶前回${dLabel}`:'▶前回'; ops.appendChild(a); }
 
@@ -263,9 +278,9 @@
         l1.appendChild(a1); l1.appendChild(sep); l1.appendChild(t1);
         const l2=document.createElement('div'); l2.className='l2';
 
-        const cHref = cUrl || urlFromText(cText);
+        const cHref = looksUrl(cUrl) ? cUrl : urlFromText(cText);
         if (cHref){ const a=document.createElement('a'); a.href=cHref; a.target='_blank'; a.rel='noopener'; a.className='btn-pill'; a.title=cText||'リンク'; a.textContent=cText||'リンク'; l2.appendChild(a); }
-        const dHref = dUrl || urlFromText(dText);
+        const dHref = looksUrl(dUrl) ? dUrl : urlFromText(dText);
         const dLabel = formatYmdLabel(dText);
         if (dHref){ const a=document.createElement('a'); a.href=dHref; a.target='_blank'; a.rel='noopener'; a.className='btn-pill'; a.title=dLabel?`前回 ${dLabel}`:'前回'; a.textContent=dLabel?`▶前回${dLabel}`:'▶前回'; l2.appendChild(a); }
 
@@ -276,10 +291,12 @@
         item.appendChild(l1); item.appendChild(l2); document.getElementById('mblist').appendChild(item);
       });
 
-      // モバイル表示の強制はしない（PC二重描画の原因になるため）
+      // ★ モバイル用リストの display 切替はCSSに任せる（強制しない）
     }
 
-    /* ===== 取得：JSONP先投下→600ms後にiframeも起動（先着勝ち） ===== */
+    /* ===== 取得：JSONPとiframeを端末別に最適化 ===== */
+
+    // 既存の（JSONP→IFRAME）ルート
     function fetchRows(limit){
       state.delivered = false;
       state.usedIframe = false;
@@ -301,41 +318,82 @@
       s.onerror = () => { /* iframe を起動するので表示は不要 */ };
       document.head.appendChild(s);
 
-      // 2) 600ms 後に iframe も起動（HTMLを返させるため callback を付けない）
+      // 2) IFRAME を少し早めにキック
       setTimeout(() => {
         if (state.delivered) return;
         startIframe(limit);
       }, IFRAME_KICK_MS);
 
-      // 3) JSONP の最終タイムアウト（iframe 側が勝つ想定なので表示は出さない）
+      // 3) JSONP 最終タイムアウト
       state.jsonpTimer = setTimeout(() => { /* no-op */ }, JSONP_TIMEOUT_MS);
+    }
+
+    // iOS向け：先にiframe、後からJSONPをヘッジ
+    function fetchRowsIOS(limit){
+      state.delivered = false;
+      state.usedIframe = false;
+      state.source = '';
+      $('status').textContent = '読み込み中…';
+
+      const oldS = document.getElementById('jsonp-tag'); if (oldS) oldS.remove();
+      const oldF = document.getElementById('gviz-frame'); if (oldF) oldF.remove();
+      clearTimeout(state.jsonpTimer);
+      clearTimeout(state.iframeTimer);
+
+      // 先に iframe
+      startIframe(limit);
+
+      // 500ms遅らせて JSONP も起動（先着勝ち）
+      setTimeout(() => {
+        if (state.delivered) return;
+        const urlJsonp = `${BASE}?callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&v=${Date.now()}`;
+        const s = document.createElement('script');
+        s.id = 'jsonp-tag';
+        s.src = urlJsonp;
+        s.async = true;
+        s.onerror = () => {};
+        document.head.appendChild(s);
+        state.jsonpTimer = setTimeout(() => { /* no-op */ }, JSONP_TIMEOUT_MS);
+      }, 500);
     }
 
     function startIframe(limit){
       if (state.usedIframe || state.delivered) return;
       state.usedIframe = true;
 
-      // ★ callback を付けない（GAS側 frame 分岐で HTML を返させる）
+      // callback なし（GAS側 frame 分岐で HTML を返させる）
       const urlFrame = `${BASE}?frame=1&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&v=${Date.now()}`;
 
       const f = document.createElement('iframe');
       f.id = 'gviz-frame';
       f.src = urlFrame;
-      f.style.display = 'none';
-      f.width = 0; f.height = 0; f.tabIndex = -1;
+
+      // ★ iOS対策：display:none を使わず、画面外に配置して確実にロードさせる
+      f.style.position = 'absolute';
+      f.style.left = '-9999px';
+      f.style.top = '-9999px';
+      f.width = 1;
+      f.height = 1;
+      f.tabIndex = -1;
+
       document.body.appendChild(f);
 
       clearTimeout(state.iframeTimer);
       state.iframeTimer = setTimeout(() => {
         if (!state.delivered){
-          $('status').textContent = '取得がタイムアウトしました（公開設定/デプロイ確認）';
+          $('status').textContent = '取得がタイムアウトしました（公開設定/デプロイ確認/回線状態）';
         }
       }, IFRAME_TIMEOUT_MS);
     }
 
-    // 初回ロード
+    // 初回ロード（★iOSはiframe先行、その他は従来順）
     document.addEventListener('DOMContentLoaded', ()=>{
-      fetchRows(INITIAL_FETCH);
+      // HTML本体キャッシュの回避用ヒント：必要ならページURL末尾に ?v=2 などを付けて配信してください
+      if (isIOS) {
+        fetchRowsIOS(INITIAL_FETCH);
+      } else {
+        fetchRows(INITIAL_FETCH);
+      }
     });
 
     // イベント
