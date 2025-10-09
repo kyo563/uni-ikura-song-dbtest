@@ -22,17 +22,12 @@
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
 
-    /* ====== ヘッダー：1段目=検索、2段目=左右ツールバー ====== */
     .row{display:flex;gap:8px;align-items:center}
     .row .search{flex:1 1 auto;min-width:0}
 
-    .toolbar{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:8px;margin-top:8px;flex-wrap:wrap;
-    }
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;flex-wrap:wrap}
     .limit-wrap{display:flex;align-items:center;gap:6px}
-    .limit-wrap label,
-    .dm-group label{font-size:12px;color:var(--muted);white-space:nowrap}
+    .limit-wrap label,.dm-group label{font-size:12px;color:var(--muted);white-space:nowrap}
     #limit{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
 
     .dm-group{display:flex;align-items:center;gap:6px;margin-left:auto}
@@ -66,7 +61,6 @@
       .btn{padding:8px 12px;font-size:14px}
     }
 
-    /* 囲みリンク（C/D） */
     .btn-pill{
       display:inline-block;border:1px solid var(--line);background:var(--pill-bg);color:var(--link);
       border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.2;text-decoration:none;
@@ -75,7 +69,7 @@
     .btn-pill:hover{background:#eef2f7;text-decoration:none}
     .btn-pill:active{transform:translateY(1px)}
 
-    /* 操作列のフォントを 11pt に統一（PC＋モバイル） */
+    /* 操作列（C/Dリンクとコピー）を 11pt に統一（PC＋モバイル） */
     .ops .btn-pill, .ops .btn, .l2 .btn-pill, .l2 .btn { font-size:11pt; }
   </style>
 </head>
@@ -122,20 +116,22 @@
 
   <script>
     /* ===== 設定 ===== */
-    // JSONP は echo 直URL（末尾 & を必ず残す！）
+    // 1) JSONP（script要素）で直叩きする “echo” 直URL（末尾の & を必ず残す）
     const BASE_JSONP = 'https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLivW-fzfTxuBxMpy9Kt35OIsmZuz2V2rUozfSJPYCDzzpGm3Fgg43FVtKBBYcWXURbuJQTot6Z7i50ZLV0ecPDaYkfvtXujO1iKKGc1DFxkiiS8TNaOnRTgvwelXPCixy_IdQbuvblBWArM8LS9GtEuPdeNktsJug2LutcsE0l20y2ymgIzR8QKqupEFOIiv7KGvILKcgr81F6dNCQiP3EpJ3RcJ5LAIe-VErH2cQHsohMeB9HinIb4Omt28_Ivw6DT5XwPKoJONwDIrrWqmO5tBn9sqZHnRVimynqZb4bY-AfUlQm6kh1ZtHJ9yQ&lib=M9JcPTR9hPDuH81yYbATeDf-uGCSO62VC&';
-    // iframe フォールバックは /exec
+
+    // 2) iframe フォールバック用（?frame=1 を付与するのは “/exec” 側）
     const BASE_EXEC  = 'https://script.google.com/macros/s/AKfycbxf6Ifxokz6W9w6E1KOwQxapCgpZAR1WE1VPn9MDnMIXLfRuLAqZwx9HyVzMyuC6nITJA/exec';
 
     const SHEET_KEY = 'perf';
-    const INITIAL_FETCH = 200;      // 初回は軽量に
-    const HARD_LIMIT = 20000;       // サーバ上限ガード
-    const JSONP_TIMEOUT_MS = 2200;  // モバイル向け短め→フォールバック早めに
+    const INITIAL_FETCH = 200;      // 初回は必要十分な件数のみ取得
+    const HARD_LIMIT = 20000;       // 全件要求時の上限
+    const JSONP_TIMEOUT_MS = 2800;  // JSONP失敗時にiframeへフォールバック
 
-    const state = { rows: [], total: 0, fetchedLimit: 0, debounce: null, lastReqId: 0, usedIframe: false };
+    const state = { rows: [], total: 0, fetchedLimit: 0, debounce: null, lastReqId: 0, usedIframe: false, jsonpHit:false };
 
-    /* ===== JSONP / iframe 共通コールバック ===== */
+    /* ===== JSONP / iframe からのデータ受信口 ===== */
     function onGviz(payload) {
+      state.jsonpHit = true; // JSONP or iframe で受信
       try {
         if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
           $('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
@@ -156,7 +152,7 @@
     }
     window.onGviz = onGviz;
 
-    // iframe（?frame=1）→ postMessage 受信ルート
+    // iframe（?frame=1）→ postMessage 受信
     window.addEventListener('message', (ev)=>{
       const d = ev?.data;
       if (!d || d.type !== 'gviz') return;
@@ -167,7 +163,6 @@
     function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
     function scheduleSearch(){ clearTimeout(state.debounce); state.debounce = setTimeout(render, 160); }
     function $(id){ return document.getElementById(id); }
-
     function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
 
     async function copyPair(title, artist){
@@ -274,7 +269,7 @@
         tdOps.appendChild(ops); tr.appendChild(tdOps); tbody.appendChild(tr);
       });
       table.appendChild(tbody);
-      tableWrap.appendChild(table);
+      $('table').appendChild(table);
 
       /* ==== スマホ2行カード ==== */
       rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
@@ -324,7 +319,7 @@
     function fetchRows(limit){
       const reqId = ++state.lastReqId;
 
-      // JSONP は echo 直URL（キャッシュバスターを付けない）
+      // JSONP：echo 直URL（キャッシュを効かせたいのでバスター付けない）
       const urlJsonp = `${BASE_JSONP}callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}`;
       const s=document.createElement('script');
       s.src=urlJsonp; s.async=true;
@@ -332,9 +327,9 @@
       document.head.appendChild(s);
       state.fetchedLimit = limit;
 
-      // タイムアウトで iframe フォールバック
+      // タイムアウトで iframe フォールバック（JSONP未着のみ）
       setTimeout(()=>{
-        if (reqId === state.lastReqId && !state.usedIframe && state.rows.length === 0) {
+        if (reqId === state.lastReqId && !state.usedIframe && !state.jsonpHit) {
           tryIframeFallback(limit, reqId, 'timeout');
         }
       }, JSONP_TIMEOUT_MS);
@@ -345,11 +340,10 @@
       state.usedIframe = true;
       $('status').textContent = `別ルートで取得中…（${reason}）`;
 
-      // 既存 iframe を片付け
       const old = document.getElementById('gviz-frame');
       if (old) old.remove();
 
-      // iframe 埋め込み（/exec?frame=1 は GS 側で postMessage にフォールバック）
+      // iframe は /exec に向ける（echo に frame=1 を付けると 403 になるため）
       const urlFrame = `${BASE_EXEC}?frame=1&callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}`;
       const f = document.createElement('iframe');
       f.id = 'gviz-frame';
@@ -368,6 +362,8 @@
       const raw = $('limit').value;
       if (raw === 'all' && state.fetchedLimit < HARD_LIMIT) {
         $('status').textContent = '全件を取得しています…';
+        // 2段目の取得時は JSONP/iframe どちらでも同ルートでOK
+        state.jsonpHit = false; state.usedIframe = false;
         fetchRows(HARD_LIMIT);
       } else {
         render();
