@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffb744">
   <title>雲丹ゐくら歌唱曲DB</title>
 
-  <!-- 速度対策：DNSプリフェッチ & プレコネクト -->
+  <!-- リダイレクト抑止：最初から /macros/ を使う。速度対策：DNS/Preconnect -->
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="preconnect" href="https://script.google.com" crossorigin>
 
@@ -19,38 +19,29 @@
     *{box-sizing:border-box}
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
-
     .row{display:flex;gap:8px;align-items:center}
     .row .search{flex:1 1 auto;min-width:0}
-
     .toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;flex-wrap:wrap}
     .limit-wrap{display:flex;align-items:center;gap:6px}
     .limit-wrap label,.dm-group label{font-size:12px;color:var(--muted);white-space:nowrap}
     #limit{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
-
     .dm-group{display:flex;align-items:center;gap:6px;margin-left:auto}
     #dm-select{width:auto;min-width:84px;padding:6px 8px;font-size:14px;line-height:1.2}
     .dm-group .btn{padding:6px 10px;font-size:13px;white-space:nowrap}
-
     input[type="search"],select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:15px;background:#fff;color:var(--text);outline:none}
     input[type="search"]:focus,select:focus,.btn:focus,.btn-pill:focus{outline:3px solid var(--focus);outline-offset:2px}
-
     .muted{color:var(--muted);font-size:13px}
     .btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:10px;padding:8px 12px;font-size:14px;cursor:pointer}
     .btn:hover{background:#f9fafb}.btn:active{transform:translateY(1px)}
-
     .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(17,24,39,.92);color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s}
     .toast.show{opacity:1}
-
     table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}
     th,td{border-bottom:1px solid var(--line);padding:10px 8px;font-size:15px;vertical-align:top}
     th{position:sticky;top:0;background:var(--thead);z-index:1;font-weight:700}
     th:nth-child(1),td:nth-child(1){width:30%}
     th:nth-child(2),td:nth-child(2){width:50%}
     th:nth-child(3),td:nth-child(3){width:20%}
-
     .ops{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
-
     @media (max-width:768px){
       table{display:none}
       .mobile-list{display:block;margin-top:10px}
@@ -60,7 +51,6 @@
       .l2{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}
       .btn{padding:8px 12px;font-size:14px}
     }
-
     .btn-pill{
       display:inline-block;border:1px solid var(--line);background:var(--pill-bg);color:var(--link);
       border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.2;text-decoration:none;
@@ -68,13 +58,12 @@
     }
     .btn-pill:hover{background:#eef2f7;text-decoration:none}
     .btn-pill:active{transform:translateY(1px)}
-
     .ops .btn-pill, .ops .btn, .l2 .btn-pill, .l2 .btn { font-size:11pt; }
   </style>
 </head>
 <body>
 
-  <!-- ===== 検索UI ===== -->
+  <!-- 検索UI -->
   <div class="card">
     <div class="row">
       <input class="search" id="q" type="search" placeholder="曲名／アーティスト名で検索" autocomplete="off">
@@ -89,7 +78,6 @@
           <option value="200">200件</option>
           <option value="all">全件</option>
         </select>
-        <button id="reload" class="btn" type="button" title="再取得">再取得</button>
       </div>
 
       <div class="dm-group" aria-label="弾幕コピー">
@@ -105,7 +93,7 @@
     <div class="muted" id="status">読み込み中…</div>
   </div>
 
-  <!-- ===== 結果表示 ===== -->
+  <!-- 結果表示 -->
   <div class="card" style="margin-top:12px;">
     <div class="muted" id="hint">検索結果がここに表示されます。</div>
     <div id="table"></div>
@@ -116,33 +104,30 @@
 
   <script>
     /* ===== 設定 ===== */
-    // ★ あなたの GAS デプロイ（/exec）
+    // デプロイURLは /macros/s/.../exec を必ず使用（/macro/s は不可）
     const BASE = 'https://script.google.com/macros/s/AKfycby7J-GfSI2xALneqE6yrd2vcCh4xiYfLb9F1R0dHWVnnWpFIW-SN-RjYUlDagNe7eLjEQ/exec';
     const SHEET_KEY = 'perf';
     const INITIAL_FETCH = 200;
     const HARD_LIMIT = 20000;
 
-    // タイムアウト
-    const JSONP_TIMEOUT_MS = 2600;   // モバイルの ITP/ORB 誤検知を想定して短め
-    const IFRAME_TIMEOUT_MS = 10000; // iframe は長め
+    // タイムアウトとヘッジ起動
+    const JSONP_TIMEOUT_MS = 6500; // モバイル回線＋GASコールドスタートを考慮
+    const IFRAME_KICK_MS   = 600;  // JSONP投下の600ms後にiframeも起動（先着勝ち）
+    const IFRAME_TIMEOUT_MS = 10000;
 
-    // セキュリティ：postMessage の許可オリジン（googleusercontent から飛んでくる）
+    // postMessage 許可オリジン（googleusercontent か script.google.com）
     const ORIGIN_ALLOW_RE = /(^https:\/\/[a-z0-9-]+\.googleusercontent\.com$)|(^https:\/\/script\.google\.com$)/i;
-
-    // デバッグ
-    const DEBUG = false;
-    const log = (...a)=>{ if(DEBUG) console.log('[DB]', ...a); };
 
     /* ===== 状態 ===== */
     const state = {
       rows: [],
       total: 0,
       debounce: null,
-      delivered: false,      // ★ どのルートでも最初の1回しか描画しない
+      delivered: false,
       usedIframe: false,
       jsonpTimer: null,
       iframeTimer: null,
-      source: ''             // 'jsonp' | 'iframe'
+      source: '' // 'jsonp' | 'iframe'
     };
 
     /* ===== ユーティリティ ===== */
@@ -171,9 +156,8 @@
 
     /* ===== 受信口（JSONP/iframe 共通） ===== */
     function onGviz(payload){
-      if (state.delivered) { log('already delivered, skip'); return; }
+      if (state.delivered) return;
 
-      // タイマー掃除＆後片付け
       clearTimeout(state.jsonpTimer);
       clearTimeout(state.iframeTimer);
       const oldS = document.getElementById('jsonp-tag'); if (oldS) oldS.remove();
@@ -198,18 +182,13 @@
         $('status').textContent = '読み込みに失敗しました';
       }
     }
-    // ★ JSONP 用のグローバル
     window.onGviz = onGviz;
 
-    // ★ postMessage 用フォールバック（iframe 内のスニペットが投げてくる）
+    // iframe からの postMessage 受信
     window.addEventListener('message', (ev)=>{
       const d = ev?.data;
       if (!d || d.type !== 'gviz') return;
-      if (!ORIGIN_ALLOW_RE.test(ev.origin||'')) {
-        log('blocked message from origin:', ev.origin);
-        return;
-      }
-      log('postMessage payload from', ev.origin, d);
+      if (!ORIGIN_ALLOW_RE.test(ev.origin||'')) return;
       state.source = 'iframe';
       onGviz(d.payload);
     });
@@ -297,55 +276,61 @@
       $('mblist').style.display='block';
     }
 
-    /* ===== 取得：JSONP → 失敗時に iframe ===== */
+    /* ===== 取得：JSONPを先投下→600ms後にiframeも起動（先着勝ち） ===== */
     function fetchRows(limit){
       state.delivered = false;
       state.usedIframe = false;
       state.source = '';
-
       $('status').textContent = '読み込み中…';
 
-      // 既存スクリプト/iframe片付け
+      // 後片付け
       const oldS = document.getElementById('jsonp-tag'); if (oldS) oldS.remove();
       const oldF = document.getElementById('gviz-frame'); if (oldF) oldF.remove();
+      clearTimeout(state.jsonpTimer);
+      clearTimeout(state.iframeTimer);
 
-      // JSONP
+      // 1) JSONP を投げる
       const urlJsonp = `${BASE}?callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&v=${Date.now()}`;
-      const s=document.createElement('script');
-      s.id='jsonp-tag';
-      s.src=urlJsonp; s.async=true;
-      s.onerror=()=>{ log('jsonp network error'); tryIframeFallback(limit, 'network'); };
+      const s = document.createElement('script');
+      s.id = 'jsonp-tag';
+      s.src = urlJsonp;
+      s.async = true;
+      s.onerror = () => { /* すでに iframe を起動するので特別な表示は不要 */ };
       document.head.appendChild(s);
 
-      clearTimeout(state.jsonpTimer);
-      state.jsonpTimer = setTimeout(()=>{
-        if (!state.delivered) {
-          log('jsonp timeout');
-          tryIframeFallback(limit, 'timeout');
-        }
+      // 2) 600ms 後に iframe も起動（表示メッセージは出さない）
+      setTimeout(() => {
+        if (state.delivered) return;      // JSONP が先に成功したら何もしない
+        startIframe(limit);
+      }, IFRAME_KICK_MS);
+
+      // 3) JSONP の最終タイムアウト（iframe 側が勝つ想定なので表示は出さない）
+      state.jsonpTimer = setTimeout(() => {
+        /* no-op */
       }, JSONP_TIMEOUT_MS);
     }
 
-    function tryIframeFallback(limit, reason){
+    function startIframe(limit){
       if (state.usedIframe || state.delivered) return;
       state.usedIframe = true;
-      $('status').textContent = `別ルートで取得中…（${reason}）`;
 
       const urlFrame = `${BASE}?frame=1&callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&v=${Date.now()}`;
-      const f=document.createElement('iframe');
-      f.id='gviz-frame'; f.src=urlFrame;
-      f.style.display='none'; f.width=0; f.height=0; f.tabIndex=-1;
+      const f = document.createElement('iframe');
+      f.id = 'gviz-frame';
+      f.src = urlFrame;
+      f.style.display = 'none';
+      f.width = 0; f.height = 0; f.tabIndex = -1;
       document.body.appendChild(f);
 
       clearTimeout(state.iframeTimer);
-      state.iframeTimer = setTimeout(()=>{
+      state.iframeTimer = setTimeout(() => {
         if (!state.delivered){
           $('status').textContent = '取得がタイムアウトしました（公開設定/デプロイ確認）';
         }
       }, IFRAME_TIMEOUT_MS);
     }
 
-    // 初回：JSONP優先で取得
+    // 初回ロード
     document.addEventListener('DOMContentLoaded', ()=>{
       fetchRows(INITIAL_FETCH);
     });
@@ -353,7 +338,6 @@
     // イベント
     $('q').addEventListener('input', scheduleSearch);
     $('limit').addEventListener('change', ()=>{ render(); });
-    $('reload').addEventListener('click', ()=>{ fetchRows(INITIAL_FETCH); });
   </script>
 </body>
 </html>
