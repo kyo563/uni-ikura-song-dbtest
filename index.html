@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#ffb744">
   <title>雲丹ゐくら歌唱曲DB</title>
 
-  <!-- ← ここに追加 -->
+  <!-- favicon を明示（404抑止） -->
   <link rel="icon" sizes="any"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E🍣%3C/text%3E%3C/svg%3E">
 
@@ -108,8 +108,8 @@
 
   <script>
     /* ===== 設定 ===== */
-    const BASE = 'https://script.google.com/macros/s/AKfycbyEf2jDL40t1j2KgAwhwehw2RVTDQq_aYYtfbFWYXcSBL__TgNSn3G9gK_L4BFDLVVDng/exec';
-    const SHEET_KEY = 'perf';
+    const BASE = 'https://script.google.com/macros/s/AKfycbxQsh58w3-wOPDkDXUgttf_I5T8fEiQ4CXmaJHg2hX0gtEqFMtUQQcYdgl8KVrxBaAIvA/exec';
+    const SHEET_KEY = 'perf';           // GAS側で "Performance Record" に解決
     const INITIAL_FETCH = 200;
     const HARD_LIMIT = 20000;
 
@@ -250,8 +250,8 @@
         tdOps.appendChild(ops); tr.appendChild(tdOps); tbody.appendChild(tr);
       });
       table.appendChild(tbody);
-      $('table').innerHTML = '';
-      $('table').appendChild(table);
+      document.getElementById('table').innerHTML = '';
+      document.getElementById('table').appendChild(table);
 
       // モバイル: カード
       rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
@@ -273,14 +273,13 @@
         btn.addEventListener('click',()=>copyPair(title,artist));
         l2.appendChild(btn);
 
-        item.appendChild(l1); item.appendChild(l2); $('mblist').appendChild(item);
+        item.appendChild(l1); item.appendChild(l2); document.getElementById('mblist').appendChild(item);
       });
 
-      // ★ここで表示を強制しない（PCで二重描画になる原因）
-      // $('mblist').style.display = 'block';
+      // モバイル表示の強制はしない（PC二重描画の原因になるため）
     }
 
-    /* ===== 取得：JSONPを先投下→600ms後にiframeも起動（先着勝ち） ===== */
+    /* ===== 取得：JSONP先投下→600ms後にiframeも起動（先着勝ち） ===== */
     function fetchRows(limit){
       state.delivered = false;
       state.usedIframe = false;
@@ -302,7 +301,7 @@
       s.onerror = () => { /* iframe を起動するので表示は不要 */ };
       document.head.appendChild(s);
 
-      // 2) 600ms 後に iframe も起動（表示メッセージは出さない）
+      // 2) 600ms 後に iframe も起動（HTMLを返させるため callback を付けない）
       setTimeout(() => {
         if (state.delivered) return;
         startIframe(limit);
@@ -316,7 +315,9 @@
       if (state.usedIframe || state.delivered) return;
       state.usedIframe = true;
 
-      const urlFrame = `${BASE}?frame=1&callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&v=${Date.now()}`;
+      // ★ callback を付けない（GAS側 frame 分岐で HTML を返させる）
+      const urlFrame = `${BASE}?frame=1&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&v=${Date.now()}`;
+
       const f = document.createElement('iframe');
       f.id = 'gviz-frame';
       f.src = urlFrame;
