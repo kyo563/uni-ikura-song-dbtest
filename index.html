@@ -89,6 +89,7 @@
           <option value="200">200件</option>
           <option value="all">全件</option>
         </select>
+        <button id="reload" class="btn" type="button" title="再取得">再取得</button>
       </div>
 
       <div class="dm-group" aria-label="弾幕コピー">
@@ -115,12 +116,22 @@
 
   <script>
     /* ===== 設定 ===== */
+    // ★ あなたの GAS デプロイ（/exec）
     const BASE = 'https://script.google.com/macros/s/AKfycbxf6Ifxokz6W9w6E1KOwQxapCgpZAR1WE1VPn9MDnMIXLfRuLAqZwx9HyVzMyuC6nITJA/exec';
     const SHEET_KEY = 'perf';
     const INITIAL_FETCH = 200;
     const HARD_LIMIT = 20000;
-    const JSONP_TIMEOUT_MS = 2600;   // モバイルでの ORB 誤検知を見越して短め
-    const IFRAME_TIMEOUT_MS = 10000; // iframe の様子見は長め
+
+    // タイムアウト
+    const JSONP_TIMEOUT_MS = 2600;   // モバイルの ITP/ORB 誤検知を想定して短め
+    const IFRAME_TIMEOUT_MS = 10000; // iframe は長め
+
+    // セキュリティ：postMessage の許可オリジン（googleusercontent から飛んでくる）
+    const ORIGIN_ALLOW_RE = /(^https:\/\/[a-z0-9-]+\.googleusercontent\.com$)|(^https:\/\/script\.google\.com$)/i;
+
+    // デバッグ
+    const DEBUG = false;
+    const log = (...a)=>{ if(DEBUG) console.log('[DB]', ...a); };
 
     /* ===== 状態 ===== */
     const state = {
@@ -130,7 +141,8 @@
       delivered: false,      // ★ どのルートでも最初の1回しか描画しない
       usedIframe: false,
       jsonpTimer: null,
-      iframeTimer: null
+      iframeTimer: null,
+      source: ''             // 'jsonp' | 'iframe'
     };
 
     /* ===== ユーティリティ ===== */
@@ -140,14 +152,16 @@
     function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
     async function copyPair(title, artist){
       const text = `${(title||'').trim()} / ${(artist||'').trim()}`.trim();
-      try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      try{
+        if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
         else { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
         showToast('コピーしました：' + text);
       }catch{ showToast('コピーに失敗しました'); }
     }
     $('dm-copy').addEventListener('click', async ()=>{
       const text = $('dm-select').value || '';
-      try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      try{
+        if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
         else { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
         showToast('弾幕をコピーしました');
       }catch{ showToast('弾幕のコピーに失敗しました'); }
@@ -157,11 +171,13 @@
 
     /* ===== 受信口（JSONP/iframe 共通） ===== */
     function onGviz(payload){
-      if (state.delivered) return;      // ★ 二重ヒット抑止
-      state.delivered = true;
+      if (state.delivered) { log('already delivered, skip'); return; }
 
-      // タイマー掃除＆iframe停止
-      clearTimeout(state.jsonpTimer); clearTimeout(state.iframeTimer);
+      // タイマー掃除＆後片付け
+      clearTimeout(state.jsonpTimer);
+      clearTimeout(state.iframeTimer);
+      const oldS = document.getElementById('jsonp-tag'); if (oldS) oldS.remove();
+      const oldF = document.getElementById('gviz-frame'); if (oldF) oldF.remove();
 
       try{
         if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
@@ -172,19 +188,29 @@
           r.artist || '', r.title || '', r.cText || '', r.dText || '', r.cUrl || '', r.dUrl || ''
         ]).filter(([a,b]) => ((a||'')+(b||'')).trim() !== '');
         state.total = Number(payload.matched || payload.total || state.rows.length);
-        $('status').textContent = `読み込み完了：${state.rows.length}件（全${state.total}件）`;
+        state.delivered = true;
+
+        const tag = state.source ? ` via ${state.source}` : '';
+        $('status').textContent = `読み込み完了：${state.rows.length}件（全${state.total}件）${tag}`;
         render();
       }catch(e){
-        $('status').textContent = '読み込みに失敗しました';
         console.error(e);
+        $('status').textContent = '読み込みに失敗しました';
       }
     }
+    // ★ JSONP 用のグローバル
     window.onGviz = onGviz;
 
-    // postMessage フォールバック（iframe 内のスニペットが投げてくる）
+    // ★ postMessage 用フォールバック（iframe 内のスニペットが投げてくる）
     window.addEventListener('message', (ev)=>{
       const d = ev?.data;
       if (!d || d.type !== 'gviz') return;
+      if (!ORIGIN_ALLOW_RE.test(ev.origin||'')) {
+        log('blocked message from origin:', ev.origin);
+        return;
+      }
+      log('postMessage payload from', ev.origin, d);
+      state.source = 'iframe';
       onGviz(d.payload);
     });
 
@@ -273,6 +299,12 @@
 
     /* ===== 取得：JSONP → 失敗時に iframe ===== */
     function fetchRows(limit){
+      state.delivered = false;
+      state.usedIframe = false;
+      state.source = '';
+
+      $('status').textContent = '読み込み中…';
+
       // 既存スクリプト/iframe片付け
       const oldS = document.getElementById('jsonp-tag'); if (oldS) oldS.remove();
       const oldF = document.getElementById('gviz-frame'); if (oldF) oldF.remove();
@@ -282,13 +314,15 @@
       const s=document.createElement('script');
       s.id='jsonp-tag';
       s.src=urlJsonp; s.async=true;
-      s.onerror=()=>{ tryIframeFallback(limit, 'network'); };
+      s.onerror=()=>{ log('jsonp network error'); tryIframeFallback(limit, 'network'); };
       document.head.appendChild(s);
 
-      // タイムアウトで iframe フォールバック
       clearTimeout(state.jsonpTimer);
       state.jsonpTimer = setTimeout(()=>{
-        if (!state.delivered) tryIframeFallback(limit, 'timeout');
+        if (!state.delivered) {
+          log('jsonp timeout');
+          tryIframeFallback(limit, 'timeout');
+        }
       }, JSONP_TIMEOUT_MS);
     }
 
@@ -313,13 +347,13 @@
 
     // 初回：JSONP優先で取得
     document.addEventListener('DOMContentLoaded', ()=>{
-      $('status').textContent = '読み込み中…';
       fetchRows(INITIAL_FETCH);
     });
 
     // イベント
     $('q').addEventListener('input', scheduleSearch);
     $('limit').addEventListener('change', ()=>{ render(); });
+    $('reload').addEventListener('click', ()=>{ fetchRows(INITIAL_FETCH); });
   </script>
 </body>
 </html>
