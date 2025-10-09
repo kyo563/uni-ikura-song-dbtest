@@ -23,13 +23,9 @@
     .row{display:flex;gap:8px;align-items:center}
     .row .search{flex:1 1 auto;min-width:0}
 
-    .toolbar{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:8px;margin-top:8px;flex-wrap:wrap;
-    }
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;flex-wrap:wrap}
     .limit-wrap{display:flex;align-items:center;gap:6px}
-    .limit-wrap label,
-    .dm-group label{font-size:12px;color:var(--muted);white-space:nowrap}
+    .limit-wrap label,.dm-group label{font-size:12px;color:var(--muted);white-space:nowrap}
     #limit{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
 
     .dm-group{display:flex;align-items:center;gap:6px;margin-left:auto}
@@ -123,57 +119,51 @@
     const SHEET_KEY = 'perf';
     const INITIAL_FETCH = 200;
     const HARD_LIMIT = 20000;
-    const IFRAME_TIMEOUT_MS = 12000;  // 誤検知を避けるため長め
+    const JSONP_TIMEOUT_MS = 2600;   // モバイルでの ORB 誤検知を見越して短め
+    const IFRAME_TIMEOUT_MS = 10000; // iframe の様子見は長め
 
     /* ===== 状態 ===== */
     const state = {
       rows: [],
       total: 0,
       debounce: null,
-      delivered: false,  // ★ 二重ヒット防止
-      iframeLoaded: false,
-      iframeErrored: false
+      delivered: false,      // ★ どのルートでも最初の1回しか描画しない
+      usedIframe: false,
+      jsonpTimer: null,
+      iframeTimer: null
     };
 
     /* ===== ユーティリティ ===== */
-    function $(id){ return document.getElementById(id); }
-    function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
+    const $ = id => document.getElementById(id);
+    const normalize = s => (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim();
     function scheduleSearch(){ clearTimeout(state.debounce); state.debounce = setTimeout(render, 160); }
     function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
-
     async function copyPair(title, artist){
       const text = `${(title||'').trim()} / ${(artist||'').trim()}`.trim();
-      try{
-        if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
         else { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
         showToast('コピーしました：' + text);
       }catch{ showToast('コピーに失敗しました'); }
     }
     $('dm-copy').addEventListener('click', async ()=>{
       const text = $('dm-select').value || '';
-      try{
-        if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+      try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
         else { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
         showToast('弾幕をコピーしました');
       }catch{ showToast('弾幕のコピーに失敗しました'); }
     });
+    const urlFromText = s => { if(!s) return ''; const m=String(s).match(/https?:\/\/\S+/); return m ? m[0].replace(/[)\]\s]+$/,'') : ''; };
+    const formatYmdLabel = s => { const m=/^(\d{4})(\d{2})(\d{2})/.exec(String(s||'')); return m ? `${m[1]}/${m[2]}/${m[3]}` : null; };
 
-    function urlFromText(s){
-      if(!s) return '';
-      const m = String(s).match(/https?:\/\/\S+/);
-      return m ? m[0].replace(/[)\]\s]+$/, '') : '';
-    }
-    function formatYmdLabel(s){
-      const m = /^(\d{4})(\d{2})(\d{2})/.exec(String(s||''));
-      return m ? `${m[1]}/${m[2]}/${m[3]}` : null;
-    }
-
-    /* ===== 受信口（iframe からの parent 呼び出し or postMessage） ===== */
+    /* ===== 受信口（JSONP/iframe 共通） ===== */
     function onGviz(payload){
-      if (state.delivered) return;      // ★ 2回目以降の到着は無視
+      if (state.delivered) return;      // ★ 二重ヒット抑止
       state.delivered = true;
 
-      try {
+      // タイマー掃除＆iframe停止
+      clearTimeout(state.jsonpTimer); clearTimeout(state.iframeTimer);
+
+      try{
         if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
           $('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
           return;
@@ -184,13 +174,14 @@
         state.total = Number(payload.matched || payload.total || state.rows.length);
         $('status').textContent = `読み込み完了：${state.rows.length}件（全${state.total}件）`;
         render();
-      } catch (e) {
+      }catch(e){
         $('status').textContent = '読み込みに失敗しました';
         console.error(e);
       }
     }
     window.onGviz = onGviz;
 
+    // postMessage フォールバック（iframe 内のスニペットが投げてくる）
     window.addEventListener('message', (ev)=>{
       const d = ev?.data;
       if (!d || d.type !== 'gviz') return;
@@ -199,8 +190,8 @@
 
     /* ===== 描画 ===== */
     function render(){
-      const tableWrap = $('table'); tableWrap.innerHTML = '';
-      const listWrap = $('mblist'); listWrap.innerHTML = '';
+      const tableWrap = $('table'); if (tableWrap) tableWrap.innerHTML = '';
+      const listWrap  = $('mblist'); listWrap.innerHTML = '';
       const hint = $('hint');
 
       const q = normalize($('q').value || '');
@@ -211,29 +202,24 @@
       const limitLabel = raw === 'all' ? '全件' : `${limit}件`;
 
       let filtered = state.rows;
-      if (q) {
-        filtered = filtered.filter(([artist, title]) => {
-          const a = normalize(artist), t = normalize(title);
-          return a.includes(q) || t.includes(q);
-        });
-      }
+      if (q) filtered = filtered.filter(([artist, title]) => normalize(artist).includes(q) || normalize(title).includes(q));
       const rows = filtered.slice(0, limit);
 
       $('status').textContent = q
         ? `${rows.length}件ヒット（全${filtered.length}件／総${state.total}件）／表示上限 ${limitLabel}`
         : `表示中 ${rows.length}件（総${state.total}件）／表示上限 ${limitLabel}`;
 
-      if (rows.length === 0) { hint.textContent = q ? '該当なし' : '検索結果がここに表示されます。'; return; }
+      if (rows.length === 0){ hint.textContent = q ? '該当なし' : '検索結果がここに表示されます。'; return; }
       hint.textContent = '';
 
-      /* ==== PCテーブル ==== */
+      // PC: テーブル
       const table = document.createElement('table');
       const thead = document.createElement('thead');
       const trh = document.createElement('tr');
       ['アーティスト名','曲名','操作'].forEach(h=>{ const th=document.createElement('th'); th.textContent=h; trh.appendChild(th); });
       thead.appendChild(trh); table.appendChild(thead);
-
       const tbody = document.createElement('tbody');
+
       rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
         const tr=document.createElement('tr');
 
@@ -243,25 +229,11 @@
         const tdOps=document.createElement('td'); const ops=document.createElement('div'); ops.className='ops';
 
         const cHref = cUrl || urlFromText(cText);
-        if (cHref) {
-          const aC=document.createElement('a');
-          aC.href=cHref; aC.target='_blank'; aC.rel='noopener';
-          aC.className='btn-pill';
-          aC.title=cText||'リンク';
-          aC.textContent=cText||'リンク';
-          ops.appendChild(aC);
-        }
+        if (cHref){ const a=document.createElement('a'); a.href=cHref; a.target='_blank'; a.rel='noopener'; a.className='btn-pill'; a.title=cText||'リンク'; a.textContent=cText||'リンク'; ops.appendChild(a); }
 
         const dHref = dUrl || urlFromText(dText);
         const dLabel = formatYmdLabel(dText);
-        if (dHref) {
-          const aD=document.createElement('a');
-          aD.href=dHref; aD.target='_blank'; aD.rel='noopener';
-          aD.className='btn-pill';
-          aD.title=dLabel ? `前回 ${dLabel}` : '前回';
-          aD.textContent=dLabel ? `▶前回${dLabel}` : '▶前回';
-          ops.appendChild(aD);
-        }
+        if (dHref){ const a=document.createElement('a'); a.href=dHref; a.target='_blank'; a.rel='noopener'; a.className='btn-pill'; a.title=dLabel?`前回 ${dLabel}`:'前回'; a.textContent=dLabel?`▶前回${dLabel}`:'▶前回'; ops.appendChild(a); }
 
         const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
         btn.addEventListener('click',()=>copyPair(title,artist));
@@ -273,86 +245,76 @@
       $('table').innerHTML = '';
       $('table').appendChild(table);
 
-      /* ==== スマホ2行カード ==== */
+      // モバイル: カード
       rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
         const item=document.createElement('div'); item.className='item';
-
         const l1=document.createElement('div'); l1.className='l1';
         const a1=document.createElement('span'); a1.className='artist'; a1.textContent=artist||'';
         const sep=document.createElement('span'); sep.className='sep'; sep.textContent='/';
         const t1=document.createElement('span'); t1.className='title'; t1.textContent=title||'';
         l1.appendChild(a1); l1.appendChild(sep); l1.appendChild(t1);
-
         const l2=document.createElement('div'); l2.className='l2';
 
         const cHref = cUrl || urlFromText(cText);
-        if (cHref) {
-          const aC=document.createElement('a');
-          aC.href=cHref; aC.target='_blank'; aC.rel='noopener';
-          aC.className='btn-pill';
-          aC.title=cText||'リンク';
-          aC.textContent=cText||'リンク';
-          l2.appendChild(aC);
-        }
-
+        if (cHref){ const a=document.createElement('a'); a.href=cHref; a.target='_blank'; a.rel='noopener'; a.className='btn-pill'; a.title=cText||'リンク'; a.textContent=cText||'リンク'; l2.appendChild(a); }
         const dHref = dUrl || urlFromText(dText);
         const dLabel = formatYmdLabel(dText);
-        if (dHref) {
-          const aD=document.createElement('a');
-          aD.href=dHref; aD.target='_blank'; aD.rel='noopener';
-          aD.className='btn-pill';
-          aD.title=dLabel ? `前回 ${dLabel}` : '前回';
-          aD.textContent=dLabel ? `▶前回${dLabel}` : '▶前回';
-          l2.appendChild(aD);
-        }
+        if (dHref){ const a=document.createElement('a'); a.href=dHref; a.target='_blank'; a.rel='noopener'; a.className='btn-pill'; a.title=dLabel?`前回 ${dLabel}`:'前回'; a.textContent=dLabel?`▶前回${dLabel}`:'▶前回'; l2.appendChild(a); }
 
         const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
         btn.addEventListener('click',()=>copyPair(title,artist));
         l2.appendChild(btn);
 
-        item.appendChild(l1); item.appendChild(l2);
-        $('mblist').appendChild(item);
+        item.appendChild(l1); item.appendChild(l2); $('mblist').appendChild(item);
       });
 
       $('mblist').style.display='block';
     }
 
-    /* ===== 取得（iframe専用） ===== */
-    function fetchViaIframe(limit){
-      const url = `${BASE}?frame=1&callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&v=${Date.now()}`;
+    /* ===== 取得：JSONP → 失敗時に iframe ===== */
+    function fetchRows(limit){
+      // 既存スクリプト/iframe片付け
+      const oldS = document.getElementById('jsonp-tag'); if (oldS) oldS.remove();
+      const oldF = document.getElementById('gviz-frame'); if (oldF) oldF.remove();
 
-      // 既存 iframe を片付け（多重追加防止）
-      const old = document.getElementById('gviz-frame');
-      if (old) old.remove();
+      // JSONP
+      const urlJsonp = `${BASE}?callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&v=${Date.now()}`;
+      const s=document.createElement('script');
+      s.id='jsonp-tag';
+      s.src=urlJsonp; s.async=true;
+      s.onerror=()=>{ tryIframeFallback(limit, 'network'); };
+      document.head.appendChild(s);
 
-      const f = document.createElement('iframe');
-      f.id = 'gviz-frame';
-      f.src = url;
-      f.style.display = 'none';
-      f.width = 0; f.height = 0; f.tabIndex = -1;
+      // タイムアウトで iframe フォールバック
+      clearTimeout(state.jsonpTimer);
+      state.jsonpTimer = setTimeout(()=>{
+        if (!state.delivered) tryIframeFallback(limit, 'timeout');
+      }, JSONP_TIMEOUT_MS);
+    }
 
-      f.onload = () => { state.iframeLoaded = true; };
-      f.onerror = () => { state.iframeErrored = true; };
+    function tryIframeFallback(limit, reason){
+      if (state.usedIframe || state.delivered) return;
+      state.usedIframe = true;
+      $('status').textContent = `別ルートで取得中…（${reason}）`;
 
+      const urlFrame = `${BASE}?frame=1&callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&v=${Date.now()}`;
+      const f=document.createElement('iframe');
+      f.id='gviz-frame'; f.src=urlFrame;
+      f.style.display='none'; f.width=0; f.height=0; f.tabIndex=-1;
       document.body.appendChild(f);
 
-      // タイムアウト監視（iframe基準）
-      setTimeout(()=>{
-        if (state.delivered) return;
-        if (state.iframeErrored) {
-          $('status').textContent = '取得に失敗しました（iframeエラー）';
-        } else if (!state.iframeLoaded) {
-          $('status').textContent = '取得がタイムアウトしました（回線/Google側遅延の可能性）';
-        } else {
-          $('status').textContent = '取得に時間がかかっています…';
+      clearTimeout(state.iframeTimer);
+      state.iframeTimer = setTimeout(()=>{
+        if (!state.delivered){
+          $('status').textContent = '取得がタイムアウトしました（公開設定/デプロイ確認）';
         }
       }, IFRAME_TIMEOUT_MS);
     }
 
-    // 初回起動
+    // 初回：JSONP優先で取得
     document.addEventListener('DOMContentLoaded', ()=>{
       $('status').textContent = '読み込み中…';
-      fetchViaIframe(INITIAL_FETCH);
+      fetchRows(INITIAL_FETCH);
     });
 
     // イベント
