@@ -9,51 +9,39 @@
   <!-- 速度対策：DNSプリフェッチ & プレコネクト -->
   <link rel="dns-prefetch" href="https://script.google.com">
   <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="dns-prefetch" href="https://script.googleusercontent.com">
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 
   <style>
     :root{
       --bg:#ffb744; --card:#ffffff; --text:#1a1a1a; --muted:#6b7280; --line:#e5e7eb;
       --thead:#ffe0b5; --focus:#3897c9; --chip-bg:#f3f4f6; --chip-text:#111827;
-      --link:#2563eb; --pill-bg:#f6f7f9; /* 淡い灰 */
+      --link:#2563eb; --pill-bg:#f6f7f9;
     }
     *{box-sizing:border-box}
     body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
-
-    /* ====== ヘッダー：1段目=検索、2段目=左右ツールバー ====== */
     .row{display:flex;gap:8px;align-items:center}
     .row .search{flex:1 1 auto;min-width:0}
-
-    .toolbar{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:8px;margin-top:8px;flex-wrap:wrap;
-    }
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;flex-wrap:wrap}
     .limit-wrap{display:flex;align-items:center;gap:6px}
-    .limit-wrap label,
-    .dm-group label{font-size:12px;color:var(--muted);white-space:nowrap}
+    .limit-wrap label,.dm-group label{font-size:12px;color:var(--muted);white-space:nowrap}
     #limit{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
-
     .dm-group{display:flex;align-items:center;gap:6px;margin-left:auto}
     #dm-select{width:auto;min-width:84px;padding:6px 8px;font-size:14px;line-height:1.2}
     .dm-group .btn{padding:6px 10px;font-size:13px;white-space:nowrap}
-
     input[type="search"],select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:15px;background:#fff;color:var(--text);outline:none}
     input[type="search"]:focus,select:focus,.btn:focus,.btn-pill:focus{outline:3px solid var(--focus);outline-offset:2px}
-
     .muted{color:var(--muted);font-size:13px}
     .btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:10px;padding:8px 12px;font-size:14px;cursor:pointer}
     .btn:hover{background:#f9fafb}.btn:active{transform:translateY(1px)}
-
-    .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(17,24,39,.92);color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s ease}
+    .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(17,24,39,.92);color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s}
     .toast.show{opacity:1}
-
     table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}
     th,td{border-bottom:1px solid var(--line);padding:10px 8px;font-size:15px;vertical-align:top}
     th{position:sticky;top:0;background:var(--thead);z-index:1;font-weight:700}
     th:nth-child(1),td:nth-child(1){width:30%} th:nth-child(2),td:nth-child(2){width:50%} th:nth-child(3),td:nth-child(3){width:20%}
-
     .ops{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
-
     @media (max-width:768px){
       table{display:none}
       .mobile-list{display:block;margin-top:10px}
@@ -63,8 +51,6 @@
       .l2{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}
       .btn{padding:8px 12px;font-size:14px}
     }
-
-    /* 囲みリンク（C/D）— 淡い灰背景＋青文字・省略可能 */
     .btn-pill{
       display:inline-block;border:1px solid var(--line);background:var(--pill-bg);color:var(--link);
       border-radius:10px;padding:8px 12px;font-size:14px;line-height:1.2;text-decoration:none;
@@ -72,14 +58,11 @@
     }
     .btn-pill:hover{background:#eef2f7;text-decoration:none}
     .btn-pill:active{transform:translateY(1px)}
-
-    /* 操作列（C/Dリンクとコピー）フォントを 11pt に統一（PC＋モバイル） */
-    .ops .btn-pill, .ops .btn, .l2 .btn-pill, .l2 .btn { font-size:11pt; }
+    .ops .btn-pill,.ops .btn,.l2 .btn-pill,.l2 .btn{font-size:11pt}
   </style>
 </head>
 <body>
 
-  <!-- ===== 検索UI ===== -->
   <div class="card">
     <div class="row">
       <input class="search" id="q" type="search" placeholder="曲名／アーティスト名で検索" autocomplete="off">
@@ -109,7 +92,6 @@
     <div class="muted" id="status">読み込み中…</div>
   </div>
 
-  <!-- ===== 結果表示 ===== -->
   <div class="card" style="margin-top:12px;">
     <div class="muted" id="hint">検索結果がここに表示されます。</div>
     <div id="table"></div>
@@ -119,18 +101,25 @@
   <div id="toast" class="toast" role="status" aria-live="polite">コピーしました</div>
 
   <script>
-    /* ===== 設定（★新デプロイURL） ===== */
-    const BASE = 'https://script.google.com/macros/s/AKfycbxf6Ifxokz6W9w6E1KOwQxapCgpZAR1WE1VPn9MDnMIXLfRuLAqZwx9HyVzMyuC6nITJA/exec';
+    /* ===== 設定 ===== */
+    // iframe優先（JSONPは使わない or 失敗時だけ後で使う）
+    const PREFER_IFRAME = true;
+
+    // あなたの /exec（WebアプリURL）
+    const BASE_EXEC  = 'https://script.google.com/macros/s/AKfycbxf6Ifxokz6W9w6E1KOwQxapCgpZAR1WE1VPn9MDnMIXLfRuLAqZwx9HyVzMyuC6nITJA/exec';
+
+    // ※必要なら echo(JSONP) を入れる。未設定ならJSONPは使わない
+    const BASE_JSONP = ''; // 例: 'https://script.googleusercontent.com/macros/echo?...&lib=...&'
+
     const SHEET_KEY = 'perf';
-    const INITIAL_FETCH = 200;  // 初回は必要十分な件数のみ取得
-    const HARD_LIMIT = 20000;   // 全件要求時の上限
-    const JSONP_TIMEOUT_MS = 2800; // JSONP失敗時にiframeへフォールバック
+    const INITIAL_FETCH = 200;
+    const HARD_LIMIT = 20000;
+    const JSONP_TIMEOUT_MS = 1200; // iframe優先なので短め
 
     const state = { rows: [], total: 0, fetchedLimit: 0, debounce: null, lastReqId: 0, usedIframe: false };
 
-    /* ===== JSONP コールバック ===== */
+    /* ===== コールバック ===== */
     function onGviz(payload) {
-      // iframe フォールバックからの postMessage でも到達する
       try {
         if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
           $('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
@@ -139,7 +128,6 @@
         const rows = payload.rows.map(r => [
           r.artist || '', r.title || '', r.cText || '', r.dText || '', r.cUrl || '', r.dUrl || ''
         ]).filter(([a,b]) => ((a||'')+(b||'')).trim() !== '');
-
         state.rows = rows;
         state.total = Number(payload.matched || payload.total || rows.length);
         $('status').textContent = `読み込み完了：${state.rows.length}件（全${state.total}件）`;
@@ -151,7 +139,7 @@
     }
     window.onGviz = onGviz;
 
-    // iframe（?frame=1）→ postMessage 受信ルート
+    // iframe（?frame=1）からの postMessage 受信
     window.addEventListener('message', (ev)=>{
       const d = ev?.data;
       if (!d || d.type !== 'gviz') return;
@@ -162,9 +150,7 @@
     function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
     function scheduleSearch(){ clearTimeout(state.debounce); state.debounce = setTimeout(render, 160); }
     function $(id){ return document.getElementById(id); }
-
     function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
-
     async function copyPair(title, artist){
       const text = `${(title||'').trim()} / ${(artist||'').trim()}`.trim();
       try{
@@ -173,8 +159,6 @@
         showToast('コピーしました：' + text);
       }catch{ showToast('コピーに失敗しました'); }
     }
-
-    // 弾幕コピー
     $('dm-copy').addEventListener('click', async ()=>{
       const text = $('dm-select').value || '';
       try{
@@ -183,16 +167,8 @@
         showToast('弾幕をコピーしました');
       }catch{ showToast('弾幕のコピーに失敗しました'); }
     });
-
-    function urlFromText(s){
-      if(!s) return '';
-      const m = String(s).match(/https?:\/\/\S+/);
-      return m ? m[0].replace(/[)\]\s]+$/, '') : '';
-    }
-    function formatYmdLabel(s){
-      const m = /^(\d{4})(\d{2})(\d{2})/.exec(String(s||''));
-      return m ? `${m[1]}/${m[2]}/${m[3]}` : null;
-    }
+    function urlFromText(s){ if(!s) return ''; const m=String(s).match(/https?:\/\/\S+/); return m ? m[0].replace(/[)\]\s]+$/, '') : ''; }
+    function formatYmdLabel(s){ const m = /^(\d{4})(\d{2})(\d{2})/.exec(String(s||'')); return m ? `${m[1]}/${m[2]}/${m[3]}` : null; }
 
     /* ===== 描画 ===== */
     function render(){
@@ -223,136 +199,156 @@
       if (rows.length === 0) { hint.textContent = q ? '該当なし' : '検索結果がここに表示されます。'; return; }
       hint.textContent = '';
 
-      /* ==== PCテーブル ==== */
-      const table = document.createElement('table');
-      const thead = document.createElement('thead');
-      const trh = document.createElement('tr');
-      ['アーティスト名','曲名','操作'].forEach(h=>{ const th=document.createElement('th'); th.textContent=h; trh.appendChild(th); });
-      thead.appendChild(trh); table.appendChild(thead);
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
-      const tbody = document.createElement('tbody');
-      rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
-        const tr=document.createElement('tr');
+      if (!isMobile) {
+        // PC：テーブルのみ
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const trh = document.createElement('tr');
+        ['アーティスト名','曲名','操作'].forEach(h=>{ const th=document.createElement('th'); th.textContent=h; trh.appendChild(th); });
+        thead.appendChild(trh); table.appendChild(thead);
 
-        let td=document.createElement('td'); td.textContent=artist||''; tr.appendChild(td);
-        td=document.createElement('td'); td.textContent=title||''; tr.appendChild(td);
+        const tbody = document.createElement('tbody');
+        rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
+          const tr=document.createElement('tr');
 
-        const tdOps=document.createElement('td'); const ops=document.createElement('div'); ops.className='ops';
+          let td=document.createElement('td'); td.textContent=artist||''; tr.appendChild(td);
+          td=document.createElement('td'); td.textContent=title||''; tr.appendChild(td);
 
-        // C列リンク
-        const cHref = cUrl || urlFromText(cText);
-        if (cHref) {
-          const aC=document.createElement('a');
-          aC.href=cHref; aC.target='_blank'; aC.rel='noopener';
-          aC.className='btn-pill';
-          aC.title=cText||'リンク';
-          aC.textContent=cText||'リンク';
-          ops.appendChild(aC);
-        }
+          const tdOps=document.createElement('td'); const ops=document.createElement('div'); ops.className='ops';
 
-        // D列リンク：▶前回yyyy/mm/dd
-        const dHref = dUrl || urlFromText(dText);
-        const dLabel = formatYmdLabel(dText);
-        if (dHref) {
-          const aD=document.createElement('a');
-          aD.href=dHref; aD.target='_blank'; aD.rel='noopener';
-          aD.className='btn-pill';
-          aD.title=dLabel ? `前回 ${dLabel}` : '前回';
-          aD.textContent=dLabel ? `▶前回${dLabel}` : '▶前回';
-          ops.appendChild(aD);
-        }
+          const cHref = cUrl || urlFromText(cText);
+          if (cHref) {
+            const aC=document.createElement('a');
+            aC.href=cHref; aC.target='_blank'; aC.rel='noopener';
+            aC.className='btn-pill';
+            aC.title=cText||'リンク';
+            aC.textContent=cText||'リンク';
+            ops.appendChild(aC);
+          }
 
-        const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
-        btn.addEventListener('click',()=>copyPair(title,artist));
-        ops.appendChild(btn);
+          const dHref = dUrl || urlFromText(dText);
+          const dLabel = formatYmdLabel(dText);
+          if (dHref) {
+            const aD=document.createElement('a');
+            aD.href=dHref; aD.target='_blank'; aD.rel='noopener';
+            aD.className='btn-pill';
+            aD.title=dLabel ? `前回 ${dLabel}` : '前回';
+            aD.textContent=dLabel ? `▶前回${dLabel}` : '▶前回';
+            ops.appendChild(aD);
+          }
 
-        tdOps.appendChild(ops); tr.appendChild(tdOps); tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-      tableWrap.appendChild(table);
+          const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
+          btn.addEventListener('click',()=>copyPair(title,artist));
+          ops.appendChild(btn);
 
-      /* ==== スマホ2行カード ==== */
-      rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
-        const item=document.createElement('div'); item.className='item';
+          tdOps.appendChild(ops); tr.appendChild(tdOps); tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        tableWrap.appendChild(table);
 
-        const l1=document.createElement('div'); l1.className='l1';
-        const a1=document.createElement('span'); a1.className='artist'; a1.textContent=artist||'';
-        const sep=document.createElement('span'); sep.className='sep'; sep.textContent='/';
-        const t1=document.createElement('span'); t1.className='title'; t1.textContent=title||'';
-        l1.appendChild(a1); l1.appendChild(sep); l1.appendChild(t1);
+        // 表示切替
+        tableWrap.style.display = 'block';
+        listWrap.style.display  = 'none';
+      } else {
+        // スマホ：カードのみ
+        rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
+          const item=document.createElement('div'); item.className='item';
 
-        const l2=document.createElement('div'); l2.className='l2';
+          const l1=document.createElement('div'); l1.className='l1';
+          const a1=document.createElement('span'); a1.className='artist'; a1.textContent=artist||'';
+          const sep=document.createElement('span'); sep.className='sep'; sep.textContent='/';
+          const t1=document.createElement('span'); t1.className='title'; t1.textContent=title||'';
+          l1.appendChild(a1); l1.appendChild(sep); l1.appendChild(t1);
 
-        const cHref = cUrl || urlFromText(cText);
-        if (cHref) {
-          const aC=document.createElement('a');
-          aC.href=cHref; aC.target='_blank'; aC.rel='noopener';
-          aC.className='btn-pill';
-          aC.title=cText||'リンク';
-          aC.textContent=cText||'リンク';
-          l2.appendChild(aC);
-        }
+          const l2=document.createElement('div'); l2.className='l2';
 
-        const dHref = dUrl || urlFromText(dText);
-        const dLabel = formatYmdLabel(dText);
-        if (dHref) {
-          const aD=document.createElement('a');
-          aD.href=dHref; aD.target='_blank'; aD.rel='noopener';
-          aD.className='btn-pill';
-          aD.title=dLabel ? `前回 ${dLabel}` : '前回';
-          aD.textContent=dLabel ? `▶前回${dLabel}` : '▶前回';
-          l2.appendChild(aD);
-        }
+          const cHref = cUrl || urlFromText(cText);
+          if (cHref) {
+            const aC=document.createElement('a');
+            aC.href=cHref; aC.target='_blank'; aC.rel='noopener';
+            aC.className='btn-pill';
+            aC.title=cText||'リンク';
+            aC.textContent=cText||'リンク';
+            l2.appendChild(aC);
+          }
 
-        const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
-        btn.addEventListener('click',()=>copyPair(title,artist));
-        l2.appendChild(btn);
+          const dHref = dUrl || urlFromText(dText);
+          const dLabel = formatYmdLabel(dText);
+          if (dHref) {
+            const aD=document.createElement('a');
+            aD.href=dHref; aD.target='_blank'; aD.rel='noopener';
+            aD.className='btn-pill';
+            aD.title=dLabel ? `前回 ${dLabel}` : '前回';
+            aD.textContent=dLabel ? `▶前回${dLabel}` : '▶前回';
+            l2.appendChild(aD);
+          }
 
-        item.appendChild(l1); item.appendChild(l2);
-        $('mblist').appendChild(item);
-      });
+          const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
+          btn.addEventListener('click',()=>copyPair(title,artist));
+          l2.appendChild(btn);
 
-      $('mblist').style.display='block';
+          item.appendChild(l1); item.appendChild(l2);
+          listWrap.appendChild(item);
+        });
+
+        // 表示切替
+        listWrap.style.display  = 'block';
+        tableWrap.style.display = 'none';
+      }
     }
 
-    /* ===== データ取得（JSONP→失敗時iframeフォールバック） ===== */
+    /* ===== データ取得 ===== */
     function fetchRows(limit){
       const reqId = ++state.lastReqId;
-      const urlJsonp = `${BASE}?callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}`;
-      const s=document.createElement('script');
-      s.src=urlJsonp; s.async=true;
-      s.onerror=()=>{ tryIframeFallback(limit, reqId, 'network'); };
-      document.head.appendChild(s);
-      state.fetchedLimit = limit;
 
-      // タイムアウトで iframe フォールバック
-      setTimeout(()=>{
-        if (reqId === state.lastReqId && !state.usedIframe && state.rows.length === 0) {
-          tryIframeFallback(limit, reqId, 'timeout');
-        }
-      }, JSONP_TIMEOUT_MS);
+      // まず iframe で取得（優先）
+      tryIframe(limit, reqId);
+
+      // どうしてもJSONPも試したい場合だけ、echo URLが設定されている時にレースさせる
+      if (BASE_JSONP) {
+        const urlJsonp = `${BASE_JSONP}callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}`;
+        const s=document.createElement('script');
+        s.src=urlJsonp; s.async=true;
+        s.onerror=()=>{/* 無視（iframeが本線） */};
+        document.head.appendChild(s);
+
+        // 万一iframeが遅い環境向けに、短いタイマで保険のフォールバック（任意）
+        setTimeout(()=>{
+          if (reqId === state.lastReqId && state.rows.length === 0 && !state.usedIframe) {
+            tryIframe(limit, reqId); // もう一度だけ試す
+          }
+        }, JSONP_TIMEOUT_MS);
+      }
+
+      state.fetchedLimit = limit;
     }
 
-    function tryIframeFallback(limit, reqId, reason){
+    function tryIframe(limit, reqId){
       if (state.usedIframe) return;
       state.usedIframe = true;
-      $('status').textContent = `別ルートで取得中…（${reason}）`;
 
-      // 既存 iframe を片付け
+      const urlFrame = `${BASE_EXEC}?frame=1&callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}`;
       const old = document.getElementById('gviz-frame');
       if (old) old.remove();
 
-      // iframe 埋め込み（?frame=1 は GS 側で postMessage へフォールバック可）
-      const urlFrame = `${BASE}?frame=1&callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}`;
       const f = document.createElement('iframe');
       f.id = 'gviz-frame';
       f.src = urlFrame;
       f.style.display = 'none';
       f.width = 0; f.height = 0; f.tabIndex = -1;
       document.body.appendChild(f);
+
+      // 4秒待っても rows が空なら状況を表示
+      setTimeout(()=>{
+        if (reqId === state.lastReqId && state.rows.length === 0) {
+          $('status').textContent = '取得がタイムアウトしました（/exec 公開設定やデプロイを確認）';
+        }
+      }, 4000);
     }
 
-    // 初回：必要十分（INITIAL_FETCH）のみ取得
+    // 初回
     fetchRows(INITIAL_FETCH);
 
     /* ===== イベント ===== */
@@ -366,6 +362,9 @@
         render();
       }
     });
+
+    // リサイズ時もレイアウトを再描画（PC<->SP切替に追従）
+    window.addEventListener('resize', ()=>{ clearTimeout(state.debounce); state.debounce=setTimeout(render,150); });
   </script>
 </body>
 </html>
