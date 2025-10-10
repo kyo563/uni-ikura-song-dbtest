@@ -114,7 +114,7 @@
 
   <script>
     /* ===== 設定 ===== */
-    const BASE = 'https://script.google.com/macros/s/AKfycbzu1evONzAeYCpgceyQmQBh0lUa5nMYUFCr6UZgxY_NcctdA0NVj_ZkQb6MraLAO2mP1A/exec';
+    const BASE = 'https://script.google.com/macros/s/AKfycbwJuhqH3pF5_465zPSeagKuIwUX7rlFy2nMCLMSAiuCpQ2OOIzGVIlH41G7F3gHdHYQhg/exec';
     const SHEET_KEY = 'perf';           // GAS側で "Performance Record" に解決
     const INITIAL_FETCH = 200;
     const HARD_LIMIT = 20000;
@@ -125,11 +125,11 @@
 
     // タイムアウトとヘッジ起動（★iOS向けに微調整）
     const JSONP_TIMEOUT_MS = 6500;
-    const IFRAME_KICK_MS   = 400;   // ← 600 → 400（やや早める）
-    const IFRAME_TIMEOUT_MS = 15000; // ← 10000 → 15000（余裕を持たせる）
+    const IFRAME_KICK_MS   = 400;
+    const IFRAME_TIMEOUT_MS = 15000;
 
-    // postMessage 許可オリジン
-    const ORIGIN_ALLOW_RE = /(^https:\/\/[a-z0-9-]+\.googleusercontent\.com$)|(^https:\/\/script\.google\.com$)/i;
+    // iframe -> parent の postMessage 送信元検証
+    const ORIGIN_ALLOW_RE = /(^https:\/\/[a-z0-9.-]+\.google\.com$)|(^https:\/\/script\.google\.com$)/i;
 
     /* ===== 状態 ===== */
     const state = {
@@ -149,7 +149,7 @@
     function scheduleSearch(){ clearTimeout(state.debounce); state.debounce = setTimeout(render, 160); }
     function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
 
-    // 文字列がURLらしいかの簡易判定（★モバイルSafariのhref厳格対策）
+    // 文字列がURLらしいかの簡易判定
     const looksUrl = s => /^https?:\/\//i.test(String(s||''));
 
     async function copyPair(title, artist){
@@ -181,8 +181,12 @@
       const oldF = document.getElementById('gviz-frame'); if (oldF) oldF.remove();
 
       try{
-        if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
-          $('status').textContent = 'データ取得に失敗しました（不正なレスポンス）';
+        if (!payload || payload.ok === false) {
+          $('status').textContent = 'データ取得に失敗しました';
+          return;
+        }
+        if (!Array.isArray(payload.rows)) {
+          $('status').textContent = 'データ形式が不正です';
           return;
         }
         state.rows = payload.rows.map(r => [
@@ -250,7 +254,7 @@
 
         const tdOps=document.createElement('td'); const ops=document.createElement('div'); ops.className='ops';
 
-        // ★ URL厳格対策：cUrl/dUrlがURLでなければ cText/dText から抽出
+        // URL厳格対策：cUrl/dUrlがURLでなければ cText/dText から抽出
         const cHref = looksUrl(cUrl) ? cUrl : urlFromText(cText);
         if (cHref){ const a=document.createElement('a'); a.href=cHref; a.target='_blank'; a.rel='noopener'; a.className='btn-pill'; a.title=cText||'リンク'; a.textContent=cText||'リンク'; ops.appendChild(a); }
 
@@ -291,12 +295,12 @@
         item.appendChild(l1); item.appendChild(l2); document.getElementById('mblist').appendChild(item);
       });
 
-      // ★ モバイル用リストの display 切替はCSSに任せる（強制しない）
+      // ★ モバイル用リストの display 切替はCSSに任せる
     }
 
     /* ===== 取得：JSONPとiframeを端末別に最適化 ===== */
 
-    // 既存の（JSONP→IFRAME）ルート
+    // 通常（JSONP→IFRAME）
     function fetchRows(limit){
       state.delivered = false;
       state.usedIframe = false;
@@ -309,16 +313,16 @@
       clearTimeout(state.jsonpTimer);
       clearTimeout(state.iframeTimer);
 
-      // 1) JSONP を投げる
+      // 1) JSONP を投げる（callback必須）
       const urlJsonp = `${BASE}?callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&v=${Date.now()}`;
       const s = document.createElement('script');
       s.id = 'jsonp-tag';
       s.src = urlJsonp;
       s.async = true;
-      s.onerror = () => { /* iframe を起動するので表示は不要 */ };
+      s.onerror = () => { /* iframe ヘッジへ */ };
       document.head.appendChild(s);
 
-      // 2) IFRAME を少し早めにキック
+      // 2) IFRAME を少し早めにキック（GAS側で frame=1 を受ける）
       setTimeout(() => {
         if (state.delivered) return;
         startIframe(limit);
@@ -368,7 +372,7 @@
       f.id = 'gviz-frame';
       f.src = urlFrame;
 
-      // ★ iOS対策：display:none を使わず、画面外に配置して確実にロードさせる
+      // iOS対策：display:none を使わず、画面外に配置
       f.style.position = 'absolute';
       f.style.left = '-9999px';
       f.style.top = '-9999px';
@@ -386,9 +390,8 @@
       }, IFRAME_TIMEOUT_MS);
     }
 
-    // 初回ロード（★iOSはiframe先行、その他は従来順）
+    // 初回ロード（iOSはiframe先行、その他はJSONP先行）
     document.addEventListener('DOMContentLoaded', ()=>{
-      // HTML本体キャッシュの回避用ヒント：必要ならページURL末尾に ?v=2 などを付けて配信してください
       if (isIOS) {
         fetchRowsIOS(INITIAL_FETCH);
       } else {
