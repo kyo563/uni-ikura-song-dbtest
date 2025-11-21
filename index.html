@@ -113,7 +113,10 @@
     .ui .row2 .search{flex:1 1 0;min-width:0}
     .ui .row3 .dm-select-wrap{flex:7 1 0}
     .ui .row3 .dm-btn-wrap{flex:3 1 0}
+    .ui .row5{justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
     .ui .row5 #status{flex:1 1 0}
+    .ui .row5 .status-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .ui .row5 .status-actions .btn{padding:7px 10px;font-size:13px}
 
     /* 1列目：件数 / 対象（横並び固定） */
     .ui .row1{
@@ -201,6 +204,9 @@
     <!-- 5列目：ステータス -->
     <div class="row row5">
       <div class="muted" id="status" role="status" aria-live="polite">読み込み中…</div>
+      <div class="status-actions">
+        <button id="refetch" class="btn" type="button" title="最新のデータを再取得">再取得</button>
+      </div>
     </div>
 
     <div id="error-box" class="alert" role="alert" aria-live="assertive">
@@ -617,6 +623,8 @@
         cleanupJsonpScripts(reqId);
         setStatus(message, {fallback:false});
         clearSkeleton();
+        if (detail) console.warn('fetchRows failed', {reqId, attempt, message, detail});
+        else console.warn('fetchRows failed', {reqId, attempt, message});
         showError(message, {retry:true, detail});
       };
 
@@ -672,14 +680,19 @@
       };
 
       state.shortTimer = setTimeout(()=>{
-        if (!settled && attempt < MAX_RETRY) fetchRows(limit, attempt+1);
+        if (!settled && attempt < MAX_RETRY) {
+          console.warn('retrying fetchRows (jsonp delay)', {reqId, attemptNext: attempt+1});
+          fetchRows(limit, attempt+1);
+        }
       }, SHORT_TRY_MS);
 
       state.globalTimer = setTimeout(()=>{
         if (!settled && reqId === state.lastReqId) tryIframeFallback(limit, reqId, 'jsonp-timeout', fail);
       }, JSONP_TIMEOUT_MS);
 
-      jsonpOnce(url, ()=>{}, reqId);
+      jsonpOnce(url, ()=>{
+        fail('データ取得に失敗しました（スクリプト読み込みエラー）', 'ネットワークまたは公開設定をご確認ください。');
+      }, reqId);
     }
 
     function tryIframeFallback(limit, reqId, reason, onTimeout){
@@ -688,7 +701,8 @@
       if (state.usedIframe) return;
       state.usedIframe = true;
 
-      setStatus(`別ルートで取得中…（${reason}）`, {fallback:true});
+      const reasonLabel = reason === 'jsonp-timeout' ? '応答待ち超過' : reason;
+      setStatus(`別ルートで取得中…（${reasonLabel}）`, {fallback:true});
 
       const old = document.getElementById('gviz-frame'); if (old) old.remove();
 
@@ -709,14 +723,18 @@
         if (!$('status')?.dataset?.fallback) return;
         if ((state.rows && state.rows.length) > 0) return;
 
+        const detail = reason === 'jsonp-timeout'
+          ? 'JSONP 応答がなくタイムアウトしました。公開設定やネットワークを確認してください。'
+          : '別ルートの取得がタイムアウトしました。公開設定やネットワーク状態をご確認ください。';
+
         if (typeof onTimeout === 'function') {
-          onTimeout('取得がタイムアウトしました。再試行してください。', '公開設定やネットワーク状態をご確認ください。');
+          onTimeout('取得がタイムアウトしました。再試行してください。', detail);
         } else {
           setStatus('取得がタイムアウトしました（公開設定/デプロイ確認・ネットワーク再試行）', {fallback:false});
           const g = document.getElementById('gviz-frame'); if (g) g.remove();
           state.usedIframe = false;
           clearSkeleton();
-          showError('取得がタイムアウトしました。再試行してください。', {retry:true});
+          showError('取得がタイムアウトしました。再試行してください。', {retry:true, detail});
         }
       }, IFRAME_WATCHDOG_MS);
     }
@@ -751,6 +769,10 @@
       }
     });
     (function(){ const el=$('kind'); if (el) el.addEventListener('change', render); })();
+    (function(){ const el=$('refetch'); if (el) el.addEventListener('click', ()=>{
+      setStatus('最新のデータを再取得しています…', {fallback:false});
+      fetchRows(state.lastFetchLimit || INITIAL_FETCH);
+    }); })();
 
     // 並び替えUI
     function updateSortButtons(){
