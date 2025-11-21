@@ -1217,6 +1217,32 @@
           showError(message, { retry: true, detail: detailText });
         };
 
+        const retryOnJsonpError = () => {
+          if (settled || reqId !== state.lastReqId) return;
+          if (attempt >= MAX_RETRY) {
+            fail(
+              "読み込みに失敗しました（スクリプトの読込エラー）",
+              "公開設定（匿名アクセス可）やネットワークを確認してください。",
+            );
+            return;
+          }
+
+          settled = true;
+          clearTimeout(state.shortTimer);
+          state.shortTimer = null;
+          clearTimeout(state.globalTimer);
+          state.globalTimer = null;
+          cleanupJsonpScripts(reqId);
+
+          const nextIndex = Math.min(urlIndex + 1, urls.length - 1);
+          console.info("[fetchRows] retry (jsonp onerror)", {
+            attempt,
+            nextIndex,
+            url: urls[nextIndex],
+          });
+          fetchRows(limit, attempt + 1, nextIndex);
+        };
+
         state.pendingHandler = (payload) => {
           clearFallbackFlag();
           if (settled || reqId !== state.lastReqId) return;
@@ -1308,7 +1334,7 @@
         }, JSONP_TIMEOUT_MS);
 
         console.info("[fetchRows] start", { reqId, attempt, urlIndex, url });
-        jsonpOnce(url, { onerror: () => {}, reqId });
+        jsonpOnce(url, { onerror: retryOnJsonpError, reqId });
       }
 
       function tryIframeFallback(limit, reqId, reason, onTimeout) {
