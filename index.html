@@ -229,11 +229,11 @@
     const INITIAL_FETCH = 200;     // 起動時の取得件数
     const HARD_LIMIT = 20000;      // 取得上限
 
-    // 再試行・タイムアウト設定
-    const JSONP_TIMEOUT_MS = 6500; // JSONP 待機の上限
-    const SHORT_TRY_MS = 1500;     // 短期再試行の間隔
-    const MAX_RETRY = 2;           // 再試行回数
-    const IFRAME_WATCHDOG_MS = 10000; // iframe 代替の監視時間
+    // 再試行・タイムアウト設定（最大500曲程度を想定し、平均応答~0.7sに3〜5倍のバッファを付与）
+      const JSONP_TIMEOUT_MS = 3800; // JSONP 待機上限：想定0.7sの約5倍でタイムアウト→代替
+      const SHORT_TRY_MS = 1400;     // 短期再試行：想定0.7sの2倍強で重複負荷を避けつつ早めに再度要求
+      const MAX_RETRY = 3;           // 再試行回数（ハング時に余分に試行）
+      const IFRAME_WATCHDOG_MS = 10000; // iframe 代替の監視時間
 
     const MOBILE_MEDIA_QUERY = '(max-width: 768px)';
     const mediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY);
