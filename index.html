@@ -571,10 +571,12 @@
       const list = [];
       const push = (u)=>{ if (u && !list.includes(u)) list.push(u); };
 
+      push(`${normalized}?${params}`);
       push(`${normalized}?${params}&authuser=0`);
       push(`${normalized}?${params}&authuser=-1`);
 
       const u0 = normalized.replace('/macros/','/macros/u/0/');
+      push(`${u0}?${params}`);
       push(`${u0}?${params}&authuser=0`);
       push(`${u0}?${params}&authuser=-1`);
 
@@ -591,6 +593,8 @@
 
       const urls = buildApiCandidates(limit);
       const url  = urls[urlIndex] || urls[0];
+
+      console.info('[fetchRows] attempt', { attempt, urlIndex, url, reqId });
 
       setStatus(attempt===0 ? '読み込み中…' : `読み込み中…（${attempt}）`, {fallback:false});
       showSkeleton();
