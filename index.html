@@ -192,11 +192,8 @@
         <summary aria-label="並び替えを開閉">並び替え（最新曲順／曲名順／アーティスト名順）</summary>
         <div class="sort-body" role="group" aria-label="並び替え設定">
           <button id="sort-latest-toggle" class="btn sort-btn" type="button" title="D列のyyyymmddで最新順を切替">最新曲順↓</button>
-          <button id="sort-title-asc" class="btn btn-ghost sort-btn" type="button" title="曲名の昇順">曲名順（昇順）</button>
-          <button id="sort-title-desc" class="btn btn-ghost sort-btn" type="button" title="曲名の降順">曲名順（降順）</button>
-          <button id="sort-artist-asc" class="btn btn-ghost sort-btn" type="button" title="アーティスト名の昇順">アーティスト名順（昇順）</button>
-          <button id="sort-artist-desc" class="btn btn-ghost sort-btn" type="button" title="アーティスト名の降順">アーティスト名順（降順）</button>
-          <button id="sort-reset" class="btn btn-ghost sort-btn" type="button" title="取得順に戻す">リセット</button>
+          <button id="sort-title-toggle" class="btn btn-ghost sort-btn" type="button" title="曲名の昇降順を切替">曲名順↓</button>
+          <button id="sort-artist-toggle" class="btn btn-ghost sort-btn" type="button" title="アーティスト名の昇降順を切替">アーティスト名順↓</button>
         </div>
       </details>
     </div>
@@ -806,21 +803,27 @@
     // 並び替えUI
     function updateSortButtons(){
       const btnLatest = $('sort-latest-toggle');
-      const btnTitleAsc = $('sort-title-asc');
-      const btnTitleDesc = $('sort-title-desc');
-      const btnArtistAsc = $('sort-artist-asc');
-      const btnArtistDesc = $('sort-artist-desc');
+      const btnTitle = $('sort-title-toggle');
+      const btnArtist = $('sort-artist-toggle');
 
-      const latestArrow = (state.sort.key === 'date') ? (state.sort.dir === 'asc' ? '↑' : '↓') : '↓';
-      if (btnLatest){
-        setTextIfChanged(btnLatest, `最新曲順${latestArrow}`);
-        setAriaIfChanged(btnLatest, 'aria-pressed', state.sort.key === 'date' ? 'true' : 'false');
-      }
-      const mark = (btn, active)=>{ if (!btn) return; setAriaIfChanged(btn, 'aria-pressed', active ? 'true' : 'false'); };
-      mark(btnTitleAsc,  state.sort.key === 'title' && state.sort.dir === 'asc');
-      mark(btnTitleDesc, state.sort.key === 'title' && state.sort.dir === 'desc');
-      mark(btnArtistAsc, state.sort.key === 'artist' && state.sort.dir === 'asc');
-      mark(btnArtistDesc,state.sort.key === 'artist' && state.sort.dir === 'desc');
+      const applyButtonState = (btn, label, isActive, arrow)=>{
+        if (!btn) return;
+        setTextIfChanged(btn, `${label}${arrow}`);
+        setAriaIfChanged(btn, 'aria-pressed', isActive ? 'true' : 'false');
+        btn.classList.toggle('btn-ghost', !isActive);
+      };
+
+      const isLatest = state.sort.key === 'date';
+      const latestArrow = isLatest ? (state.sort.dir === 'asc' ? '↑' : '↓') : '↓';
+      applyButtonState(btnLatest, '最新曲順', isLatest, latestArrow);
+
+      const isTitle = state.sort.key === 'title';
+      const titleArrow = isTitle ? (state.sort.dir === 'asc' ? '↑' : '↓') : '↓';
+      applyButtonState(btnTitle, '曲名順', isTitle, titleArrow);
+
+      const isArtist = state.sort.key === 'artist';
+      const artistArrow = isArtist ? (state.sort.dir === 'asc' ? '↑' : '↓') : '↓';
+      applyButtonState(btnArtist, 'アーティスト名順', isArtist, artistArrow);
     }
 
     function setSort(key, dir){
@@ -833,11 +836,14 @@
       const nextDir = (state.sort.key === 'date' && state.sort.dir === 'desc') ? 'asc' : 'desc';
       setSort('date', nextDir);
     });
-    $('sort-title-asc').addEventListener('click',  ()=> setSort('title', 'asc'));
-    $('sort-title-desc').addEventListener('click', ()=> setSort('title', 'desc'));
-    $('sort-artist-asc').addEventListener('click', ()=> setSort('artist', 'asc'));
-    $('sort-artist-desc').addEventListener('click',()=> setSort('artist', 'desc'));
-    $('sort-reset').addEventListener('click',       ()=> setSort('none', 'desc'));
+    $('sort-title-toggle').addEventListener('click', ()=>{
+      const nextDir = (state.sort.key === 'title' && state.sort.dir === 'desc') ? 'asc' : 'desc';
+      setSort('title', nextDir);
+    });
+    $('sort-artist-toggle').addEventListener('click', ()=>{
+      const nextDir = (state.sort.key === 'artist' && state.sort.dir === 'desc') ? 'asc' : 'desc';
+      setSort('artist', nextDir);
+    });
 
     function handleMediaChange(ev){
       const next = ev?.matches ?? mediaQuery.matches;
