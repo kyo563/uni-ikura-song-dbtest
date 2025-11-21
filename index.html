@@ -387,8 +387,8 @@
       if (sort.key === 'date'){
         // D列(dText)で比較（NaNは末尾）
         arr.sort((r1, r2)=>{
-          const d1 = Number.isNaN(r1.dateInt) ? parseYmdInt(r1[3]) : r1.dateInt;
-          const d2 = Number.isNaN(r2.dateInt) ? parseYmdInt(r2[3]) : r2.dateInt;
+          const d1 = Number.isFinite(r1.dateInt) ? r1.dateInt : NaN;
+          const d2 = Number.isFinite(r2.dateInt) ? r2.dateInt : NaN;
           const n1 = Number.isNaN(d1), n2 = Number.isNaN(d2);
           if (n1 && n2) return 0;
           if (n1) return 1; // 日付不明は後ろ
@@ -396,9 +396,9 @@
           return (d1 - d2) * dir;
         });
       } else if (sort.key === 'artist'){
-        arr.sort((r1, r2)=> compareStrings(r1.artistLower ?? normalize(r1[0]), r2.artistLower ?? normalize(r2[0]), {preNormalized:true}) * dir);
+        arr.sort((r1, r2)=> compareStrings(r1.artistLower, r2.artistLower, {preNormalized:true}) * dir);
       } else if (sort.key === 'title'){
-        arr.sort((r1, r2)=> compareStrings(r1.titleLower ?? normalize(r1[1]), r2.titleLower ?? normalize(r2[1]), {preNormalized:true}) * dir);
+        arr.sort((r1, r2)=> compareStrings(r1.titleLower, r2.titleLower, {preNormalized:true}) * dir);
       }
       return arr;
     }
@@ -419,8 +419,8 @@
       // 文字検索（アーティスト名・曲名）
       if (q) {
         filtered = filtered.filter(row => {
-          const a = row.artistLower ?? normalize(row[0]);
-          const t = row.titleLower  ?? normalize(row[1]);
+          const a = row.artistLower;
+          const t = row.titleLower;
           return a.includes(q) || t.includes(q);
         });
       }
@@ -472,7 +472,8 @@
       const fragRows = document.createDocumentFragment();
 
       rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
-        const cHref = safeHttpUrl(cUrl) || safeHttpUrl(urlFromText(cText));
+        const note = String(cText || '').trim();
+        const cHref = safeHttpUrl(cUrl);
         const dHref = safeHttpUrl(dUrl) || safeHttpUrl(urlFromText(dText));
         const dLabel = formatYmdLabel(dText);
 
@@ -484,7 +485,16 @@
         const sep = document.createElement('span'); sep.className='sep'; sep.textContent='/';
         const t1 = document.createElement('span'); t1.className='title'; t1.textContent=title||'';
         l1.appendChild(a1); l1.appendChild(sep); l1.appendChild(t1);
-        tdTop.appendChild(l1); trTop.appendChild(tdTop);
+        tdTop.appendChild(l1);
+
+        if (note) {
+          const noteEl = document.createElement('div');
+          noteEl.className = 'muted';
+          noteEl.textContent = note;
+          tdTop.appendChild(noteEl);
+        }
+
+        trTop.appendChild(tdTop);
         fragRows.appendChild(trTop);
 
         /* 2行目：操作（上線なし・右寄せ） */
@@ -492,10 +502,13 @@
         const tdOps = document.createElement('td'); tdOps.style.borderTop = 'none';
         const ops = document.createElement('div'); ops.className='ops';
 
-        const aC = createLinkPill(cHref, cText||'リンク', cText||'リンク');
+        const aC = createLinkPill(cHref, '▶歌枠', '歌枠直リンク');
         if (aC) ops.appendChild(aC);
 
-        const aD = createLinkPill(dHref, dLabel ? `▶前回${dLabel}` : '▶前回', dLabel ? `前回 ${dLabel}` : '前回');
+        const aD = createLinkPill(dHref,
+          dLabel ? `出典 ${dLabel}` : '出典元',
+          dLabel ? `出典元 ${dLabel}` : '出典元情報'
+        );
         if (aD) ops.appendChild(aD);
 
         ops.appendChild(createCopyButton(title, artist));
@@ -516,7 +529,8 @@
 
       const frag = document.createDocumentFragment();
       rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
-        const cHref = safeHttpUrl(cUrl) || safeHttpUrl(urlFromText(cText));
+        const note = String(cText || '').trim();
+        const cHref = safeHttpUrl(cUrl);
         const dHref = safeHttpUrl(dUrl) || safeHttpUrl(urlFromText(dText));
         const dLabel = formatYmdLabel(dText);
 
@@ -530,15 +544,25 @@
 
         const l2=document.createElement('div'); l2.className='l2';
 
-        const aC = createLinkPill(cHref, cText||'リンク', cText||'リンク');
+        const aC = createLinkPill(cHref, '▶歌枠', '歌枠直リンク');
         if (aC) l2.appendChild(aC);
 
-        const aD = createLinkPill(dHref, dLabel ? `▶前回${dLabel}` : '▶前回', dLabel ? `前回 ${dLabel}` : '前回');
+        const aD = createLinkPill(dHref,
+          dLabel ? `出典 ${dLabel}` : '出典元',
+          dLabel ? `出典元 ${dLabel}` : '出典元情報'
+        );
         if (aD) l2.appendChild(aD);
 
         l2.appendChild(createCopyButton(title, artist));
 
         item.appendChild(l1); item.appendChild(l2);
+
+        if (note) {
+          const noteEl = document.createElement('div');
+          noteEl.className = 'muted';
+          noteEl.textContent = note;
+          item.appendChild(noteEl);
+        }
         frag.appendChild(item);
       });
 
@@ -636,11 +660,16 @@
         clearTimeout(state.shortTimer); state.shortTimer = null;
         clearTimeout(state.globalTimer); state.globalTimer = null;
 
-        try{
-          if (!payload || !Array.isArray(payload.rows)) {
-            fail('データ取得に失敗しました（不正なレスポンス）', 'レスポンス形式を確認してください。');
-            return;
-          }
+          try{
+            if (payload && payload.ok === false) {
+              const errMsg = String(payload.error || 'サーバーがエラーを返しました。');
+              fail('データ取得に失敗しました', errMsg);
+              return;
+            }
+            if (!payload || !Array.isArray(payload.rows)) {
+              fail('データ取得に失敗しました（不正なレスポンス）', 'レスポンス形式を確認してください。');
+              return;
+            }
           const rows = (payload.rows||[])
             .map(r => {
               const artist = r.artist || '';
