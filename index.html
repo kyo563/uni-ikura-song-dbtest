@@ -647,7 +647,9 @@
         clearSkeleton();
         const reasonLabel = reason || '通信エラー';
         const allowAutoRetry = attempt < MAX_RETRY;
-        console.warn('fetchRows failed', {reqId, attempt, message, detail, reason});
+        const logPayload = {reqId, attempt, message, reason};
+        if (detail) logPayload.detail = detail;
+        console.warn('fetchRows failed', logPayload);
         if (allowAutoRetry) {
           const autoDetail = detail ? `${detail} / 自動で再取得を行います。` : '自動で再取得を行います。';
           showError(message, {retry:true, detail: autoDetail});
