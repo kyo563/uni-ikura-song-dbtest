@@ -1,805 +1,1525 @@
 <!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-  <meta name="theme-color" content="#ffb744">
-  <title>雲丹ゐくら歌唱曲DB</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,user-scalable=no"
+    />
+    <meta name="theme-color" content="#ffb744" />
+    <title>雲丹ゐくら歌唱曲DB</title>
 
-  <link rel="dns-prefetch" href="https://script.google.com">
-  <link rel="preconnect" href="https://script.google.com" crossorigin>
-  <link rel="dns-prefetch" href="https://script.googleusercontent.com">
-  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+    <link rel="dns-prefetch" href="https://script.google.com" />
+    <link rel="preconnect" href="https://script.google.com" crossorigin />
+    <link rel="dns-prefetch" href="https://script.googleusercontent.com" />
+    <link
+      rel="preconnect"
+      href="https://script.googleusercontent.com"
+      crossorigin
+    />
 
-  <link rel="icon" href="/uni-ikura-songs-db/favicon.ico" sizes="any">
-  <link rel="icon" href="/uni-ikura-songs-db/favicon-32.png" sizes="32x32" type="image/png">
-  <link rel="icon" href="/uni-ikura-songs-db/favicon-16.png" sizes="16x16" type="image/png">
-  <link rel="apple-touch-icon" href="/uni-ikura-songs-db/apple-touch-icon.png" sizes="180x180">
+    <link rel="icon" href="/uni-ikura-songs-db/favicon.ico" sizes="any" />
+    <link
+      rel="icon"
+      href="/uni-ikura-songs-db/favicon-32.png"
+      sizes="32x32"
+      type="image/png"
+    />
+    <link
+      rel="icon"
+      href="/uni-ikura-songs-db/favicon-16.png"
+      sizes="16x16"
+      type="image/png"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="/uni-ikura-songs-db/apple-touch-icon.png"
+      sizes="180x180"
+    />
 
-  <style>
-    :root{
-      --bg:#ffb744; --card:#ffffff; --text:#1a1a1a; --muted:#6b7280; --line:#e5e7eb;
-      --thead:#ffe0b5; --focus:#3897c9; --pill-bg:#f6f7f9; --link:#2563eb;
-    }
-    *{box-sizing:border-box}
-    body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;line-height:1.7;margin:12px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+    <style>
+      :root {
+        --bg: #ffb744;
+        --card: #ffffff;
+        --text: #1a1a1a;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --thead: #ffe0b5;
+        --focus: #3897c9;
+        --pill-bg: #f6f7f9;
+        --link: #2563eb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP",
+          sans-serif;
+        line-height: 1.7;
+        margin: 12px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+      }
 
-    .row{display:flex;gap:8px;align-items:center}
-    .row .search{flex:1 1 auto;min-width:0}
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .row .search {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
 
-    .toolbar{display:none}
+      .toolbar {
+        display: none;
+      }
 
-    .limit-wrap{display:flex;align-items:center;gap:6px}
-    .limit-wrap label{font-size:12px;color:var(--muted);white-space:nowrap}
-    #limit{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
+      .limit-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .limit-wrap label {
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      #limit {
+        width: auto;
+        min-width: 68px;
+        padding: 6px 8px;
+        font-size: 13px;
+        line-height: 1.2;
+      }
 
-    /* 弾幕UI */
-    .dm-wrap{display:flex;align-items:center;gap:8px}
-    .dm-select-wrap{flex:7 1 0}
-    .dm-btn-wrap{flex:3 1 0;display:flex}
-    #dm-select{width:100%;padding:6px 10px;font-size:16px;line-height:1.2}
-    .btn-full{width:100%}
+      /* 弾幕UI */
+      .dm-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dm-select-wrap {
+        flex: 7 1 0;
+      }
+      .dm-btn-wrap {
+        flex: 3 1 0;
+        display: flex;
+      }
+      #dm-select {
+        width: 100%;
+        padding: 6px 10px;
+        font-size: 16px;
+        line-height: 1.2;
+      }
+      .btn-full {
+        width: 100%;
+      }
 
-    input[type="search"],select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:16px;background:#fff;color:#1a1a1a;outline:none}
-    input[type="search"]:focus,select:focus,.btn:focus,.btn-pill:focus{outline:3px solid var(--focus);outline-offset:2px}
+      input[type="search"],
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        font-size: 16px;
+        background: #fff;
+        color: #1a1a1a;
+        outline: none;
+      }
+      input[type="search"]:focus,
+      select:focus,
+      .btn:focus,
+      .btn-pill:focus {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
 
-    .muted{color:var(--muted);font-size:13px}
-    .btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:10px;padding:8px 12px;font-size:14px;cursor:pointer;white-space:nowrap}
-    .btn:hover{background:#f9fafb}.btn:active{transform:translateY(1px)}
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 14px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        background: #f9fafb;
+      }
+      .btn:active {
+        transform: translateY(1px);
+      }
 
-    .alert{display:none;margin-top:10px;padding:10px 12px;border-radius:10px;background:#fff7ed;border:1px solid #fdba74;color:#7c2d12;gap:8px;align-items:center}
-    .alert .msg{flex:1 1 auto;min-width:0}
-    .alert .msg strong{display:block;font-weight:700;margin-bottom:2px}
-    .alert .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-    .alert .actions .btn{border-color:#fdba74;background:#fff;border-radius:8px;font-size:13px;padding:7px 10px}
-    .alert .actions .btn:hover{background:#fff4e5}
+      .alert {
+        display: none;
+        margin-top: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #fff7ed;
+        border: 1px solid #fdba74;
+        color: #7c2d12;
+        gap: 8px;
+        align-items: center;
+      }
+      .alert .msg {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .alert .msg strong {
+        display: block;
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
+      .alert .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .alert .actions .btn {
+        border-color: #fdba74;
+        background: #fff;
+        border-radius: 8px;
+        font-size: 13px;
+        padding: 7px 10px;
+      }
+      .alert .actions .btn:hover {
+        background: #fff4e5;
+      }
 
-    .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(17,24,39,.92);color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s ease}
-    .toast.show{opacity:1}
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 16px;
+        transform: translateX(-50%);
+        background: rgba(17, 24, 39, 0.92);
+        color: #fff;
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .toast.show {
+        opacity: 1;
+      }
 
-    /* テーブル */
-    table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}
-    th,td{border-bottom:1px solid var(--line);padding:10px 8px;font-size:15px;vertical-align:top}
-    th{position:sticky;top:0;background:var(--thead);z-index:1;font-weight:700}
+      /* テーブル */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        table-layout: fixed;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 8px;
+        font-size: 15px;
+        vertical-align: top;
+      }
+      th {
+        position: sticky;
+        top: 0;
+        background: var(--thead);
+        z-index: 1;
+        font-weight: 700;
+      }
 
-    /* 行分割テーブル */
-    table.stacked{table-layout:auto}
-    table.stacked th, table.stacked td{width:auto !important}
-    table.stacked thead th{width:100% !important; white-space:nowrap}
-    table.stacked .item-top{background:#fff;border-bottom:none}
-    table.stacked .item-ops{background:#fff}
-    table.stacked .item-ops td{border-top:none}
-    table.stacked .item-top .l1{
-      font-size:16px;font-weight:700;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start
-    }
-    table.stacked .item-top .l1 .sep{opacity:.6}
-    table.stacked .item-ops .ops{
-      display:flex;gap:8px;align-items:center;justify-content:flex-end;
-      flex-wrap:wrap;overflow:visible;min-width:0
-    }
+      /* 行分割テーブル */
+      table.stacked {
+        table-layout: auto;
+      }
+      table.stacked th,
+      table.stacked td {
+        width: auto !important;
+      }
+      table.stacked thead th {
+        width: 100% !important;
+        white-space: nowrap;
+      }
+      table.stacked .item-top {
+        background: #fff;
+        border-bottom: none;
+      }
+      table.stacked .item-ops {
+        background: #fff;
+      }
+      table.stacked .item-ops td {
+        border-top: none;
+      }
+      table.stacked .item-top .l1 {
+        font-size: 16px;
+        font-weight: 700;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      table.stacked .item-top .l1 .sep {
+        opacity: 0.6;
+      }
+      table.stacked .item-ops .ops {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        overflow: visible;
+        min-width: 0;
+      }
 
-    .btn-pill{
-      display:inline-block;border:1px solid var(--line);background:var(--pill-bg);color:var(--link);
-      border-radius:10px;padding:8px 12px;line-height:1.2;text-decoration:none;
-      white-space:nowrap;word-break:keep-all;max-width:unset;overflow:hidden;text-overflow:ellipsis
-    }
-    .btn-pill:hover{background:#eef2f7;text-decoration:none}
-    .btn-pill:active{transform:translateY(1px)}
+      .btn-pill {
+        display: inline-block;
+        border: 1px solid var(--line);
+        background: var(--pill-bg);
+        color: var(--link);
+        border-radius: 10px;
+        padding: 8px 12px;
+        line-height: 1.2;
+        text-decoration: none;
+        white-space: nowrap;
+        word-break: keep-all;
+        max-width: unset;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .btn-pill:hover {
+        background: #eef2f7;
+        text-decoration: none;
+      }
+      .btn-pill:active {
+        transform: translateY(1px);
+      }
 
-    /* スケルトン */
-    .skeleton{height:16px;background:#f1f5f9;border-radius:6px;margin:8px 0;animation:pulse 1.2s ease-in-out infinite}
-    @keyframes pulse{0%{opacity:.6}50%{opacity:1}100%{opacity:.6}}
-    @media (prefers-reduced-motion: reduce){ .skeleton{animation:none} .toast{transition:none} }
+      /* スケルトン */
+      .skeleton {
+        height: 16px;
+        background: #f1f5f9;
+        border-radius: 6px;
+        margin: 8px 0;
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0% {
+          opacity: 0.6;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0.6;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .skeleton {
+          animation: none;
+        }
+        .toast {
+          transition: none;
+        }
+      }
 
-    /* モバイル */
-    .mobile-list{display:none}
-    @media (max-width:768px){
-      table{display:none}
-      .mobile-list{display:block;margin-top:10px}
-      .item{border-bottom:1px solid var(--line);padding:12px 2px;display:flex;flex-direction:column;gap:6px}
-      .l1{font-size:16px;line-height:1.6;font-weight:700;display:flex;gap:6px;flex-wrap:wrap}
-      .l1 .sep{opacity:.6}
-      .l2{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:nowrap;overflow:hidden}
-      .l2 .btn-pill{max-width:40vw}
-      .btn{padding:8px 12px;font-size:14px}
-      .dm-select-wrap{flex:7 1 0}
-      .dm-btn-wrap{flex:3 1 0}
-    }
+      /* モバイル */
+      .mobile-list {
+        display: none;
+      }
+      @media (max-width: 768px) {
+        table {
+          display: none;
+        }
+        .mobile-list {
+          display: block;
+          margin-top: 10px;
+        }
+        .item {
+          border-bottom: 1px solid var(--line);
+          padding: 12px 2px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .l1 {
+          font-size: 16px;
+          line-height: 1.6;
+          font-weight: 700;
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+        .l1 .sep {
+          opacity: 0.6;
+        }
+        .l2 {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          justify-content: flex-end;
+          flex-wrap: nowrap;
+          overflow: hidden;
+        }
+        .l2 .btn-pill {
+          max-width: 40vw;
+        }
+        .btn {
+          padding: 8px 12px;
+          font-size: 14px;
+        }
+        .dm-select-wrap {
+          flex: 7 1 0;
+        }
+        .dm-btn-wrap {
+          flex: 3 1 0;
+        }
+      }
 
-    /* === 再配置用（基本） === */
-    .ui .row{display:flex;gap:8px;align-items:center;margin-top:8px}
-    .ui .row:first-child{margin-top:0}
-    .ui .row2 .search{flex:1 1 0;min-width:0}
-    .ui .row3 .dm-select-wrap{flex:7 1 0}
-    .ui .row3 .dm-btn-wrap{flex:3 1 0}
-    .ui .row5 #status{flex:1 1 0}
+      /* === 再配置用（基本） === */
+      .ui .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 8px;
+      }
+      .ui .row:first-child {
+        margin-top: 0;
+      }
+      .ui .row2 .search {
+        flex: 1 1 0;
+        min-width: 0;
+      }
+      .ui .row3 .dm-select-wrap {
+        flex: 7 1 0;
+      }
+      .ui .row3 .dm-btn-wrap {
+        flex: 3 1 0;
+      }
+      .ui .row5 #status {
+        flex: 1 1 0;
+      }
 
-    /* 1列目：件数 / 対象（横並び固定） */
-    .ui .row1{
-      display:flex;gap:8px;align-items:center;flex-wrap:nowrap;
-    }
-    .ui .row1 .limit-wrap,
-    .ui .row1 .type-wrap{
-      display:flex;align-items:center;gap:6px;flex:0 0 auto;
-    }
-    .limit-wrap label, .type-wrap label{
-      font-size:12px;color:var(--muted);white-space:nowrap;
-    }
-    #kind{width:auto;min-width:68px;padding:6px 8px;font-size:13px;line-height:1.2}
+      /* 1列目：件数 / 対象（横並び固定） */
+      .ui .row1 {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: nowrap;
+      }
+      .ui .row1 .limit-wrap,
+      .ui .row1 .type-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 0 0 auto;
+      }
+      .limit-wrap label,
+      .type-wrap label {
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      #kind {
+        width: auto;
+        min-width: 68px;
+        padding: 6px 8px;
+        font-size: 13px;
+        line-height: 1.2;
+      }
 
-    /* 4列目：並び替えUI */
-    details.sort-panel{width:100%}
-    details.sort-panel summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;user-select:none;font-weight:700}
-    details.sort-panel summary::-webkit-details-marker{display:none}
-    details.sort-panel .sort-body{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
-    .btn-ghost{background:#fff;border:1px dashed var(--line)}
-    .btn-ghost:hover{background:#f9fafb}
-    .sort-btn{min-width:120px}
-
-  </style>
-</head>
-<body>
-
-  <!-- 検索UI（再配置版） -->
-  <div class="card ui">
-    <!-- 1列目：件数 / 対象 -->
-    <div class="row row1">
-      <div class="limit-wrap">
-        <label for="limit">件数</label>
-        <select id="limit" aria-label="表示件数">
-          <option value="20" selected>20件</option>
-          <option value="50">50件</option>
-          <option value="200">200件</option>
-          <option value="all">全件</option>
-        </select>
-      </div>
-
-      <div class="type-wrap">
-        <label for="kind">対象</label>
-        <select id="kind" aria-label="対象フィルタ">
-          <option value="all" selected>すべて</option>
-          <option value="歌ってみた">歌ってみた</option>
-          <option value="ショート">ショート</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- 2列目：楽曲検索 -->
-    <div class="row row2">
-      <input class="search" id="q" type="search" placeholder="曲名／アーティスト名で検索" autocomplete="off">
-    </div>
-
-    <!-- 3列目：弾幕選択 / コピー -->
-    <div class="row row3 dm-wrap" aria-label="弾幕コピー">
-      <div class="dm-select-wrap">
-        <select id="dm-select" title="弾幕を選択">
-          <option value="🍣🧡🍣🧡🍣🧡">🍣🧡🍣</option>
-          <option value="🍣🧡🎶🍣🧡🎶">🍣🧡🎶</option>
-        </select>
-      </div>
-      <div class="dm-btn-wrap">
-        <button id="dm-copy" class="btn btn-full" type="button" title="選択した弾幕をコピー">コピー</button>
-      </div>
-    </div>
-
-    <!-- 4列目：並び替え（折りたたみ） -->
-    <div class="row row4">
-      <details class="sort-panel">
-        <summary aria-label="並び替えを開閉">並び替え（最新曲順／曲名順／アーティスト名順）</summary>
-        <div class="sort-body" role="group" aria-label="並び替え設定">
-          <button id="sort-latest-toggle" class="btn sort-btn" type="button" title="D列のyyyymmddで最新順を切替">最新曲順↓</button>
-          <button id="sort-title-asc" class="btn btn-ghost sort-btn" type="button" title="曲名の昇順">曲名順（昇順）</button>
-          <button id="sort-title-desc" class="btn btn-ghost sort-btn" type="button" title="曲名の降順">曲名順（降順）</button>
-          <button id="sort-artist-asc" class="btn btn-ghost sort-btn" type="button" title="アーティスト名の昇順">アーティスト名順（昇順）</button>
-          <button id="sort-artist-desc" class="btn btn-ghost sort-btn" type="button" title="アーティスト名の降順">アーティスト名順（降順）</button>
-          <button id="sort-reset" class="btn btn-ghost sort-btn" type="button" title="取得順に戻す">リセット</button>
+      /* 4列目：並び替えUI */
+      details.sort-panel {
+        width: 100%;
+      }
+      details.sort-panel summary {
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        user-select: none;
+        font-weight: 700;
+      }
+      details.sort-panel summary::-webkit-details-marker {
+        display: none;
+      }
+      details.sort-panel .sort-body {
+        margin-top: 8px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .btn-ghost {
+        background: #fff;
+        border: 1px dashed var(--line);
+      }
+      .btn-ghost:hover {
+        background: #f9fafb;
+      }
+      .sort-btn {
+        min-width: 120px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 検索UI（再配置版） -->
+    <div class="card ui">
+      <!-- 1列目：件数 / 対象 -->
+      <div class="row row1">
+        <div class="limit-wrap">
+          <label for="limit">件数</label>
+          <select id="limit" aria-label="表示件数">
+            <option value="20" selected>20件</option>
+            <option value="50">50件</option>
+            <option value="200">200件</option>
+            <option value="all">全件</option>
+          </select>
         </div>
-      </details>
+
+        <div class="type-wrap">
+          <label for="kind">対象</label>
+          <select id="kind" aria-label="対象フィルタ">
+            <option value="all" selected>すべて</option>
+            <option value="歌ってみた">歌ってみた</option>
+            <option value="ショート">ショート</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 2列目：楽曲検索 -->
+      <div class="row row2">
+        <input
+          class="search"
+          id="q"
+          type="search"
+          placeholder="曲名／アーティスト名で検索"
+          autocomplete="off"
+        />
+      </div>
+
+      <!-- 3列目：弾幕選択 / コピー -->
+      <div class="row row3 dm-wrap" aria-label="弾幕コピー">
+        <div class="dm-select-wrap">
+          <select id="dm-select" title="弾幕を選択">
+            <option value="🍣🧡🍣🧡🍣🧡">🍣🧡🍣</option>
+            <option value="🍣🧡🎶🍣🧡🎶">🍣🧡🎶</option>
+          </select>
+        </div>
+        <div class="dm-btn-wrap">
+          <button
+            id="dm-copy"
+            class="btn btn-full"
+            type="button"
+            title="選択した弾幕をコピー"
+          >
+            コピー
+          </button>
+        </div>
+      </div>
+
+      <!-- 4列目：並び替え（折りたたみ） -->
+      <div class="row row4">
+        <details class="sort-panel">
+          <summary aria-label="並び替えを開閉">
+            並び替え（最新曲順／曲名順／アーティスト名順）
+          </summary>
+          <div class="sort-body" role="group" aria-label="並び替え設定">
+            <button
+              id="sort-latest-toggle"
+              class="btn sort-btn"
+              type="button"
+              title="D列のyyyymmddで最新順を切替"
+            >
+              最新曲順↓
+            </button>
+            <button
+              id="sort-title-asc"
+              class="btn btn-ghost sort-btn"
+              type="button"
+              title="曲名の昇順"
+            >
+              曲名順（昇順）
+            </button>
+            <button
+              id="sort-title-desc"
+              class="btn btn-ghost sort-btn"
+              type="button"
+              title="曲名の降順"
+            >
+              曲名順（降順）
+            </button>
+            <button
+              id="sort-artist-asc"
+              class="btn btn-ghost sort-btn"
+              type="button"
+              title="アーティスト名の昇順"
+            >
+              アーティスト名順（昇順）
+            </button>
+            <button
+              id="sort-artist-desc"
+              class="btn btn-ghost sort-btn"
+              type="button"
+              title="アーティスト名の降順"
+            >
+              アーティスト名順（降順）
+            </button>
+            <button
+              id="sort-reset"
+              class="btn btn-ghost sort-btn"
+              type="button"
+              title="取得順に戻す"
+            >
+              リセット
+            </button>
+          </div>
+        </details>
+      </div>
+
+      <!-- 5列目：ステータス -->
+      <div class="row row5">
+        <div class="muted" id="status" role="status" aria-live="polite">
+          読み込み中…
+        </div>
+      </div>
+
+      <div id="error-box" class="alert" role="alert" aria-live="assertive">
+        <div class="msg"></div>
+        <div class="actions"></div>
+      </div>
     </div>
 
-    <!-- 5列目：ステータス -->
-    <div class="row row5">
-      <div class="muted" id="status" role="status" aria-live="polite">読み込み中…</div>
+    <!-- 結果表示 -->
+    <div class="card" style="margin-top: 12px">
+      <div class="muted" id="hint">検索結果がここに表示されます。</div>
+      <div id="table" style="display: none"></div>
+      <div id="mblist" class="mobile-list" style="display: none"></div>
     </div>
 
-    <div id="error-box" class="alert" role="alert" aria-live="assertive">
-      <div class="msg"></div>
-      <div class="actions"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite">
+      コピーしました
     </div>
-  </div>
 
-  <!-- 結果表示 -->
-  <div class="card" style="margin-top:12px;">
-    <div class="muted" id="hint">検索結果がここに表示されます。</div>
-    <div id="table" style="display:none;"></div>
-    <div id="mblist" class="mobile-list" style="display:none;"></div>
-  </div>
-
-  <div id="toast" class="toast" role="status" aria-live="polite">コピーしました</div>
-
-  <script>
-    /* ===== 設定 ===== */
-    // API / データ取得設定
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxf6Ifxokz6W9w6E1KOwQxapCgpZAR1WE1VPn9MDnMIXLfRuLAqZwx9HyVzMyuC6nITJA/exec';
-    const SHEET_KEY = 'perf';
-    const INITIAL_FETCH = 200;     // 起動時の取得件数
-    const HARD_LIMIT = 20000;      // 取得上限
-
-    // 再試行・タイムアウト設定
-    const JSONP_TIMEOUT_MS = 6500; // JSONP 待機の上限
-    const SHORT_TRY_MS = 1500;     // 短期再試行の間隔
-    const MAX_RETRY = 2;           // 再試行回数
-    const IFRAME_WATCHDOG_MS = 10000; // iframe 代替の監視時間
-
-    const MOBILE_MEDIA_QUERY = '(max-width: 768px)';
-    const mediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY);
-
-    const state = {
-      rows: [],           // [artist, title, cText, dText, cUrl, dUrl] + precomputed props
-      total: 0, fetchedLimit: 0, debounce: null,
-      lastReqId: 0, usedIframe: false,
-      pendingHandler: null,
-      globalTimer: null, shortTimer: null,
-      iframeTimer: null, iframeReqId: null,
-      lastFetchLimit: INITIAL_FETCH,
-      sort: { key: 'none', dir: 'desc' }, // key: none|date|artist|title, dir: asc|desc
-      isMobile: mediaQuery.matches,
-      renderRaf: null,
-    };
-
-    /* ========= 共通 ========= */
-    function $(id){ return document.getElementById(id); }
-    function setTextIfChanged(el, text){ if (!el) return; if (el.textContent === text) return; el.textContent = text; }
-    function setAriaIfChanged(el, name, value){ if (!el) return; if (el.getAttribute(name) === value) return; el.setAttribute(name, value); }
-    function setStatus(text, opts={}){ const el=$('status'); if(!el) return; setTextIfChanged(el, text); if (opts.fallback) el.dataset.fallback='1'; else delete el.dataset.fallback; }
-    function clearFallbackFlag(){ const el=$('status'); if(el) delete el.dataset.fallback; }
-    window.onGviz = function(payload){ clearFallbackFlag(); if (typeof state.pendingHandler === 'function') state.pendingHandler(payload); };
-
-    function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
-    function scheduleSearch(){ clearTimeout(state.debounce); state.debounce = setTimeout(requestRender, 160); }
-    function showToast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); }
-
-    function clearError(){
-      const box = $('error-box'); if (!box) return;
-      box.style.display = 'none';
-      const msg = box.querySelector('.msg'); const actions = box.querySelector('.actions');
-      if (msg) msg.innerHTML = '';
-      if (actions) actions.innerHTML = '';
-    }
-    function showError(message, {detail='', retry=false}={}){
-      const box = $('error-box'); if (!box) return;
-      const msg = box.querySelector('.msg');
-      const actions = box.querySelector('.actions');
-      if (!msg || !actions) return;
-
-      msg.innerHTML = '';
-      const title = document.createElement('strong');
-      title.textContent = '通信エラー';
-      const body = document.createElement('div');
-      body.textContent = message;
-      msg.appendChild(title); msg.appendChild(body);
-
-      if (detail) {
-        const small = document.createElement('div');
-        small.className = 'muted';
-        small.textContent = detail;
-        msg.appendChild(small);
-      }
-
-      actions.innerHTML = '';
-      if (retry) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'btn';
-        btn.textContent = '再試行';
-        btn.addEventListener('click', ()=> fetchRows(state.lastFetchLimit || INITIAL_FETCH));
-        actions.appendChild(btn);
-      }
-
-      box.style.display = 'flex';
-    }
-
-    async function copyText(text, {success='コピーしました', failure='コピーに失敗しました'}={}){
-      const value = (text || '').toString().trim();
-      if (!value) { showToast('コピー対象がありません'); return; }
-      try{
-        if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(value);
-        else {
-          const ta=document.createElement('textarea'); ta.value=value; ta.setAttribute('readonly',''); ta.style.position='absolute'; ta.style.left='-9999px';
-          document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
-        }
-        showToast(`${success}：${value}`);
-      }catch(e){
-        console.warn('copy failed', e);
-        showToast(`${failure}。手動で選択してコピーしてください。`);
-      }
-    }
-    function copyPair(title, artist){ return copyText(`${(title||'').trim()} / ${(artist||'').trim()}`, {success:'コピーしました', failure:'コピーに失敗しました'}); }
-
-    $('dm-copy').addEventListener('click', ()=>{
-      copyText($('dm-select').value || '', {success:'弾幕をコピーしました', failure:'弾幕のコピーに失敗しました'});
-    });
-
-    function urlFromText(s){ if(!s) return ''; const m=String(s).match(/https?:\/\/\S+/); return m? m[0].replace(/[)\]\s]+$/, '') : ''; }
-    function formatYmdLabel(s){ const m=/^(\d{4})(\d{2})(\d{2})/.exec(String(s||'')); return m? `${m[1]}/${m[2]}/${m[3]}` : null; }
-    function safeHttpUrl(u){ if(!u) return ''; try{ const url=new URL(String(u)); return (url.protocol==='http:'||url.protocol==='https:') ? url.href : ''; }catch{ return ''; } }
-
-    function createLinkPill(href, label, title){
-      if (!href) return null;
-      const a=document.createElement('a');
-      a.href=href; a.target='_blank'; a.rel='noopener noreferrer';
-      a.className='btn-pill';
-      a.title=title || label || 'リンク';
-      a.textContent=label || 'リンク';
-      return a;
-    }
-    function createCopyButton(title, artist){
-      const btn=document.createElement('button'); btn.className='btn'; btn.textContent='コピー';
-      btn.addEventListener('click',()=>copyPair(title,artist));
-      return btn;
-    }
-
-    function showSkeleton(){
-      const wrap=$('table'); if (!wrap) return;
-      wrap.innerHTML='';
-      const frag=document.createDocumentFragment();
-      for(let i=0;i<6;i++){
-        const sk=document.createElement('div'); sk.className='skeleton';
-        frag.appendChild(sk);
-      }
-      wrap.appendChild(frag);
-    }
-    function clearSkeleton(){ $('table').innerHTML=''; }
-
-    function getKindValue(){ const el = $('kind'); return el ? el.value : 'all'; }
-
-    /* ===== ソート関連 ===== */
-    function parseYmdInt(s){
-      // D列は "yyyymmdd" or 任意文字列想定
-      const m = /^(\d{4})(\d{2})(\d{2})$/.exec(String(s||'').trim());
-      if (!m) return NaN;
-      return Number(`${m[1]}${m[2]}${m[3]}`); // 例: 20251029 → 数値
-    }
-    function compareStrings(a,b,{preNormalized=false}={}){
-      const A = preNormalized ? (a||'') : normalize(a);
-      const B = preNormalized ? (b||'') : normalize(b);
-      if (A < B) return -1;
-      if (A > B) return 1;
-      return 0;
-    }
-    function applySort(rows, sort){
-      if (!rows || !rows.length) return rows;
-      if (!sort || sort.key === 'none') return rows;
-
-      const dir = sort.dir === 'asc' ? 1 : -1;
-      const arr = rows.slice(); // 破壊防止
-
-      if (sort.key === 'date'){
-        // D列(dText)で比較（NaNは末尾）
-        arr.sort((r1, r2)=>{
-          const d1 = Number.isNaN(r1.dateInt) ? parseYmdInt(r1[3]) : r1.dateInt;
-          const d2 = Number.isNaN(r2.dateInt) ? parseYmdInt(r2[3]) : r2.dateInt;
-          const n1 = Number.isNaN(d1), n2 = Number.isNaN(d2);
-          if (n1 && n2) return 0;
-          if (n1) return 1; // 日付不明は後ろ
-          if (n2) return -1;
-          return (d1 - d2) * dir;
-        });
-      } else if (sort.key === 'artist'){
-        arr.sort((r1, r2)=> compareStrings(r1.artistLower ?? normalize(r1[0]), r2.artistLower ?? normalize(r2[0]), {preNormalized:true}) * dir);
-      } else if (sort.key === 'title'){
-        arr.sort((r1, r2)=> compareStrings(r1.titleLower ?? normalize(r1[1]), r2.titleLower ?? normalize(r2[1]), {preNormalized:true}) * dir);
-      }
-      return arr;
-    }
-
-    /* ===== 描画 ===== */
-    function render(){
-      clearFallbackFlag();
-
-      const tableWrap = $('table'); tableWrap.innerHTML = '';
-      const listWrap  = $('mblist'); listWrap.innerHTML = '';
-      const hint = $('hint');
-
-      tableWrap.style.display = 'none';
-      listWrap.style.display  = 'none';
-
-      const isMobile = state.isMobile;
-
-      const q = normalize($('q').value || '');
-      const rawLimit = $('limit').value;
-      const kind = getKindValue();
-
-      const limit = rawLimit === 'all'
-        ? Math.min(HARD_LIMIT, state.total || state.rows.length)
-        : Math.min(parseInt(rawLimit,10)||20, HARD_LIMIT);
-      const limitLabel = rawLimit === 'all' ? '全件' : `${limit}件`;
-
-      let filtered = state.rows;
-
-      // 文字検索（アーティスト名・曲名）
-      if (q) {
-        filtered = filtered.filter(row => {
-          const a = row.artistLower ?? normalize(row[0]);
-          const t = row.titleLower  ?? normalize(row[1]);
-          return a.includes(q) || t.includes(q);
-        });
-      }
-
-      // 対象フィルタ（C列 cText 完全一致）
-      if (kind !== 'all') {
-        filtered = filtered.filter(([, , cText]) => String(cText || '').trim() === kind);
-      }
-
-      // 並び替え（UXの状態に基づく）
-      filtered = applySort(filtered, state.sort);
-
-      const rows = filtered.slice(0, limit);
-
-      const kindPart = (kind !== 'all') ? ` / ${kind}` : '';
-      const sortPart = (state.sort.key === 'none')
-        ? ''
-        : ` / ソート: ${state.sort.key === 'date' ? '日付' : state.sort.key === 'artist' ? 'アーティスト' : '曲名'} ${state.sort.dir === 'asc' ? '昇順' : '降順'}`;
-
-      const statusText = (q || kind !== 'all' || state.sort.key !== 'none')
-        ? `${rows.length}件ヒット（全${filtered.length}件／総${state.total}件${kindPart}${sortPart}）／表示上限 ${limitLabel}`
-        : `表示中 ${rows.length}件（総${state.total}件）／表示上限 ${limitLabel}`;
-      setStatus(statusText);
-
-      if (rows.length === 0) {
-        setTextIfChanged(hint, (q || kind !== 'all') ? '該当するデータがありません。' : '検索結果がここに表示されます。');
-        return;
-      }
-      setTextIfChanged(hint, '');
-
-      if (!isMobile) {
-        /* —— デスクトップ: 行分割（情報行＋操作行） —— */
-        const table = document.createElement('table');
-        table.className = 'stacked';
-        const thead = document.createElement('thead');
-        const trh = document.createElement('tr');
-        const th = document.createElement('th');
-        th.textContent = 'アーティスト／楽曲情報';
-        trh.appendChild(th); thead.appendChild(trh); table.appendChild(thead);
-
-        const tbody = document.createElement('tbody');
-        const fragRows = document.createDocumentFragment();
-
-        rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
-          const cHref = safeHttpUrl(cUrl) || safeHttpUrl(urlFromText(cText));
-          const dHref = safeHttpUrl(dUrl) || safeHttpUrl(urlFromText(dText));
-          const dLabel = formatYmdLabel(dText);
-
-          /* 1行目：楽曲情報（下線なし） */
-          const trTop = document.createElement('tr'); trTop.className='item-top';
-          const tdTop = document.createElement('td'); tdTop.style.borderBottom = 'none';
-          const l1 = document.createElement('div'); l1.className='l1';
-          const a1 = document.createElement('span'); a1.className='artist'; a1.textContent=artist||'';
-          const sep = document.createElement('span'); sep.className='sep'; sep.textContent='/';
-          const t1 = document.createElement('span'); t1.className='title'; t1.textContent=title||'';
-          l1.appendChild(a1); l1.appendChild(sep); l1.appendChild(t1);
-          tdTop.appendChild(l1); trTop.appendChild(tdTop);
-          fragRows.appendChild(trTop);
-
-          /* 2行目：操作（上線なし・右寄せ） */
-          const trOps = document.createElement('tr'); trOps.className='item-ops';
-          const tdOps = document.createElement('td'); tdOps.style.borderTop = 'none';
-          const ops = document.createElement('div'); ops.className='ops';
-
-          const aC = createLinkPill(cHref, cText||'リンク', cText||'リンク');
-          if (aC) ops.appendChild(aC);
-
-          const aD = createLinkPill(dHref, dLabel ? `▶前回${dLabel}` : '▶前回', dLabel ? `前回 ${dLabel}` : '前回');
-          if (aD) ops.appendChild(aD);
-
-          ops.appendChild(createCopyButton(title, artist));
-
-          tdOps.appendChild(ops); trOps.appendChild(tdOps); fragRows.appendChild(trOps);
-        });
-
-        tbody.appendChild(fragRows);
-        table.appendChild(tbody);
-        tableWrap.appendChild(table);
-        tableWrap.style.display = 'block';
-        $('mblist').style.display = 'none';
-
-      } else {
-        /* —— モバイル表示 —— */
-        const frag = document.createDocumentFragment();
-        rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
-          const cHref = safeHttpUrl(cUrl) || safeHttpUrl(urlFromText(cText));
-          const dHref = safeHttpUrl(dUrl) || safeHttpUrl(urlFromText(dText));
-          const dLabel = formatYmdLabel(dText);
-
-          const item=document.createElement('div'); item.className='item';
-
-          const l1=document.createElement('div'); l1.className='l1';
-          const a1=document.createElement('span'); a1.className='artist'; a1.textContent=artist||'';
-          const sep=document.createElement('span'); sep.className='sep'; sep.textContent='/';
-          const t1=document.createElement('span'); t1.className='title'; t1.textContent=title||'';
-          l1.appendChild(a1); l1.appendChild(sep); l1.appendChild(t1);
-
-          const l2=document.createElement('div'); l2.className='l2';
-
-          const aC = createLinkPill(cHref, cText||'リンク', cText||'リンク');
-          if (aC) l2.appendChild(aC);
-
-          const aD = createLinkPill(dHref, dLabel ? `▶前回${dLabel}` : '▶前回', dLabel ? `前回 ${dLabel}` : '前回');
-          if (aD) l2.appendChild(aD);
-
-          l2.appendChild(createCopyButton(title, artist));
-
-          item.appendChild(l1); item.appendChild(l2);
-          frag.appendChild(item);
-        });
-
-        $('mblist').appendChild(frag);
-        $('mblist').style.display='block';
-      }
-    }
-
-    function requestRender(){
-      if (state.renderRaf) return;
-      state.renderRaf = requestAnimationFrame(()=>{
-        state.renderRaf = null;
-        render();
-      });
-    }
-
-    /* ===== 通信処理 ===== */
-
-    function jsonpOnce(url, {onerror, reqId}={}){
-      const s=document.createElement('script');
-      s.src=url;
-      s.async=true;
-      s.dataset.jsonp = String(reqId||'');
-      s.onerror=()=>{ try{ s.remove(); }catch{}; onerror && onerror(); };
-      s.onload=()=>{ setTimeout(()=>{ try{ s.remove(); }catch{}; }, 0); };
-      document.head.appendChild(s);
-    }
-    function cleanupJsonpScripts(reqId){
-      const sel = reqId ? `script[data-jsonp="${reqId}"]` : 'script[data-jsonp]';
-      document.querySelectorAll(sel).forEach(el=>{ try{ el.remove(); }catch{} });
-    }
-
-    function buildApiCandidates(limit){
-      const ts = Date.now();
-      const normalized = API_URL.replace(/\/macros\/u\/\d+\//,'/macros/');
-      const params = `callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&v=${ts}`;
-
-      const list = [];
-      const push = (u)=>{ if (u && !list.includes(u)) list.push(u); };
-
-      push(`${normalized}?${params}`);
-      push(`${normalized}?${params}&authuser=0`);
-      push(`${normalized}?${params}&authuser=-1`);
-
-      const u0 = normalized.replace('/macros/','/macros/u/0/');
-      push(`${u0}?${params}`);
-      push(`${u0}?${params}&authuser=0`);
-      push(`${u0}?${params}&authuser=-1`);
-
-      return list;
-    }
-
-    function fetchRows(limit, attempt=0, urlIndex=0){
-      const reqId = ++state.lastReqId;
-      state.lastFetchLimit = limit;
-      clearError();
-
-      if (state.iframeTimer) { clearTimeout(state.iframeTimer); state.iframeTimer = null; state.iframeReqId = null; }
-      const prev = document.getElementById('gviz-frame'); if (prev) prev.remove();
-
-      const urls = buildApiCandidates(limit);
-      const url  = urls[urlIndex] || urls[0];
-
-      console.info('[fetchRows] attempt', { attempt, urlIndex, url, reqId });
-
-      setStatus(attempt===0 ? '読み込み中…' : `読み込み中…（${attempt}）`, {fallback:false});
-      showSkeleton();
-
-      let settled = false;
-
-      const fail = (message, detail='')=>{
-        if (settled || reqId !== state.lastReqId) return;
-        settled = true;
-        clearTimeout(state.shortTimer); state.shortTimer = null;
-        clearTimeout(state.globalTimer); state.globalTimer = null;
-        if (state.iframeReqId === reqId && state.iframeTimer) clearTimeout(state.iframeTimer);
-        state.iframeTimer = null; state.iframeReqId = null; state.usedIframe = false;
-        const frame = document.getElementById('gviz-frame'); if (frame) frame.remove();
-        cleanupJsonpScripts(reqId);
-        setStatus(message, {fallback:false});
-        clearSkeleton();
-        const detailText = detail || 'スプレッドシートの公開設定（匿名アクセス可）やネットワークを確認してください。';
-        showError(message, {retry:true, detail: detailText});
+    <script>
+      /* ===== 設定 ===== */
+      // API / データ取得設定
+      const API_URL =
+        "https://script.google.com/macros/s/AKfycbxf6Ifxokz6W9w6E1KOwQxapCgpZAR1WE1VPn9MDnMIXLfRuLAqZwx9HyVzMyuC6nITJA/exec";
+      const SHEET_KEY = "perf";
+      const INITIAL_FETCH = 200; // 起動時の取得件数
+      const HARD_LIMIT = 20000; // 取得上限
+
+      // 再試行・タイムアウト設定
+      const JSONP_TIMEOUT_MS = 6500; // JSONP 待機の上限
+      const SHORT_TRY_MS = 1500; // 短期再試行の間隔
+      const MAX_RETRY = 2; // 再試行回数
+      const IFRAME_WATCHDOG_MS = 10000; // iframe 代替の監視時間
+
+      const MOBILE_MEDIA_QUERY = "(max-width: 768px)";
+      const mediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY);
+
+      const state = {
+        rows: [], // [artist, title, cText, dText, cUrl, dUrl] + precomputed props
+        total: 0,
+        fetchedLimit: 0,
+        debounce: null,
+        lastReqId: 0,
+        usedIframe: false,
+        pendingHandler: null,
+        globalTimer: null,
+        shortTimer: null,
+        iframeTimer: null,
+        iframeReqId: null,
+        lastFetchLimit: INITIAL_FETCH,
+        sort: { key: "none", dir: "desc" }, // key: none|date|artist|title, dir: asc|desc
+        isMobile: mediaQuery.matches,
+        renderRaf: null,
       };
 
-      state.pendingHandler = (payload)=>{
+      /* ========= 共通 ========= */
+      function $(id) {
+        return document.getElementById(id);
+      }
+      function setTextIfChanged(el, text) {
+        if (!el) return;
+        if (el.textContent === text) return;
+        el.textContent = text;
+      }
+      function setAriaIfChanged(el, name, value) {
+        if (!el) return;
+        if (el.getAttribute(name) === value) return;
+        el.setAttribute(name, value);
+      }
+      function setStatus(text, opts = {}) {
+        const el = $("status");
+        if (!el) return;
+        setTextIfChanged(el, text);
+        if (opts.fallback) el.dataset.fallback = "1";
+        else delete el.dataset.fallback;
+      }
+      function clearFallbackFlag() {
+        const el = $("status");
+        if (el) delete el.dataset.fallback;
+      }
+      window.onGviz = function (payload) {
         clearFallbackFlag();
-        if (settled || reqId !== state.lastReqId) return;
-        settled = true;
-
-        clearTimeout(state.shortTimer); state.shortTimer = null;
-        clearTimeout(state.globalTimer); state.globalTimer = null;
-
-        try{
-          if (!payload || !Array.isArray(payload.rows)) {
-            fail('データ取得に失敗しました（不正なレスポンス）', 'レスポンス形式を確認してください。');
-            return;
-          }
-          const rows = (payload.rows||[])
-            .map(r => {
-              const artist = r.artist || '';
-              const title  = r.title  || '';
-              const cText  = r.cText  || '';
-              const dText  = r.dText  || '';
-              const cUrl   = r.cUrl   || '';
-              const dUrl   = r.dUrl   || '';
-
-              const row = [ artist, title, cText, dText, cUrl, dUrl ];
-              row.artistLower = normalize(artist);
-              row.titleLower  = normalize(title);
-              row.dateInt     = parseYmdInt(dText);
-              return row;
-            })
-            .filter(([a,b]) => ((a||'')+(b||'')).trim() !== '');
-
-          state.rows = rows;
-          state.total = Number((payload.total ?? null) != null ? payload.total : (payload.matched ?? rows.length));
-
-          const f = document.getElementById('gviz-frame'); if (f) f.remove();
-          state.usedIframe = false;
-          if (state.iframeReqId === reqId && state.iframeTimer) { clearTimeout(state.iframeTimer); }
-          state.iframeTimer = null; state.iframeReqId = null;
-
-          cleanupJsonpScripts(reqId);
-          state.fetchedLimit = Math.max(state.fetchedLimit || 0, state.rows.length);
-
-          clearError();
-          setStatus(`読み込み完了：${state.rows.length}件（全${state.total}件）`, {fallback:false});
-          clearSkeleton();
-          render();
-        }catch(e){
-          console.error(e);
-          fail('読み込みに失敗しました', '一時的なエラーです。再試行してください。');
-        }
+        if (typeof state.pendingHandler === "function")
+          state.pendingHandler(payload);
       };
 
-      state.shortTimer = setTimeout(()=>{
-        if (!settled && attempt < MAX_RETRY) {
-          const nextIndex = Math.min(urlIndex + 1, urls.length - 1);
-          console.info('[fetchRows] retry (short)', {attempt, nextIndex, url: urls[nextIndex]});
-          fetchRows(limit, attempt+1, nextIndex);
+      function normalize(s) {
+        return (s || "").toString().toLowerCase().replace(/\s+/g, " ").trim();
+      }
+      function scheduleSearch() {
+        clearTimeout(state.debounce);
+        state.debounce = setTimeout(requestRender, 160);
+      }
+      function showToast(msg) {
+        const t = $("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 1400);
+      }
+
+      function clearError() {
+        const box = $("error-box");
+        if (!box) return;
+        box.style.display = "none";
+        const msg = box.querySelector(".msg");
+        const actions = box.querySelector(".actions");
+        if (msg) msg.innerHTML = "";
+        if (actions) actions.innerHTML = "";
+      }
+      function showError(message, { detail = "", retry = false } = {}) {
+        const box = $("error-box");
+        if (!box) return;
+        const msg = box.querySelector(".msg");
+        const actions = box.querySelector(".actions");
+        if (!msg || !actions) return;
+
+        msg.innerHTML = "";
+        const title = document.createElement("strong");
+        title.textContent = "通信エラー";
+        const body = document.createElement("div");
+        body.textContent = message;
+        msg.appendChild(title);
+        msg.appendChild(body);
+
+        if (detail) {
+          const small = document.createElement("div");
+          small.className = "muted";
+          small.textContent = detail;
+          msg.appendChild(small);
         }
-      }, SHORT_TRY_MS);
 
-      state.globalTimer = setTimeout(()=>{
-        if (!settled && reqId === state.lastReqId) tryIframeFallback(limit, reqId, 'jsonp-timeout', fail);
-      }, JSONP_TIMEOUT_MS);
+        actions.innerHTML = "";
+        if (retry) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "btn";
+          btn.textContent = "再試行";
+          btn.addEventListener("click", () =>
+            fetchRows(state.lastFetchLimit || INITIAL_FETCH),
+          );
+          actions.appendChild(btn);
+        }
 
-      console.info('[fetchRows] start', {reqId, attempt, urlIndex, url});
-      jsonpOnce(url, {onerror:()=>{}, reqId});
-    }
+        box.style.display = "flex";
+      }
 
-    function tryIframeFallback(limit, reqId, reason, onTimeout){
-      if (reqId !== state.lastReqId) return;
-      if ((state.rows && state.rows.length) > 0) return;
-      if (state.usedIframe) return;
-      state.usedIframe = true;
+      async function copyText(
+        text,
+        { success = "コピーしました", failure = "コピーに失敗しました" } = {},
+      ) {
+        const value = (text || "").toString().trim();
+        if (!value) {
+          showToast("コピー対象がありません");
+          return;
+        }
+        try {
+          if (navigator.clipboard?.writeText)
+            await navigator.clipboard.writeText(value);
+          else {
+            const ta = document.createElement("textarea");
+            ta.value = value;
+            ta.setAttribute("readonly", "");
+            ta.style.position = "absolute";
+            ta.style.left = "-9999px";
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            ta.remove();
+          }
+          showToast(`${success}：${value}`);
+        } catch (e) {
+          console.warn("copy failed", e);
+          showToast(`${failure}。手動で選択してコピーしてください。`);
+        }
+      }
+      function copyPair(title, artist) {
+        return copyText(`${(title || "").trim()} / ${(artist || "").trim()}`, {
+          success: "コピーしました",
+          failure: "コピーに失敗しました",
+        });
+      }
 
-      setStatus(`別ルートで取得中…（${reason}）`, {fallback:true});
+      $("dm-copy").addEventListener("click", () => {
+        copyText($("dm-select").value || "", {
+          success: "弾幕をコピーしました",
+          failure: "弾幕のコピーに失敗しました",
+        });
+      });
 
-      const old = document.getElementById('gviz-frame'); if (old) old.remove();
+      function urlFromText(s) {
+        if (!s) return "";
+        const m = String(s).match(/https?:\/\/\S+/);
+        return m ? m[0].replace(/[)\]\s]+$/, "") : "";
+      }
+      function formatYmdLabel(s) {
+        const m = /^(\d{4})(\d{2})(\d{2})/.exec(String(s || ""));
+        return m ? `${m[1]}/${m[2]}/${m[3]}` : null;
+      }
+      function safeHttpUrl(u) {
+        if (!u) return "";
+        try {
+          const url = new URL(String(u));
+          return url.protocol === "http:" || url.protocol === "https:"
+            ? url.href
+            : "";
+        } catch {
+          return "";
+        }
+      }
 
-      const base = API_URL.replace(/\/macros\/u\/\d+\//,'/macros/');
-      const urlFrame = `${base}?frame=1&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit,HARD_LIMIT)}&authuser=0&v=${Date.now()}`;
+      function createLinkPill(href, label, title) {
+        if (!href) return null;
+        const a = document.createElement("a");
+        a.href = href;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.className = "btn-pill";
+        a.title = title || label || "リンク";
+        a.textContent = label || "リンク";
+        return a;
+      }
+      function createCopyButton(title, artist) {
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        btn.textContent = "コピー";
+        btn.addEventListener("click", () => copyPair(title, artist));
+        return btn;
+      }
 
-      const f = document.createElement('iframe');
-      f.id = 'gviz-frame';
-      f.src = urlFrame;
-      f.style.display = 'none';
-      f.width = 0; f.height = 0; f.tabIndex = -1;
-      document.body.appendChild(f);
+      function showSkeleton() {
+        const wrap = $("table");
+        if (!wrap) return;
+        wrap.innerHTML = "";
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < 6; i++) {
+          const sk = document.createElement("div");
+          sk.className = "skeleton";
+          frag.appendChild(sk);
+        }
+        wrap.appendChild(frag);
+      }
+      function clearSkeleton() {
+        $("table").innerHTML = "";
+      }
 
-      clearTimeout(state.iframeTimer);
-      state.iframeReqId = reqId;
-      state.iframeTimer = setTimeout(()=>{
-        if (state.lastReqId !== reqId) return;
-        if (!$('status')?.dataset?.fallback) return;
-        if ((state.rows && state.rows.length) > 0) return;
+      function getKindValue() {
+        const el = $("kind");
+        return el ? el.value : "all";
+      }
 
-        if (typeof onTimeout === 'function') {
-          onTimeout('取得がタイムアウトしました。再試行してください。', '公開設定やネットワーク状態（匿名アクセス可）をご確認ください。');
+      /* ===== ソート関連 ===== */
+      function parseYmdInt(s) {
+        // D列は "yyyymmdd" or 任意文字列想定
+        const m = /^(\d{4})(\d{2})(\d{2})$/.exec(String(s || "").trim());
+        if (!m) return NaN;
+        return Number(`${m[1]}${m[2]}${m[3]}`); // 例: 20251029 → 数値
+      }
+      function compareStrings(a, b, { preNormalized = false } = {}) {
+        const A = preNormalized ? a || "" : normalize(a);
+        const B = preNormalized ? b || "" : normalize(b);
+        if (A < B) return -1;
+        if (A > B) return 1;
+        return 0;
+      }
+      function applySort(rows, sort) {
+        if (!rows || !rows.length) return rows;
+        if (!sort || sort.key === "none") return rows;
+
+        const dir = sort.dir === "asc" ? 1 : -1;
+        const arr = rows.slice(); // 破壊防止
+
+        if (sort.key === "date") {
+          // D列(dText)で比較（NaNは末尾）
+          arr.sort((r1, r2) => {
+            const d1 = Number.isNaN(r1.dateInt)
+              ? parseYmdInt(r1[3])
+              : r1.dateInt;
+            const d2 = Number.isNaN(r2.dateInt)
+              ? parseYmdInt(r2[3])
+              : r2.dateInt;
+            const n1 = Number.isNaN(d1),
+              n2 = Number.isNaN(d2);
+            if (n1 && n2) return 0;
+            if (n1) return 1; // 日付不明は後ろ
+            if (n2) return -1;
+            return (d1 - d2) * dir;
+          });
+        } else if (sort.key === "artist") {
+          arr.sort(
+            (r1, r2) =>
+              compareStrings(
+                r1.artistLower ?? normalize(r1[0]),
+                r2.artistLower ?? normalize(r2[0]),
+                { preNormalized: true },
+              ) * dir,
+          );
+        } else if (sort.key === "title") {
+          arr.sort(
+            (r1, r2) =>
+              compareStrings(
+                r1.titleLower ?? normalize(r1[1]),
+                r2.titleLower ?? normalize(r2[1]),
+                { preNormalized: true },
+              ) * dir,
+          );
+        }
+        return arr;
+      }
+
+      /* ===== 描画 ===== */
+      function render() {
+        clearFallbackFlag();
+
+        const tableWrap = $("table");
+        tableWrap.innerHTML = "";
+        const listWrap = $("mblist");
+        listWrap.innerHTML = "";
+        const hint = $("hint");
+
+        tableWrap.style.display = "none";
+        listWrap.style.display = "none";
+
+        const isMobile = state.isMobile;
+
+        const q = normalize($("q").value || "");
+        const rawLimit = $("limit").value;
+        const kind = getKindValue();
+
+        const limit =
+          rawLimit === "all"
+            ? Math.min(HARD_LIMIT, state.total || state.rows.length)
+            : Math.min(parseInt(rawLimit, 10) || 20, HARD_LIMIT);
+        const limitLabel = rawLimit === "all" ? "全件" : `${limit}件`;
+
+        let filtered = state.rows;
+
+        // 文字検索（アーティスト名・曲名）
+        if (q) {
+          filtered = filtered.filter((row) => {
+            const a = row.artistLower ?? normalize(row[0]);
+            const t = row.titleLower ?? normalize(row[1]);
+            return a.includes(q) || t.includes(q);
+          });
+        }
+
+        // 対象フィルタ（C列 cText 完全一致）
+        if (kind !== "all") {
+          filtered = filtered.filter(
+            ([, , cText]) => String(cText || "").trim() === kind,
+          );
+        }
+
+        // 並び替え（UXの状態に基づく）
+        filtered = applySort(filtered, state.sort);
+
+        const rows = filtered.slice(0, limit);
+
+        const kindPart = kind !== "all" ? ` / ${kind}` : "";
+        const sortPart =
+          state.sort.key === "none"
+            ? ""
+            : ` / ソート: ${state.sort.key === "date" ? "日付" : state.sort.key === "artist" ? "アーティスト" : "曲名"} ${state.sort.dir === "asc" ? "昇順" : "降順"}`;
+
+        const statusText =
+          q || kind !== "all" || state.sort.key !== "none"
+            ? `${rows.length}件ヒット（全${filtered.length}件／総${state.total}件${kindPart}${sortPart}）／表示上限 ${limitLabel}`
+            : `表示中 ${rows.length}件（総${state.total}件）／表示上限 ${limitLabel}`;
+        setStatus(statusText);
+
+        if (rows.length === 0) {
+          setTextIfChanged(
+            hint,
+            q || kind !== "all"
+              ? "該当するデータがありません。"
+              : "検索結果がここに表示されます。",
+          );
+          return;
+        }
+        setTextIfChanged(hint, "");
+
+        if (!isMobile) {
+          /* —— デスクトップ: 行分割（情報行＋操作行） —— */
+          const table = document.createElement("table");
+          table.className = "stacked";
+          const thead = document.createElement("thead");
+          const trh = document.createElement("tr");
+          const th = document.createElement("th");
+          th.textContent = "アーティスト／楽曲情報";
+          trh.appendChild(th);
+          thead.appendChild(trh);
+          table.appendChild(thead);
+
+          const tbody = document.createElement("tbody");
+          const fragRows = document.createDocumentFragment();
+
+          rows.forEach(([artist, title, cText, dText, cUrl, dUrl]) => {
+            const cHref = safeHttpUrl(cUrl) || safeHttpUrl(urlFromText(cText));
+            const dHref = safeHttpUrl(dUrl) || safeHttpUrl(urlFromText(dText));
+            const dLabel = formatYmdLabel(dText);
+
+            /* 1行目：楽曲情報（下線なし） */
+            const trTop = document.createElement("tr");
+            trTop.className = "item-top";
+            const tdTop = document.createElement("td");
+            tdTop.style.borderBottom = "none";
+            const l1 = document.createElement("div");
+            l1.className = "l1";
+            const a1 = document.createElement("span");
+            a1.className = "artist";
+            a1.textContent = artist || "";
+            const sep = document.createElement("span");
+            sep.className = "sep";
+            sep.textContent = "/";
+            const t1 = document.createElement("span");
+            t1.className = "title";
+            t1.textContent = title || "";
+            l1.appendChild(a1);
+            l1.appendChild(sep);
+            l1.appendChild(t1);
+            tdTop.appendChild(l1);
+            trTop.appendChild(tdTop);
+            fragRows.appendChild(trTop);
+
+            /* 2行目：操作（上線なし・右寄せ） */
+            const trOps = document.createElement("tr");
+            trOps.className = "item-ops";
+            const tdOps = document.createElement("td");
+            tdOps.style.borderTop = "none";
+            const ops = document.createElement("div");
+            ops.className = "ops";
+
+            const aC = createLinkPill(
+              cHref,
+              cText || "リンク",
+              cText || "リンク",
+            );
+            if (aC) ops.appendChild(aC);
+
+            const aD = createLinkPill(
+              dHref,
+              dLabel ? `▶前回${dLabel}` : "▶前回",
+              dLabel ? `前回 ${dLabel}` : "前回",
+            );
+            if (aD) ops.appendChild(aD);
+
+            ops.appendChild(createCopyButton(title, artist));
+
+            tdOps.appendChild(ops);
+            trOps.appendChild(tdOps);
+            fragRows.appendChild(trOps);
+          });
+
+          tbody.appendChild(fragRows);
+          table.appendChild(tbody);
+          tableWrap.appendChild(table);
+          tableWrap.style.display = "block";
+          $("mblist").style.display = "none";
         } else {
-          setStatus('取得がタイムアウトしました（公開設定/デプロイ確認・ネットワーク再試行）', {fallback:false});
-          const g = document.getElementById('gviz-frame'); if (g) g.remove();
-          state.usedIframe = false;
-          clearSkeleton();
-          showError('取得がタイムアウトしました。再試行してください。', {retry:true, detail:'スプレッドシートを「匿名アクセス可」で公開しているか確認してください。'});
+          /* —— モバイル表示 —— */
+          const frag = document.createDocumentFragment();
+          rows.forEach(([artist, title, cText, dText, cUrl, dUrl]) => {
+            const cHref = safeHttpUrl(cUrl) || safeHttpUrl(urlFromText(cText));
+            const dHref = safeHttpUrl(dUrl) || safeHttpUrl(urlFromText(dText));
+            const dLabel = formatYmdLabel(dText);
+
+            const item = document.createElement("div");
+            item.className = "item";
+
+            const l1 = document.createElement("div");
+            l1.className = "l1";
+            const a1 = document.createElement("span");
+            a1.className = "artist";
+            a1.textContent = artist || "";
+            const sep = document.createElement("span");
+            sep.className = "sep";
+            sep.textContent = "/";
+            const t1 = document.createElement("span");
+            t1.className = "title";
+            t1.textContent = title || "";
+            l1.appendChild(a1);
+            l1.appendChild(sep);
+            l1.appendChild(t1);
+
+            const l2 = document.createElement("div");
+            l2.className = "l2";
+
+            const aC = createLinkPill(
+              cHref,
+              cText || "リンク",
+              cText || "リンク",
+            );
+            if (aC) l2.appendChild(aC);
+
+            const aD = createLinkPill(
+              dHref,
+              dLabel ? `▶前回${dLabel}` : "▶前回",
+              dLabel ? `前回 ${dLabel}` : "前回",
+            );
+            if (aD) l2.appendChild(aD);
+
+            l2.appendChild(createCopyButton(title, artist));
+
+            item.appendChild(l1);
+            item.appendChild(l2);
+            frag.appendChild(item);
+          });
+
+          $("mblist").appendChild(frag);
+          $("mblist").style.display = "block";
         }
-      }, IFRAME_WATCHDOG_MS);
-    }
-
-    window.addEventListener('message', (ev)=>{
-      const d = ev?.data; if (!d || d.type !== 'gviz') return;
-      clearFallbackFlag();
-      if (typeof state.pendingHandler === 'function') state.pendingHandler(d.payload);
-    });
-
-    window.addEventListener('offline', ()=>{ setStatus('オフラインです。接続を確認してください。', {fallback:false}); }, {passive:true});
-    window.addEventListener('online',  ()=>{ clearError(); setStatus('オンラインに復帰しました。再取得しています…', {fallback:false}); fetchRows(INITIAL_FETCH); }, {passive:true});
-
-    document.addEventListener('visibilitychange', ()=>{
-      if (document.visibilityState === 'visible') {
-        if ($('status')?.dataset?.fallback && (state.rows && state.rows.length)>0) clearFallbackFlag();
       }
-    }, {passive:true});
 
-    // 初回
-    fetchRows(INITIAL_FETCH);
-
-    /* ===== イベント ===== */
-    $('q').addEventListener('input', scheduleSearch);
-    $('limit').addEventListener('change', ()=>{
-      const raw = $('limit').value;
-      if (raw === 'all' && (state.fetchedLimit||0) < (state.total||HARD_LIMIT)) {
-        setStatus('全件を取得しています…', {fallback:false});
-        fetchRows(HARD_LIMIT);     // 通信発生（全件取得時のみ）
-      } else {
-        render();                  // 通信なし
+      function requestRender() {
+        if (state.renderRaf) return;
+        state.renderRaf = requestAnimationFrame(() => {
+          state.renderRaf = null;
+          render();
+        });
       }
-    });
-    (function(){ const el=$('kind'); if (el) el.addEventListener('change', render); })();
 
-    // 並び替えUI
-    function updateSortButtons(){
-      const btnLatest = $('sort-latest-toggle');
-      const btnTitleAsc = $('sort-title-asc');
-      const btnTitleDesc = $('sort-title-desc');
-      const btnArtistAsc = $('sort-artist-asc');
-      const btnArtistDesc = $('sort-artist-desc');
+      /* ===== 通信処理 ===== */
 
-      const latestArrow = (state.sort.key === 'date') ? (state.sort.dir === 'asc' ? '↑' : '↓') : '↓';
-      if (btnLatest){
-        setTextIfChanged(btnLatest, `最新曲順${latestArrow}`);
-        setAriaIfChanged(btnLatest, 'aria-pressed', state.sort.key === 'date' ? 'true' : 'false');
+      function jsonpOnce(url, { onerror, reqId } = {}) {
+        const s = document.createElement("script");
+        s.src = url;
+        s.async = true;
+        s.dataset.jsonp = String(reqId || "");
+        s.onerror = () => {
+          try {
+            s.remove();
+          } catch {}
+          onerror && onerror();
+        };
+        s.onload = () => {
+          setTimeout(() => {
+            try {
+              s.remove();
+            } catch {}
+          }, 0);
+        };
+        document.head.appendChild(s);
       }
-      const mark = (btn, active)=>{ if (!btn) return; setAriaIfChanged(btn, 'aria-pressed', active ? 'true' : 'false'); };
-      mark(btnTitleAsc,  state.sort.key === 'title' && state.sort.dir === 'asc');
-      mark(btnTitleDesc, state.sort.key === 'title' && state.sort.dir === 'desc');
-      mark(btnArtistAsc, state.sort.key === 'artist' && state.sort.dir === 'asc');
-      mark(btnArtistDesc,state.sort.key === 'artist' && state.sort.dir === 'desc');
-    }
+      function cleanupJsonpScripts(reqId) {
+        const sel = reqId
+          ? `script[data-jsonp="${reqId}"]`
+          : "script[data-jsonp]";
+        document.querySelectorAll(sel).forEach((el) => {
+          try {
+            el.remove();
+          } catch {}
+        });
+      }
 
-    function setSort(key, dir){
-      state.sort.key = key; state.sort.dir = dir;
+      function buildApiCandidates(limit) {
+        const ts = Date.now();
+        const normalized = API_URL.replace(/\/macros\/u\/\d+\//, "/macros/");
+        const params = `callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit, HARD_LIMIT)}&v=${ts}`;
+
+        const list = [];
+        const push = (u) => {
+          if (u && !list.includes(u)) list.push(u);
+        };
+
+        push(`${normalized}?${params}`);
+        push(`${normalized}?${params}&authuser=0`);
+        push(`${normalized}?${params}&authuser=-1`);
+
+        const u0 = normalized.replace("/macros/", "/macros/u/0/");
+        push(`${u0}?${params}`);
+        push(`${u0}?${params}&authuser=0`);
+        push(`${u0}?${params}&authuser=-1`);
+
+        return list;
+      }
+
+      function fetchRows(limit, attempt = 0, urlIndex = 0) {
+        const reqId = ++state.lastReqId;
+        state.lastFetchLimit = limit;
+        clearError();
+
+        if (state.iframeTimer) {
+          clearTimeout(state.iframeTimer);
+          state.iframeTimer = null;
+          state.iframeReqId = null;
+        }
+        const prev = document.getElementById("gviz-frame");
+        if (prev) prev.remove();
+
+        const urls = buildApiCandidates(limit);
+        const url = urls[urlIndex] || urls[0];
+
+        console.info("[fetchRows] attempt", { attempt, urlIndex, url, reqId });
+
+        setStatus(attempt === 0 ? "読み込み中…" : `読み込み中…（${attempt}）`, {
+          fallback: false,
+        });
+        showSkeleton();
+
+        let settled = false;
+
+        const fail = (message, detail = "") => {
+          if (settled || reqId !== state.lastReqId) return;
+          settled = true;
+          clearTimeout(state.shortTimer);
+          state.shortTimer = null;
+          clearTimeout(state.globalTimer);
+          state.globalTimer = null;
+          if (state.iframeReqId === reqId && state.iframeTimer)
+            clearTimeout(state.iframeTimer);
+          state.iframeTimer = null;
+          state.iframeReqId = null;
+          state.usedIframe = false;
+          const frame = document.getElementById("gviz-frame");
+          if (frame) frame.remove();
+          cleanupJsonpScripts(reqId);
+          setStatus(message, { fallback: false });
+          clearSkeleton();
+          const detailText =
+            detail ||
+            "スプレッドシートの公開設定（匿名アクセス可）やネットワークを確認してください。";
+          showError(message, { retry: true, detail: detailText });
+        };
+
+        state.pendingHandler = (payload) => {
+          clearFallbackFlag();
+          if (settled || reqId !== state.lastReqId) return;
+          settled = true;
+
+          clearTimeout(state.shortTimer);
+          state.shortTimer = null;
+          clearTimeout(state.globalTimer);
+          state.globalTimer = null;
+
+          try {
+            if (!payload || !Array.isArray(payload.rows)) {
+              fail(
+                "データ取得に失敗しました（不正なレスポンス）",
+                "レスポンス形式を確認してください。",
+              );
+              return;
+            }
+            const rows = (payload.rows || [])
+              .map((r) => {
+                const artist = r.artist || "";
+                const title = r.title || "";
+                const cText = r.cText || "";
+                const dText = r.dText || "";
+                const cUrl = r.cUrl || "";
+                const dUrl = r.dUrl || "";
+
+                const row = [artist, title, cText, dText, cUrl, dUrl];
+                row.artistLower = normalize(artist);
+                row.titleLower = normalize(title);
+                row.dateInt = parseYmdInt(dText);
+                return row;
+              })
+              .filter(([a, b]) => ((a || "") + (b || "")).trim() !== "");
+
+            state.rows = rows;
+            state.total = Number(
+              (payload.total ?? null) != null
+                ? payload.total
+                : (payload.matched ?? rows.length),
+            );
+
+            const f = document.getElementById("gviz-frame");
+            if (f) f.remove();
+            state.usedIframe = false;
+            if (state.iframeReqId === reqId && state.iframeTimer) {
+              clearTimeout(state.iframeTimer);
+            }
+            state.iframeTimer = null;
+            state.iframeReqId = null;
+
+            cleanupJsonpScripts(reqId);
+            state.fetchedLimit = Math.max(
+              state.fetchedLimit || 0,
+              state.rows.length,
+            );
+
+            clearError();
+            setStatus(
+              `読み込み完了：${state.rows.length}件（全${state.total}件）`,
+              { fallback: false },
+            );
+            clearSkeleton();
+            render();
+          } catch (e) {
+            console.error(e);
+            fail(
+              "読み込みに失敗しました",
+              "一時的なエラーです。再試行してください。",
+            );
+          }
+        };
+
+        state.shortTimer = setTimeout(() => {
+          if (!settled && attempt < MAX_RETRY) {
+            const nextIndex = Math.min(urlIndex + 1, urls.length - 1);
+            console.info("[fetchRows] retry (short)", {
+              attempt,
+              nextIndex,
+              url: urls[nextIndex],
+            });
+            fetchRows(limit, attempt + 1, nextIndex);
+          }
+        }, SHORT_TRY_MS);
+
+        state.globalTimer = setTimeout(() => {
+          if (!settled && reqId === state.lastReqId)
+            tryIframeFallback(limit, reqId, "jsonp-timeout", fail);
+        }, JSONP_TIMEOUT_MS);
+
+        console.info("[fetchRows] start", { reqId, attempt, urlIndex, url });
+        jsonpOnce(url, { onerror: () => {}, reqId });
+      }
+
+      function tryIframeFallback(limit, reqId, reason, onTimeout) {
+        if (reqId !== state.lastReqId) return;
+        if ((state.rows && state.rows.length) > 0) return;
+        if (state.usedIframe) return;
+        state.usedIframe = true;
+
+        setStatus(`別ルートで取得中…（${reason}）`, { fallback: true });
+
+        const old = document.getElementById("gviz-frame");
+        if (old) old.remove();
+
+        const base = API_URL.replace(/\/macros\/u\/\d+\//, "/macros/");
+        const urlFrame = `${base}?frame=1&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit, HARD_LIMIT)}&authuser=0&v=${Date.now()}`;
+
+        const f = document.createElement("iframe");
+        f.id = "gviz-frame";
+        f.src = urlFrame;
+        f.style.display = "none";
+        f.width = 0;
+        f.height = 0;
+        f.tabIndex = -1;
+        document.body.appendChild(f);
+
+        clearTimeout(state.iframeTimer);
+        state.iframeReqId = reqId;
+        state.iframeTimer = setTimeout(() => {
+          if (state.lastReqId !== reqId) return;
+          if (!$("status")?.dataset?.fallback) return;
+          if ((state.rows && state.rows.length) > 0) return;
+
+          if (typeof onTimeout === "function") {
+            onTimeout(
+              "取得がタイムアウトしました。再試行してください。",
+              "公開設定やネットワーク状態（匿名アクセス可）をご確認ください。",
+            );
+          } else {
+            setStatus(
+              "取得がタイムアウトしました（公開設定/デプロイ確認・ネットワーク再試行）",
+              { fallback: false },
+            );
+            const g = document.getElementById("gviz-frame");
+            if (g) g.remove();
+            state.usedIframe = false;
+            clearSkeleton();
+            showError("取得がタイムアウトしました。再試行してください。", {
+              retry: true,
+              detail:
+                "スプレッドシートを「匿名アクセス可」で公開しているか確認してください。",
+            });
+          }
+        }, IFRAME_WATCHDOG_MS);
+      }
+
+      window.addEventListener("message", (ev) => {
+        const d = ev?.data;
+        if (!d || d.type !== "gviz") return;
+        clearFallbackFlag();
+        if (typeof state.pendingHandler === "function")
+          state.pendingHandler(d.payload);
+      });
+
+      window.addEventListener(
+        "offline",
+        () => {
+          setStatus("オフラインです。接続を確認してください。", {
+            fallback: false,
+          });
+        },
+        { passive: true },
+      );
+      window.addEventListener(
+        "online",
+        () => {
+          clearError();
+          setStatus("オンラインに復帰しました。再取得しています…", {
+            fallback: false,
+          });
+          fetchRows(INITIAL_FETCH);
+        },
+        { passive: true },
+      );
+
+      document.addEventListener(
+        "visibilitychange",
+        () => {
+          if (document.visibilityState === "visible") {
+            if (
+              $("status")?.dataset?.fallback &&
+              (state.rows && state.rows.length) > 0
+            )
+              clearFallbackFlag();
+          }
+        },
+        { passive: true },
+      );
+
+      // 初回
+      fetchRows(INITIAL_FETCH);
+
+      /* ===== イベント ===== */
+      $("q").addEventListener("input", scheduleSearch);
+      $("limit").addEventListener("change", () => {
+        const raw = $("limit").value;
+        if (
+          raw === "all" &&
+          (state.fetchedLimit || 0) < (state.total || HARD_LIMIT)
+        ) {
+          setStatus("全件を取得しています…", { fallback: false });
+          fetchRows(HARD_LIMIT); // 通信発生（全件取得時のみ）
+        } else {
+          render(); // 通信なし
+        }
+      });
+      (function () {
+        const el = $("kind");
+        if (el) el.addEventListener("change", render);
+      })();
+
+      // 並び替えUI
+      function updateSortButtons() {
+        const btnLatest = $("sort-latest-toggle");
+        const btnTitleAsc = $("sort-title-asc");
+        const btnTitleDesc = $("sort-title-desc");
+        const btnArtistAsc = $("sort-artist-asc");
+        const btnArtistDesc = $("sort-artist-desc");
+
+        const latestArrow =
+          state.sort.key === "date"
+            ? state.sort.dir === "asc"
+              ? "↑"
+              : "↓"
+            : "↓";
+        if (btnLatest) {
+          setTextIfChanged(btnLatest, `最新曲順${latestArrow}`);
+          setAriaIfChanged(
+            btnLatest,
+            "aria-pressed",
+            state.sort.key === "date" ? "true" : "false",
+          );
+        }
+        const mark = (btn, active) => {
+          if (!btn) return;
+          setAriaIfChanged(btn, "aria-pressed", active ? "true" : "false");
+        };
+        mark(
+          btnTitleAsc,
+          state.sort.key === "title" && state.sort.dir === "asc",
+        );
+        mark(
+          btnTitleDesc,
+          state.sort.key === "title" && state.sort.dir === "desc",
+        );
+        mark(
+          btnArtistAsc,
+          state.sort.key === "artist" && state.sort.dir === "asc",
+        );
+        mark(
+          btnArtistDesc,
+          state.sort.key === "artist" && state.sort.dir === "desc",
+        );
+      }
+
+      function setSort(key, dir) {
+        state.sort.key = key;
+        state.sort.dir = dir;
+        updateSortButtons();
+        render(); // 通信なし（フロントで並べ替え）
+      }
+
+      $("sort-latest-toggle").addEventListener("click", () => {
+        const nextDir =
+          state.sort.key === "date" && state.sort.dir === "desc"
+            ? "asc"
+            : "desc";
+        setSort("date", nextDir);
+      });
+      $("sort-title-asc").addEventListener("click", () =>
+        setSort("title", "asc"),
+      );
+      $("sort-title-desc").addEventListener("click", () =>
+        setSort("title", "desc"),
+      );
+      $("sort-artist-asc").addEventListener("click", () =>
+        setSort("artist", "asc"),
+      );
+      $("sort-artist-desc").addEventListener("click", () =>
+        setSort("artist", "desc"),
+      );
+      $("sort-reset").addEventListener("click", () => setSort("none", "desc"));
+
+      function handleMediaChange(ev) {
+        const next = ev?.matches ?? mediaQuery.matches;
+        if (state.isMobile === next) return;
+        state.isMobile = next;
+        requestRender();
+      }
+      mediaQuery.addEventListener?.("change", handleMediaChange, {
+        passive: true,
+      });
+      window.addEventListener(
+        "resize",
+        () => {
+          requestRender();
+        },
+        { passive: true },
+      );
+
       updateSortButtons();
-      render(); // 通信なし（フロントで並べ替え）
-    }
-
-    $('sort-latest-toggle').addEventListener('click', ()=>{
-      const nextDir = (state.sort.key === 'date' && state.sort.dir === 'desc') ? 'asc' : 'desc';
-      setSort('date', nextDir);
-    });
-    $('sort-title-asc').addEventListener('click',  ()=> setSort('title', 'asc'));
-    $('sort-title-desc').addEventListener('click', ()=> setSort('title', 'desc'));
-    $('sort-artist-asc').addEventListener('click', ()=> setSort('artist', 'asc'));
-    $('sort-artist-desc').addEventListener('click',()=> setSort('artist', 'desc'));
-    $('sort-reset').addEventListener('click',       ()=> setSort('none', 'desc'));
-
-    function handleMediaChange(ev){
-      const next = ev?.matches ?? mediaQuery.matches;
-      if (state.isMobile === next) return;
-      state.isMobile = next;
-      requestRender();
-    }
-    mediaQuery.addEventListener?.('change', handleMediaChange, {passive:true});
-    window.addEventListener('resize', ()=>{ requestRender(); }, {passive:true});
-
-    updateSortButtons();
-    console.log('UI layout + sort v20251029');
-  </script>
-</body>
+      console.log("UI layout + sort v20251029");
+    </script>
+  </body>
 </html>
