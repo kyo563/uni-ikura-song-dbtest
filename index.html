@@ -77,7 +77,6 @@
     table.stacked .item-top .l1{
       font-size:16px;font-weight:700;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start
     }
-    table.stacked .item-top .l1 .sep{opacity:.6}
     table.stacked .item-ops .ops{
       display:flex;gap:8px;align-items:center;justify-content:flex-end;
       flex-wrap:wrap;overflow:visible;min-width:0
@@ -239,10 +238,10 @@
     const HARD_LIMIT = 20000;      // 取得上限
 
     // 再試行・タイムアウト設定（最大500曲程度を想定し、平均応答~0.7sに3〜5倍のバッファを付与）
-      const JSONP_TIMEOUT_MS = 3800; // JSONP 待機上限：想定0.7sの約5倍でタイムアウト→代替
-      const SHORT_TRY_MS = 1400;     // 短期再試行：想定0.7sの2倍強で重複負荷を避けつつ早めに再度要求
-      const MAX_RETRY = 3;           // 再試行回数（ハング時に余分に試行）
-      const IFRAME_WATCHDOG_MS = 10000; // iframe 代替の監視時間
+    const JSONP_TIMEOUT_MS = 3800; // JSONP 待機上限：想定0.7sの約5倍でタイムアウト→代替
+    const SHORT_TRY_MS = 1400;     // 短期再試行：想定0.7sの2倍強で重複負荷を避けつつ早めに再度要求
+    const MAX_RETRY = 3;           // 再試行回数（ハング時に余分に試行）
+    const IFRAME_WATCHDOG_MS = 10000; // iframe 代替の監視時間
 
     const MOBILE_MEDIA_QUERY = '(max-width: 768px)';
     const mediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY);
@@ -269,7 +268,10 @@
     function setAriaIfChanged(el, name, value){ if (!el) return; if (el.getAttribute(name) === value) return; el.setAttribute(name, value); }
     function setStatus(text, opts={}){ const el=$('status'); if(!el) return; setTextIfChanged(el, text); if (opts.fallback) el.dataset.fallback='1'; else delete el.dataset.fallback; }
     function clearFallbackFlag(){ const el=$('status'); if(el) delete el.dataset.fallback; }
-    window.onGviz = function(payload){ clearFallbackFlag(); if (typeof state.pendingHandler === 'function') state.pendingHandler(payload); };
+    window.onGviz = function(payload){
+      clearFallbackFlag();
+      if (typeof state.pendingHandler === 'function') state.pendingHandler(payload);
+    };
 
     function logEvent(label, detail){
       try{
@@ -697,16 +699,16 @@
         clearTimeout(state.shortTimer); state.shortTimer = null;
         clearTimeout(state.globalTimer); state.globalTimer = null;
 
-          try{
-            if (payload && payload.ok === false) {
-              const errMsg = String(payload.error || 'サーバーがエラーを返しました。');
-              fail('データ取得に失敗しました', errMsg);
-              return;
-            }
-            if (!payload || !Array.isArray(payload.rows)) {
-              fail('データ取得に失敗しました（不正なレスポンス）', 'レスポンス形式を確認してください。');
-              return;
-            }
+        try{
+          if (payload && payload.ok === false) {
+            const errMsg = String(payload.error || 'サーバーがエラーを返しました。');
+            fail('データ取得に失敗しました', errMsg);
+            return;
+          }
+          if (!payload || !Array.isArray(payload.rows)) {
+            fail('データ取得に失敗しました（不正なレスポンス）', 'レスポンス形式を確認してください。');
+            return;
+          }
           const rows = (payload.rows||[])
             .map(r => {
               const artist = r.artist || '';
@@ -823,6 +825,8 @@
           showError('取得がタイムアウトしました。再試行してください。', {retry:true, detail});
         }
       }, IFRAME_WATCHDOG_MS);
+
+      return true;
     }
 
     window.addEventListener('message', (ev)=>{
