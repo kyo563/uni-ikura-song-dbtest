@@ -58,6 +58,10 @@
     .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(17,24,39,.92);color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s ease}
     .toast.show{opacity:1}
 
+    /* デバッグログ */
+    details.debug{margin-top:12px}
+    .debug pre{white-space:pre-wrap;word-break:break-all;background:#0f172a;color:#e5e7eb;padding:10px;border-radius:10px;min-height:60px;font-size:12px;line-height:1.4;overflow:auto}
+
     /* テーブル */
     table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}
     th,td{border-bottom:1px solid var(--line);padding:10px 8px;font-size:15px;vertical-align:top}
@@ -210,6 +214,11 @@
       <div class="msg"></div>
       <div class="actions"></div>
     </div>
+
+    <details class="debug" id="debug-panel">
+      <summary>デバッグログ</summary>
+      <pre id="debug-log" aria-live="polite"></pre>
+    </details>
   </div>
 
   <!-- 結果表示 -->
@@ -238,6 +247,9 @@
     const MOBILE_MEDIA_QUERY = '(max-width: 768px)';
     const mediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY);
 
+    const debugLog = [];
+    const DEBUG_LOG_LIMIT = 100;
+
     const state = {
       rows: [],           // [artist, title, cText, dText, cUrl, dUrl] + precomputed props
       total: 0, fetchedLimit: 0, debounce: null,
@@ -258,6 +270,20 @@
     function setStatus(text, opts={}){ const el=$('status'); if(!el) return; setTextIfChanged(el, text); if (opts.fallback) el.dataset.fallback='1'; else delete el.dataset.fallback; }
     function clearFallbackFlag(){ const el=$('status'); if(el) delete el.dataset.fallback; }
     window.onGviz = function(payload){ clearFallbackFlag(); if (typeof state.pendingHandler === 'function') state.pendingHandler(payload); };
+
+    function logEvent(label, detail){
+      try{
+        const ts = new Date();
+        const line = `[${ts.toISOString()}] ${label}` + (detail ? ` ${typeof detail === 'string' ? detail : JSON.stringify(detail)}` : '');
+        debugLog.unshift(line);
+        if (debugLog.length > DEBUG_LOG_LIMIT) debugLog.pop();
+        const el = $('debug-log');
+        if (el) el.textContent = debugLog.join('\n');
+        console.log('[debug]', label, detail || '');
+      }catch(e){
+        console.warn('logEvent failed', e);
+      }
+    }
 
     function normalize(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
     function scheduleSearch(){ clearTimeout(state.debounce); state.debounce = setTimeout(requestRender, 160); }
@@ -348,15 +374,22 @@
 
     function showSkeleton(){
       const wrap=$('table'); if (!wrap) return;
-      wrap.innerHTML='';
       const frag=document.createDocumentFragment();
       for(let i=0;i<6;i++){
         const sk=document.createElement('div'); sk.className='skeleton';
         frag.appendChild(sk);
       }
-      wrap.appendChild(frag);
+      wrap.replaceChildren(frag);
+      wrap.style.display = 'block';
+      const listWrap = $('mblist');
+      if (listWrap) listWrap.style.display = 'none';
     }
-    function clearSkeleton(){ $('table').innerHTML=''; }
+    function clearSkeleton(){
+      const wrap=$('table');
+      if (wrap) { wrap.replaceChildren(); wrap.style.display = 'none'; }
+      const listWrap = $('mblist');
+      if (listWrap) listWrap.style.display = 'none';
+    }
 
     function getKindValue(){ const el = $('kind'); return el ? el.value : 'all'; }
 
@@ -455,8 +488,6 @@
 
     function renderTable(rows){
       const tableWrap = $('table');
-      tableWrap.innerHTML = '';
-
       const table = document.createElement('table');
       table.className = 'stacked';
       const thead = document.createElement('thead');
@@ -515,14 +546,14 @@
 
       tbody.appendChild(fragRows);
       table.appendChild(tbody);
-      tableWrap.appendChild(table);
+      tableWrap.replaceChildren(table);
       tableWrap.style.display = 'block';
       $('mblist').style.display = 'none';
     }
 
     function renderMobile(rows){
       const listWrap  = $('mblist');
-      listWrap.innerHTML = '';
+      listWrap.replaceChildren();
 
       const frag = document.createDocumentFragment();
       rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
@@ -563,7 +594,7 @@
         frag.appendChild(item);
       });
 
-      listWrap.appendChild(frag);
+      listWrap.replaceChildren(frag);
       listWrap.style.display='block';
     }
 
@@ -622,7 +653,14 @@
       state.lastFetchLimit = limit;
       clearError();
 
+      logEvent('fetch start', {reqId, limit, attempt});
+
+      clearTimeout(state.shortTimer); state.shortTimer = null;
+      clearTimeout(state.globalTimer); state.globalTimer = null;
       if (state.iframeTimer) { clearTimeout(state.iframeTimer); state.iframeTimer = null; state.iframeReqId = null; }
+      state.usedIframe = false;
+      state.pendingHandler = null;
+      cleanupJsonpScripts();
       const prev = document.getElementById('gviz-frame'); if (prev) prev.remove();
 
       const base = API_URL.replace(/\/macros\/u\/\d+\//,'/macros/');
@@ -642,8 +680,10 @@
         state.iframeTimer = null; state.iframeReqId = null; state.usedIframe = false;
         const frame = document.getElementById('gviz-frame'); if (frame) frame.remove();
         cleanupJsonpScripts(reqId);
+        state.pendingHandler = null;
         setStatus(message, {fallback:false});
         clearSkeleton();
+        logEvent('fetch failed', {reqId, attempt, message, detail, usedIframe: state.usedIframe});
         if (detail) console.warn('fetchRows failed', {reqId, attempt, message, detail});
         else console.warn('fetchRows failed', {reqId, attempt, message});
         showError(message, {retry:true, detail});
@@ -698,7 +738,9 @@
           clearError();
           setStatus(`読み込み完了：${state.rows.length}件（全${state.total}件）`, {fallback:false});
           clearSkeleton();
+          logEvent('fetch success', {reqId, rows: state.rows.length, total: state.total, usedIframe: state.usedIframe});
           render();
+          state.pendingHandler = null;
         }catch(e){
           console.error(e);
           fail('読み込みに失敗しました', '一時的なエラーです。再試行してください。');
@@ -708,6 +750,7 @@
       state.shortTimer = setTimeout(()=>{
         if (!settled && attempt < MAX_RETRY) {
           console.warn('retrying fetchRows (jsonp delay)', {reqId, attemptNext: attempt+1});
+          logEvent('retry fetch (short timer)', {reqId, attemptNext: attempt+1});
           fetchRows(limit, attempt+1);
         }
       }, SHORT_TRY_MS);
@@ -717,17 +760,30 @@
       }, JSONP_TIMEOUT_MS);
 
       jsonpOnce(url, ()=>{
-        fail('データ取得に失敗しました（スクリプト読み込みエラー）', 'ネットワークまたは公開設定をご確認ください。');
+        if (settled || reqId !== state.lastReqId) return;
+        clearTimeout(state.shortTimer); state.shortTimer = null;
+        clearTimeout(state.globalTimer); state.globalTimer = null;
+        logEvent('jsonp script load error', {reqId, attempt});
+        const started = tryIframeFallback(limit, reqId, 'jsonp-load-error', fail);
+        if (!started) {
+          fail('データ取得に失敗しました（スクリプト読み込みエラー）', 'ネットワークまたは公開設定をご確認ください。');
+        }
       }, reqId);
     }
 
     function tryIframeFallback(limit, reqId, reason, onTimeout){
-      if (reqId !== state.lastReqId) return;
-      if ((state.rows && state.rows.length) > 0) return;
-      if (state.usedIframe) return;
+      if (reqId !== state.lastReqId) return false;
+      if ((state.rows && state.rows.length) > 0) return false;
+      if (state.usedIframe) return false;
       state.usedIframe = true;
 
-      const reasonLabel = reason === 'jsonp-timeout' ? '応答待ち超過' : reason;
+      logEvent('iframe fallback start', {reqId, reason, limit});
+
+      const reasonLabel = reason === 'jsonp-timeout'
+        ? '応答待ち超過'
+        : reason === 'jsonp-load-error'
+          ? 'スクリプト読み込みエラー'
+          : reason;
       setStatus(`別ルートで取得中…（${reasonLabel}）`, {fallback:true});
 
       const old = document.getElementById('gviz-frame'); if (old) old.remove();
@@ -751,7 +807,11 @@
 
         const detail = reason === 'jsonp-timeout'
           ? 'JSONP 応答がなくタイムアウトしました。公開設定やネットワークを確認してください。'
-          : '別ルートの取得がタイムアウトしました。公開設定やネットワーク状態をご確認ください。';
+          : reason === 'jsonp-load-error'
+            ? 'スクリプトが読み込めませんでした。公開設定やネットワーク状態をご確認ください。'
+            : '別ルートの取得がタイムアウトしました。公開設定やネットワーク状態をご確認ください。';
+
+        logEvent('iframe fallback timeout', {reqId, reason, detail});
 
         if (typeof onTimeout === 'function') {
           onTimeout('取得がタイムアウトしました。再試行してください。', detail);
@@ -768,6 +828,7 @@
     window.addEventListener('message', (ev)=>{
       const d = ev?.data; if (!d || d.type !== 'gviz') return;
       clearFallbackFlag();
+      logEvent('iframe message received', {hasPayload: !!d.payload, reqId: state.iframeReqId});
       if (typeof state.pendingHandler === 'function') state.pendingHandler(d.payload);
     });
 
