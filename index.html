@@ -727,7 +727,10 @@
       }, JSONP_TIMEOUT_MS);
 
       jsonpOnce(url, ()=>{
-        fail('データ取得に失敗しました（スクリプト読み込みエラー）', 'ネットワークまたは公開設定をご確認ください。');
+        if (settled || reqId !== state.lastReqId) return;
+        clearTimeout(state.shortTimer); state.shortTimer = null;
+        clearTimeout(state.globalTimer); state.globalTimer = null;
+        tryIframeFallback(limit, reqId, 'jsonp-load-error', fail);
       }, reqId);
     }
 
