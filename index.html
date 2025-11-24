@@ -73,7 +73,6 @@
     table.stacked .item-top .l1{
       font-size:16px;font-weight:700;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start
     }
-    table.stacked .item-top .l1 .sep{opacity:.6}
     table.stacked .item-ops .ops{
       display:flex;gap:8px;align-items:center;justify-content:flex-end;
       flex-wrap:wrap;overflow:visible;min-width:0
@@ -666,16 +665,16 @@
         clearTimeout(state.shortTimer); state.shortTimer = null;
         clearTimeout(state.globalTimer); state.globalTimer = null;
 
-          try{
-            if (payload && payload.ok === false) {
-              const errMsg = String(payload.error || 'サーバーがエラーを返しました。');
-              fail('データ取得に失敗しました', errMsg);
-              return;
-            }
-            if (!payload || !Array.isArray(payload.rows)) {
-              fail('データ取得に失敗しました（不正なレスポンス）', 'レスポンス形式を確認してください。');
-              return;
-            }
+        try{
+          if (payload && payload.ok === false) {
+            const errMsg = String(payload.error || 'サーバーがエラーを返しました。');
+            fail('データ取得に失敗しました', errMsg);
+            return;
+          }
+          if (!payload || !Array.isArray(payload.rows)) {
+            fail('データ取得に失敗しました（不正なレスポンス）', 'レスポンス形式を確認してください。');
+            return;
+          }
           const rows = (payload.rows||[])
             .map(r => {
               const artist = r.artist || '';
@@ -785,6 +784,8 @@
           showError('取得がタイムアウトしました。再試行してください。', {retry:true, detail});
         }
       }, IFRAME_WATCHDOG_MS);
+
+      return true;
     }
 
     window.addEventListener('message', (ev)=>{
