@@ -604,9 +604,9 @@
     }
 
     function buildCustomDm(text){
-      const chars = Array.from(text || '');
-      if (chars.length === 0) return '🍣🧡🍣🧡🍣🧡';
-      return chars.map(ch=>`🍣🧡${ch}`).join('');
+      const custom = text || '';
+      if (!custom) return '🍣🧡🍣🧡🍣🧡';
+      return Array.from({length:3},()=>`🍣🧡${custom}`).join('');
     }
 
     (function(){
