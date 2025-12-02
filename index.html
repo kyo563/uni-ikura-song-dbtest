@@ -117,7 +117,10 @@
       flex:3 1 0;
       display:flex;
     }
-    .dm-custom{margin-top:8px}
+    .dm-custom{
+      display:none;
+      flex:3 1 0;
+    }
     #dm-select{
       width:100%;
       padding:6px 10px;
@@ -143,6 +146,8 @@
       border-radius:10px;
       font-size:15px;
     }
+    .dm-wrap.custom-active .dm-select-wrap{flex:4 1 0}
+    .dm-wrap.custom-active .dm-custom{display:block}
     input[type="search"]:focus,
     select:focus,
     .btn:focus,
@@ -466,12 +471,9 @@
           <option value="✩࿐⋆*🍼👶 ﾟ·꒰ঌ ﾊﾞｯﾌﾞｰ ໒꒱· ﾟ👶🍼✩࿐⋆*">✩࿐⋆*🍼👶…(🍼)</option>
           <option value="custom">カスタム弾幕</option>
         </select>
-
-        <div class="dm-custom" id="dm-custom" style="display:none;">
-          <label for="dm-custom-input" class="muted" style="display:block;">カスタム弾幕の文字を入力</label>
-          <input id="dm-custom-input" type="text" placeholder="好きな文字や絵文字を入力" autocomplete="off" style="margin-top:4px;">
-          <div class="muted" style="margin-top:4px;">コピー時に 🍣🧡<入力文字> を繰り返して生成します</div>
-        </div>
+      </div>
+      <div class="dm-custom" id="dm-custom">
+        <input id="dm-custom-input" type="text" autocomplete="off">
       </div>
       <div class="dm-btn-wrap">
         <button id="dm-copy" class="btn btn-full" type="button" title="選択した弾幕をコピー">弾幕コピー</button>
@@ -596,13 +598,13 @@
 
     (function(){
       const select = $('dm-select');
-      const customWrap = $('dm-custom');
       const customInput = $('dm-custom-input');
-      if (!select || !customWrap || !customInput) return;
+      const dmRow = document.querySelector('.dm-wrap');
+      if (!select || !customInput || !dmRow) return;
 
       function toggleCustom(){
         const isCustom = select.value === 'custom';
-        customWrap.style.display = isCustom ? 'block' : 'none';
+        dmRow.classList.toggle('custom-active', isCustom);
         if (isCustom) customInput.focus();
       }
 
