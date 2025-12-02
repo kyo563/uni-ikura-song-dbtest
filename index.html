@@ -137,8 +137,8 @@
       outline:none;
     }
     .dm-custom input{
-      width:100%;
-      padding:8px 10px;
+      width:64px;
+      padding:6px 8px;
       border:1px solid var(--line);
       border-radius:10px;
       font-size:15px;
@@ -468,9 +468,7 @@
         </select>
 
         <div class="dm-custom" id="dm-custom" style="display:none;">
-          <label for="dm-custom-input" class="muted" style="display:block;">カスタム弾幕の文字を入力</label>
-          <input id="dm-custom-input" type="text" placeholder="好きな文字や絵文字を入力" autocomplete="off" style="margin-top:4px;">
-          <div class="muted" style="margin-top:4px;">コピー時に 🍣🧡<入力文字> を繰り返して生成します</div>
+          <input id="dm-custom-input" type="text" aria-label="カスタム弾幕入力" autocomplete="off" style="margin-top:4px;">
         </div>
       </div>
       <div class="dm-btn-wrap">
