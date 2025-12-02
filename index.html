@@ -117,6 +117,7 @@
       flex:3 1 0;
       display:flex;
     }
+    .dm-custom{margin-top:8px}
     #dm-select{
       width:100%;
       padding:6px 10px;
@@ -134,6 +135,13 @@
       background:#fff;
       color:#1a1a1a;
       outline:none;
+    }
+    .dm-custom input{
+      width:100%;
+      padding:8px 10px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      font-size:15px;
     }
     input[type="search"]:focus,
     select:focus,
@@ -447,18 +455,23 @@
     <!-- 3列目：弾幕コピー -->
     <div class="row row3 dm-wrap" aria-label="弾幕コピー">
       <div class="dm-select-wrap">
-     <select id="dm-select" title="弾幕の種類を選択">
-      <option value="🧡🎶🍣🥂🧡🎶🍣🥂🧡🎶🍣🥂">🧡🎶🍣🥂…(🥂)</option>
-      <option value="🍣🎶🧡✨🍣🎶🧡✨🍣🎶🧡✨">🍣🎶🧡✨…(🍣)</option>
-      <option value="🍶🧡🎺🍶🧡🎺🍶🧡🎺🍶🧡🎺">🍶🧡🎺🍶…(🍶)</option>
-      <option value="🎧💫♬🧡🎧💫♬🧡🎧💫♬🧡">🎧💫♬🧡…(🎧)</option>
-      <option value="🧡🎹🎶🍣🧡🎹🎶🍣🧡🎹🎶🍣">🧡🎹🎶🍣…(🎹)</option>
-      <option value="🎵☀🧡～🎵☀🧡～🎵☀🧡～">🎵☀🧡～…(🎵)</option>
-      <option value="世界一🌏🌟⋆꙳イケボ✨世界一🌏🌟⋆꙳イケボ✨世界一🌏🌟⋆꙳イケボ✨">世界一イケボ…(🌏)</option>
-      <option value="✩࿐⋆*🍼👶 ﾟ·꒰ঌ ﾊﾞｯﾌﾞｰ ໒꒱· ﾟ👶🍼✩࿐⋆*">✩࿐⋆*🍼👶…(🍼)</option>
-</select>
+        <select id="dm-select" title="弾幕の種類を選択">
+          <option value="🧡🎶🍣🥂🧡🎶🍣🥂🧡🎶🍣🥂">🧡🎶🍣🥂…(🥂)</option>
+          <option value="🍣🎶🧡✨🍣🎶🧡✨🍣🎶🧡✨">🍣🎶🧡✨…(🍣)</option>
+          <option value="🍶🧡🎺🍶🧡🎺🍶🧡🎺🍶🧡🎺">🍶🧡🎺🍶…(🍶)</option>
+          <option value="🎧💫♬🧡🎧💫♬🧡🎧💫♬🧡">🎧💫♬🧡…(🎧)</option>
+          <option value="🧡🎹🎶🍣🧡🎹🎶🍣🧡🎹🎶🍣">🧡🎹🎶🍣…(🎹)</option>
+          <option value="🎵☀🧡～🎵☀🧡～🎵☀🧡～">🎵☀🧡～…(🎵)</option>
+          <option value="世界一🌏🌟⋆꙳イケボ✨世界一🌏🌟⋆꙳イケボ✨世界一🌏🌟⋆꙳イケボ✨">世界一イケボ…(🌏)</option>
+          <option value="✩࿐⋆*🍼👶 ﾟ·꒰ঌ ﾊﾞｯﾌﾞｰ ໒꒱· ﾟ👶🍼✩࿐⋆*">✩࿐⋆*🍼👶…(🍼)</option>
+          <option value="custom">カスタム弾幕</option>
+        </select>
 
-</select>
+        <div class="dm-custom" id="dm-custom" style="display:none;">
+          <label for="dm-custom-input" class="muted" style="display:block;">カスタム弾幕の文字を入力</label>
+          <input id="dm-custom-input" type="text" placeholder="好きな文字や絵文字を入力" autocomplete="off" style="margin-top:4px;">
+          <div class="muted" style="margin-top:4px;">コピー時に 🍣🧡<入力文字> を繰り返して生成します</div>
+        </div>
       </div>
       <div class="dm-btn-wrap">
         <button id="dm-copy" class="btn btn-full" type="button" title="選択した弾幕をコピー">弾幕コピー</button>
@@ -575,8 +588,31 @@
       }
     }
 
+    function buildCustomDm(text){
+      const chars = Array.from(text || '');
+      if (chars.length === 0) return '🍣🧡🍣🧡🍣🧡';
+      return chars.map(ch=>`🍣🧡${ch}`).join('');
+    }
+
+    (function(){
+      const select = $('dm-select');
+      const customWrap = $('dm-custom');
+      const customInput = $('dm-custom-input');
+      if (!select || !customWrap || !customInput) return;
+
+      function toggleCustom(){
+        const isCustom = select.value === 'custom';
+        customWrap.style.display = isCustom ? 'block' : 'none';
+        if (isCustom) customInput.focus();
+      }
+
+      select.addEventListener('change', toggleCustom);
+      toggleCustom();
+    })();
+
     $('dm-copy').addEventListener('click', async ()=>{
-      const text = $('dm-select').value || '';
+      const select = $('dm-select');
+      const text = (select?.value === 'custom') ? buildCustomDm($('dm-custom-input')?.value || '') : (select?.value || '');
       try{
         if (navigator.clipboard?.writeText){
           await navigator.clipboard.writeText(text);
