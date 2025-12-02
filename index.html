@@ -113,16 +113,33 @@
       gap:8px;
     }
     .dm-select-wrap{flex:7 1 0}
+    .dm-select-wrap.is-custom{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
     .dm-btn-wrap{
       flex:3 1 0;
       display:flex;
     }
-    .dm-custom{margin-top:8px}
+    .dm-custom{
+      margin-top:8px;
+      display:none;
+    }
     #dm-select{
       width:100%;
       padding:6px 10px;
       font-size:16px;
       line-height:1.2;
+    }
+    .dm-select-wrap.is-custom #dm-select{
+      width:calc(100% - 3ch);
+      flex:1 1 auto;
+    }
+    .dm-select-wrap.is-custom .dm-custom{
+      display:block;
+      margin-top:0;
+      flex:0 0 auto;
     }
     .btn-full{width:100%}
 
@@ -467,8 +484,8 @@
           <option value="custom">カスタム弾幕</option>
         </select>
 
-        <div class="dm-custom" id="dm-custom" style="display:none;">
-          <input id="dm-custom-input" type="text" aria-label="カスタム弾幕入力" autocomplete="off" style="margin-top:4px;">
+        <div class="dm-custom" id="dm-custom">
+          <input id="dm-custom-input" type="text" aria-label="カスタム弾幕入力" autocomplete="off">
         </div>
       </div>
       <div class="dm-btn-wrap">
@@ -596,11 +613,12 @@
       const select = $('dm-select');
       const customWrap = $('dm-custom');
       const customInput = $('dm-custom-input');
-      if (!select || !customWrap || !customInput) return;
+      const dmSelectWrap = select?.closest('.dm-select-wrap');
+      if (!select || !customWrap || !customInput || !dmSelectWrap) return;
 
       function toggleCustom(){
         const isCustom = select.value === 'custom';
-        customWrap.style.display = isCustom ? 'block' : 'none';
+        dmSelectWrap.classList.toggle('is-custom', isCustom);
         if (isCustom) customInput.focus();
       }
 
