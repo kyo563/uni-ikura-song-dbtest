@@ -18,7 +18,8 @@
 
   <style>
     :root{
-      --bg:#ffb744;
+      --bg-start:#dff1ff;
+      --bg-end:#e7f6dc;
       --card:#ffffff;
       --text:#1a1a1a;
       --muted:#6b7280;
@@ -33,11 +34,13 @@
     *{box-sizing:border-box}
 
     body{
-      background:var(--bg);
+      background:linear-gradient(135deg,var(--bg-start),var(--bg-end));
+      background-attachment:fixed;
       color:var(--text);
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;
       line-height:1.7;
       margin:12px;
+      min-height:100vh;
     }
 
     .card{
