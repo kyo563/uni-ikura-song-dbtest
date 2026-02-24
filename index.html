@@ -2,1207 +2,317 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-  <meta name="theme-color" content="#ffb744">
-  <title>雲丹ゐくら歌唱曲DB</title>
-
-  <link rel="dns-prefetch" href="https://script.google.com">
-  <link rel="preconnect" href="https://script.google.com" crossorigin>
-  <link rel="dns-prefetch" href="https://script.googleusercontent.com">
-  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
-
-  <link rel="icon" href="/uni-ikura-songs-db/favicon.ico" sizes="any">
-  <link rel="icon" href="/uni-ikura-songs-db/favicon-32.png" sizes="32x32" type="image/png">
-  <link rel="icon" href="/uni-ikura-songs-db/favicon-16.png" sizes="16x16" type="image/png">
-  <link rel="apple-touch-icon" href="/uni-ikura-songs-db/apple-touch-icon.png" sizes="180x180">
-
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>雲丹ゐくら Songs DB TEST</title>
   <style>
-    :root{
-      --bg:#ffb744;
-      --card:#ffffff;
-      --text:#1a1a1a;
-      --muted:#6b7280;
-      --line:#e5e7eb;
-      --thead:#ffe0b5;
-      --focus:#3897c9;
-      --pill-bg:#f6f7f9;
-      --link:#2563eb;
-      --control-h:34px;
+    :root {
+      --bg: #0f172a;
+      --surface: #111827;
+      --surface-2: #1f2937;
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --line: #334155;
+      --primary: #38bdf8;
+      --accent: #22d3ee;
+      --danger: #f87171;
     }
 
-    *{box-sizing:border-box}
-
-    body{
-      background:var(--bg);
-      color:var(--text);
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP",sans-serif;
-      line-height:1.7;
-      margin:12px;
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+      background: radial-gradient(circle at top left, #1e293b 0%, var(--bg) 55%);
+      color: var(--text);
     }
 
-    .card{
-      background:var(--card);
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:14px;
-      box-shadow:0 2px 10px rgba(0,0,0,.06);
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
     }
 
-    .row{
-      display:flex;
-      gap:8px;
-      align-items:center;
-    }
-    .row .search{
-      flex:1 1 auto;
-      min-width:0;
+    .card {
+      background: color-mix(in srgb, var(--surface) 90%, black 10%);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
     }
 
-    .toolbar{display:none}
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    .muted { color: var(--muted); font-size: 13px; }
 
-    /* ── 上部コントロール（件数・対象・並び替え）を高さ34pxで揃える ── */
-    .limit-wrap,
-    .type-wrap,
-    .show-sort-btn{
-      height:var(--control-h);
-    }
-
-    .limit-wrap{
-      display:flex;
-      align-items:center;
-      gap:6px;
-    }
-    .limit-wrap label{
-      font-size:12px;
-      color:var(--muted);
-      white-space:nowrap;
-      line-height:1;
-    }
-    #limit{
-      width:auto;
-      min-width:78px;
-      height:var(--control-h);
-      padding:6px 8px;
-      font-size:13px;
-      line-height:1.2;
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
     }
 
-    .type-wrap{
-      display:flex;
-      align-items:center;
-      gap:6px;
-    }
-    .type-wrap label{
-      font-size:12px;
-      color:var(--muted);
-      white-space:nowrap;
-      line-height:1;
-    }
-    #kind{
-      width:auto;
-      min-width:90px;
-      height:var(--control-h);
-      padding:6px 8px;
-      font-size:13px;
-      line-height:1.2;
+    @media (max-width: 860px) {
+      .filters { grid-template-columns: 1fr 1fr; }
     }
 
-    .dm-wrap{
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .dm-select-wrap{flex:7 1 0}
-    .dm-select-wrap.is-custom{
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .dm-btn-wrap{
-      flex:3 1 0;
-      display:flex;
-    }
-    .dm-custom{
-      margin-top:8px;
-      display:none;
-    }
-    #dm-select{
-      width:100%;
-      padding:6px 10px;
-      font-size:16px;
-      line-height:1.2;
-    }
-    .dm-select-wrap.is-custom #dm-select{
-      width:calc(100% - 3ch);
-      flex:1 1 auto;
-    }
-    .dm-select-wrap.is-custom .dm-custom{
-      display:block;
-      margin-top:0;
-      flex:0 0 auto;
-    }
-    .btn-full{width:100%}
-
-    input[type="search"],select{
-      width:100%;
-      padding:10px 12px;
-      border:1px solid var(--line);
-      border-radius:12px;
-      font-size:16px;
-      background:#fff;
-      color:#1a1a1a;
-      outline:none;
-    }
-    .dm-custom input{
-      width:64px;
-      padding:6px 8px;
-      border:1px solid var(--line);
-      border-radius:10px;
-      font-size:15px;
-    }
-    input[type="search"]:focus,
-    input[type="text"]:focus,
-    select:focus,
-    .btn:focus,
-    .btn-pill:focus{
-      outline:3px solid var(--focus);
-      outline-offset:2px;
+    @media (max-width: 500px) {
+      .filters { grid-template-columns: 1fr; }
     }
 
-    .muted{
-      color:var(--muted);
-      font-size:13px;
+    label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+
+    input, select {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--surface-2);
+      color: var(--text);
+      padding: 9px 10px;
+      font-size: 15px;
     }
 
-    .btn{
-      appearance:none;
-      border:1px solid var(--line);
-      background:#fff;
-      color:var(--text);
-      border-radius:10px;
-      padding:8px 12px;
-      font-size:14px;
-      cursor:pointer;
-      white-space:nowrap;
-    }
-    .btn:hover{background:#f9fafb}
-    .btn:active{transform:translateY(1px)}
-
-    .toast{
-      position:fixed;
-      left:50%;
-      bottom:16px;
-      transform:translateX(-50%);
-      background:rgba(17,24,39,.92);
-      color:#fff;
-      padding:10px 14px;
-      border-radius:10px;
-      font-size:14px;
-      opacity:0;
-      transition:opacity .2s ease;
-    }
-    .toast.show{opacity:1}
-
-    table{
-      width:100%;
-      border-collapse:collapse;
-      margin-top:10px;
-      table-layout:fixed;
-    }
-    th,td{
-      border-bottom:1px solid var(--line);
-      padding:10px 8px;
-      font-size:15px;
-      vertical-align:top;
-    }
-    th{
-      position:sticky;
-      top:0;
-      background:var(--thead);
-      z-index:1;
-      font-weight:700;
+    .actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
-    table.stacked{table-layout:auto}
-    table.stacked th,
-    table.stacked td{width:auto !important}
-    table.stacked thead th{
-      width:100% !important;
-      white-space:nowrap;
-    }
-    table.stacked .item-top{
-      background:#fff;
-      border-bottom:none;
-    }
-    table.stacked .item-ops{background:#fff}
-    table.stacked .item-ops td{border-top:none}
-    table.stacked .item-top .l1{
-      font-size:16px;
-      font-weight:700;
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:flex-start;
-    }
-    table.stacked .item-top .l1 .sep{opacity:.6}
-    table.stacked .item-ops .ops{
-      display:flex;
-      gap:6px;
-      align-items:center;
-      justify-content:flex-end;
-      flex-wrap:wrap;
-      overflow:visible;
-      min-width:0;
+    button {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-2);
+      color: var(--text);
+      padding: 8px 12px;
+      cursor: pointer;
     }
 
-    /* ── 操作列だけ小さく ── */
-    table.stacked .item-ops .ops .btn-pill,
-    table.stacked .item-ops .ops .btn{
-      font-size:12px;
-      padding:6px 10px;
-      border-radius:8px;
-      line-height:1.2;
+    button.primary {
+      border-color: #0369a1;
+      background: linear-gradient(180deg, var(--primary), #0ea5e9);
+      color: #001018;
+      font-weight: 700;
     }
 
-    .btn-pill{
-      display:inline-block;
-      border:1px solid var(--line);
-      background:var(--pill-bg);
-      color:var(--link);
-      border-radius:10px;
-      padding:8px 12px;
-      line-height:1.2;
-      text-decoration:none;
-      white-space:nowrap;
-      word-break:keep-all;
-      max-width:unset;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .btn-pill:hover{
-      background:#eef2f7;
-      text-decoration:none;
-    }
-    .btn-pill:active{transform:translateY(1px)}
-
-    .skeleton{
-      height:16px;
-      background:#f1f5f9;
-      border-radius:6px;
-      margin:8px 0;
-      animation:pulse 1.2s ease-in-out infinite;
-    }
-    @keyframes pulse{
-      0%{opacity:.6}
-      50%{opacity:1}
-      100%{opacity:.6}
-    }
-    @media (prefers-reduced-motion: reduce){
-      .skeleton{animation:none}
-      .toast{transition:none}
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      padding: 9px 8px;
+      font-size: 14px;
     }
 
-    .mobile-list{display:none}
+    th { color: var(--muted); font-weight: 600; font-size: 12px; }
 
-    @media (max-width:768px){
-      table{display:none}
-      .mobile-list{display:block;margin-top:10px}
-      .item{
-        border-bottom:1px solid var(--line);
-        padding:12px 2px;
-        display:flex;
-        flex-direction:column;
-        gap:6px;
-      }
-      .l1{
-        font-size:16px;
-        line-height:1.6;
-        font-weight:700;
-        display:flex;
-        gap:6px;
-        flex-wrap:wrap;
-      }
-      .l1 .sep{opacity:.6}
-      .l2{
-        display:flex;
-        align-items:center;
-        gap:6px;
-        justify-content:flex-end;
-        flex-wrap:nowrap;
-        overflow:hidden;
-      }
-      .l2 .btn-pill{max-width:40vw}
-      .btn{padding:8px 12px;font-size:14px}
-      .dm-select-wrap{flex:7 1 0}
-      .dm-btn-wrap{flex:3 1 0}
-
-      /* モバイルでも並び替えボタンは黒にする */
-      .show-sort-btn,
-      .sort-btn{
-        color:#000 !important;
-      }
-
-      .l2 .btn-pill,
-      .l2 .btn{
-        font-size:12px;
-        padding:6px 10px;
-        border-radius:8px;
-      }
+    .tag {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      background: #0b2232;
+      color: var(--accent);
     }
 
-    .ui .row{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      margin-top:8px;
-    }
-    .ui .row:first-child{margin-top:0}
-    .ui .row2 .search{flex:1 1 0;min-width:0}
-    .ui .row3 .dm-select-wrap{flex:7 1 0}
-    .ui .row3 .dm-btn-wrap{flex:3 1 0}
-    .ui .row4 #status{flex:1 1 0}
-
-    .ui .row1 .limit-wrap,
-    .ui .row1 .type-wrap{flex:0 0 auto}
-
-    /* ▼ 並べ替えUIの上書き ▼ */
-    .ui .row1{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:nowrap;
-    }
-
-    .ui .row1b{
-      display:none;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-    .ui .row1b.is-open{
-      display:flex;
-    }
-
-    /* 並び替えボタン（トグル）のフレームを34pxで固定・黒に固定 */
-    .show-sort-btn{
-      min-width:78px;
-      height:var(--control-h);
-      border:1px solid var(--line);
-      background:#fff;
-      border-radius:10px;
-      padding:6px 10px;
-      font-size:13px;
-      cursor:pointer;
-      white-space:nowrap;
-      color:#000;
-      -webkit-appearance:none;
-    }
-
-    /* 並べ替え3ボタン（歌手名順/楽曲順/投稿日順）も黒に固定 */
-    .sort-btn{
-      border:1px solid var(--line);
-      background:#fff;
-      border-radius:10px;
-      padding:6px 10px;
-      font-size:13px;
-      cursor:pointer;
-      white-space:nowrap;
-      height:var(--control-h);
-      display:flex;
-      align-items:center;
-      color:#000;
-      -webkit-appearance:none;
-    }
-    .sort-btn.is-active{
-      border-color:var(--focus);
-      background:rgba(56,151,201,.08);
-      color:#000;
-      font-weight:600;
-    }
-
-    .sort-btn:focus,
-    .show-sort-btn:focus{
-      outline:3px solid var(--focus);
-      outline-offset:2px;
-    }
-    .sort-btn.is-active:focus{
-      outline:3px solid var(--focus);
-      outline-offset:2px;
-    }
+    .status { font-size: 12px; color: var(--muted); }
+    .error { color: var(--danger); }
   </style>
 </head>
 <body>
+  <main class="container">
+    <section class="card">
+      <h1>雲丹ゐくら Songs DB TEST</h1>
+      <p class="muted">kasane-3kHz-songs-dbTEST 構成に合わせ、Cloudflare R2 + Worker API 経由で参照するUIに更新。チェック済みかつ公開期間内のデータのみ表示します。</p>
+    </section>
 
-  <div class="card ui">
-    <!-- 1列目：件数 / 対象 / 並び替えトグル -->
-    <div class="row row1">
-      <div class="limit-wrap">
-        <label for="limit">件数</label>
-        <select id="limit" aria-label="表示件数">
-          <option value="20" selected>20件</option>
-          <option value="50">50件</option>
-          <option value="200">200件</option>
-          <option value="all">全件</option>
-        </select>
+    <section class="card">
+      <div class="filters">
+        <label>検索
+          <input id="q" type="search" placeholder="曲名 / アーティスト / メモ">
+        </label>
+        <label>種別
+          <select id="kind">
+            <option value="all">すべて</option>
+            <option value="cover">歌ってみた</option>
+            <option value="original">オリジナル</option>
+            <option value="short">short</option>
+          </select>
+        </label>
+        <label>並び順
+          <select id="sort">
+            <option value="latest">新しい順</option>
+            <option value="oldest">古い順</option>
+            <option value="title">タイトル順</option>
+            <option value="artist">アーティスト順</option>
+          </select>
+        </label>
+        <label>件数
+          <select id="limit">
+            <option>20</option>
+            <option selected>50</option>
+            <option>100</option>
+            <option>200</option>
+          </select>
+        </label>
       </div>
-
-      <div class="type-wrap">
-        <label for="kind">対象</label>
-        <select id="kind" aria-label="対象フィルタ">
-          <option value="all" selected>すべて</option>
-          <option value="歌ってみた">歌ってみた</option>
-          <option value="ショート">ショート</option>
-        </select>
+      <div class="actions">
+        <button class="primary" id="reload">再読み込み</button>
+        <button id="clear">条件クリア</button>
+        <span class="status" id="status">初期化中...</span>
       </div>
+    </section>
 
-      <button id="show-sort" class="show-sort-btn" type="button">並び替え</button>
-    </div>
-
-    <!-- 並べ替えボタン群 -->
-    <div class="row row1b" id="sort-panel" aria-label="並べ替え">
-      <button type="button" class="sort-btn" data-sort="artist" id="sort-artist">歌手名順↑</button>
-      <button type="button" class="sort-btn" data-sort="title"  id="sort-title">楽曲順↑</button>
-      <button type="button" class="sort-btn" data-sort="date"   id="sort-date">投稿日順↑</button>
-    </div>
-
-    <!-- 2列目：検索 -->
-    <div class="row row2">
-      <input class="search" id="q" type="search" placeholder="曲名／アーティスト名で検索" autocomplete="off">
-    </div>
-
-    <!-- 3列目：弾幕コピー -->
-    <div class="row row3 dm-wrap" aria-label="弾幕コピー">
-      <div class="dm-select-wrap">
-        <select id="dm-select" title="弾幕の種類を選択">
-          <option value="🧡🎶🍣🥂🧡🎶🍣🥂🧡🎶🍣🥂">🧡🎶🍣🥂…(🥂)</option>
-          <option value="🍣🎶🧡✨🍣🎶🧡✨🍣🎶🧡✨">🍣🎶🧡✨…(🍣)</option>
-          <option value="🍶🧡🎺🍶🧡🎺🍶🧡🎺🍶🧡🎺">🍶🧡🎺🍶…(🍶)</option>
-          <option value="🎧💫♬🧡🎧💫♬🧡🎧💫♬🧡">🎧💫♬🧡…(🎧)</option>
-          <option value="🧡🎹🎶🍣🧡🎹🎶🍣🧡🎹🎶🍣">🧡🎹🎶🍣…(🎹)</option>
-          <option value="🎵☀🧡～🎵☀🧡～🎵☀🧡～">🎵☀🧡～…(🎵)</option>
-          <option value="世界一🌏🌟⋆꙳イケボ✨世界一🌏🌟⋆꙳イケボ✨世界一🌏🌟⋆꙳イケボ✨">世界一イケボ…(🌏)</option>
-          <option value="✩࿐⋆*🍼👶 ﾟ·꒰ঌ ﾊﾞｯﾌﾞｰ ໒꒱· ﾟ👶🍼✩࿐⋆*">✩࿐⋆*🍼👶…(🍼)</option>
-          <option value="custom">カスタム弾幕</option>
-        </select>
-
-        <div class="dm-custom" id="dm-custom">
-          <input id="dm-custom-input" type="text" aria-label="カスタム弾幕入力" autocomplete="off">
-        </div>
-      </div>
-      <div class="dm-btn-wrap">
-        <button id="dm-copy" class="btn btn-full" type="button" title="選択した弾幕をコピー">弾幕コピー</button>
-      </div>
-    </div>
-
-    <!-- 4列目：ステータス -->
-    <div class="row row4">
-      <div class="muted" id="status" role="status" aria-live="polite">読み込み中…</div>
-    </div>
-  </div>
-
-  <!-- 結果表示カード -->
-  <div class="card" style="margin-top:12px;">
-    <div class="muted" id="hint">検索結果がここに表示されます。</div>
-    <div id="table" style="display:none;"></div>
-    <div id="mblist" class="mobile-list" style="display:none;"></div>
-  </div>
-
-  <!-- トースト -->
-  <div id="toast" class="toast" role="status" aria-live="polite">コピーしました</div>
+    <section class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>タイトル</th>
+            <th>アーティスト</th>
+            <th>種別</th>
+            <th>公開日</th>
+            <th>リンク</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+  </main>
 
   <script>
-    /* ===== 設定 ===== */
-    const API_URL       = 'https://script.google.com/macros/s/AKfycbxf6Ifxokz6W9w6E1KOwQxapCgpZAR1WE1VPn9MDnMIXLfRuLAqZwx9HyVzMyuC6nITJA/exec';
-    const SHEET_KEY     = 'perf';
-    const INITIAL_FETCH = 250;
-    const HARD_LIMIT    = 500;
-
-    const JSONP_TIMEOUT_MS   = 6500;
-    const SHORT_TRY_MS       = 1500;
-    const MAX_RETRY          = 2;
-    const IFRAME_WATCHDOG_MS = 10000;
-
     const state = {
-      rows: [],
-      total: 0,
-      fetchedLimit: 0,
-      debounce: null,
-      lastReqId: 0,
-      usedIframe: false,
-      pendingHandler: null,
-      globalTimer: null,
-      shortTimer: null,
-      iframeTimer: null,
-      iframeReqId: null,
-      sort: {
-        key: 'artist',  // artist | title | date
-        dir: 1,
-        panel: false
-      }
+      q: '',
+      kind: 'all',
+      sort: 'latest',
+      limit: 50,
     };
 
-    /* ===== ユーティリティ ===== */
-    function $(id){ return document.getElementById(id); }
+    const byId = id => document.getElementById(id);
+    const status = byId('status');
+    const rows = byId('rows');
+    const cachePrefix = 'songs-cache-v1';
 
-    function setStatus(text, opts = {}){
-      const el = $('status');
-      if (!el) return;
-      el.textContent = text;
-      if (opts.fallback){
-        el.dataset.fallback = '1';
-      } else {
-        delete el.dataset.fallback;
+
+    function cacheKey() {
+      return `${cachePrefix}:${state.q}|${state.kind}|${state.sort}|${state.limit}`;
+    }
+
+    function loadCache() {
+      try {
+        const raw = localStorage.getItem(cacheKey());
+        return raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        return null;
       }
     }
 
-    function clearFallbackFlag(){
-      const el = $('status');
-      if (el) delete el.dataset.fallback;
-    }
-
-    window.onGviz = function(payload){
-      clearFallbackFlag();
-      if (typeof state.pendingHandler === 'function') state.pendingHandler(payload);
-    };
-
-    function normalize(s){
-      return (s || '')
-        .toString()
-        .toLowerCase()
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
-
-    function scheduleSearch(){
-      clearTimeout(state.debounce);
-      state.debounce = setTimeout(render, 160);
-    }
-
-    function showToast(msg){
-      const t = $('toast');
-      t.textContent = msg;
-      t.classList.add('show');
-      setTimeout(()=>t.classList.remove('show'), 1400);
-    }
-
-    async function copyPair(title, artist){
-      let text = ((title || '').trim() + ' / ' + (artist || '').trim()).trim();
-      try{
-        if (navigator.clipboard?.writeText){
-          await navigator.clipboard.writeText(text);
-        }else{
-          const ta = document.createElement('textarea');
-          ta.value = text;
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          ta.remove();
-        }
-        showToast('コピーしました：' + text);
-      }catch(e){
-        showToast('コピーに失敗しました');
+    function saveCache(entry) {
+      try {
+        localStorage.setItem(cacheKey(), JSON.stringify(entry));
+      } catch (_) {
+        // ignore cache error
       }
     }
 
-    function buildCustomDm(text){
-      const custom = text || '';
-      if (!custom) return '🍣🧡🍣🧡🍣🧡';
-      return Array.from({length:3},()=>`🍣🧡${custom}`).join('');
+    function fmtDate(value) {
+      if (!value) return '-';
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('ja-JP');
     }
 
-    (function(){
-      const select = $('dm-select');
-      const customWrap = $('dm-custom');
-      const customInput = $('dm-custom-input');
-      const dmSelectWrap = select?.closest('.dm-select-wrap');
-      if (!select || !customWrap || !customInput || !dmSelectWrap) return;
-
-      function toggleCustom(){
-        const isCustom = select.value === 'custom';
-        dmSelectWrap.classList.toggle('is-custom', isCustom);
-        if (isCustom) customInput.focus();
-      }
-
-      select.addEventListener('change', toggleCustom);
-      toggleCustom();
-    })();
-
-    $('dm-copy').addEventListener('click', async ()=>{
-      const select = $('dm-select');
-      const text = (select?.value === 'custom') ? buildCustomDm($('dm-custom-input')?.value || '') : (select?.value || '');
-      try{
-        if (navigator.clipboard?.writeText){
-          await navigator.clipboard.writeText(text);
-        }else{
-          const ta = document.createElement('textarea');
-          ta.value = text;
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          ta.remove();
-        }
-        showToast('弾幕をコピーしました');
-      }catch(e){
-        showToast('弾幕のコピーに失敗しました');
-      }
-    });
-
-    function urlFromText(s){
-      if (!s) return '';
-      const m = String(s).match(/https?:\/\/\S+/);
-      return m ? m[0].replace(/[)\]\s]+$/, '') : '';
-    }
-
-    function formatYmdLabel(s){
-      const m = /^(\d{4})(\d{2})(\d{2})/.exec(String(s || ''));
-      return m ? `${m[1]}/${m[2]}/${m[3]}` : null;
-    }
-
-    function safeHttpUrl(u){
-      if (!u) return '';
-      try{
-        const url = new URL(String(u));
-        return (url.protocol === 'http:' || url.protocol === 'https:') ? url.href : '';
-      }catch(e){
-        return '';
-      }
-    }
-
-    function showSkeleton(){
-      const wrap = $('table');
-      wrap.innerHTML = '';
-      for (let i=0;i<6;i++){
-        const sk = document.createElement('div');
-        sk.className = 'skeleton';
-        wrap.appendChild(sk);
-      }
-    }
-
-    function clearSkeleton(){
-      $('table').innerHTML = '';
-    }
-
-    function getKindValue(){
-      const el = $('kind');
-      return el ? el.value : 'all';
-    }
-
-    // D列から日付を抜く
-    function toSortableDate(dText){
-      if (!dText) return 0;
-      const digits = String(dText).replace(/\D/g, '');
-      if (digits.length < 8) return 0;
-      const y = digits.slice(0,4);
-      const m = digits.slice(4,6);
-      const d = digits.slice(6,8);
-      return Number(y + m + d);
-    }
-
-    /* ===== 描画 ===== */
-    function render(){
-      clearFallbackFlag();
-
-      const tableWrap = $('table');
-      const listWrap  = $('mblist');
-      const hint      = $('hint');
-
-      tableWrap.innerHTML = '';
-      listWrap.innerHTML  = '';
-
-      tableWrap.style.display = 'none';
-      listWrap.style.display  = 'none';
-
-      const isMobile = window.matchMedia('(max-width: 768px)').matches;
-
-      const q        = normalize($('q').value || '');
-      const rawLimit = $('limit').value;
-      const kind     = getKindValue();
-
-      const limit = (rawLimit === 'all')
-        ? Math.min(HARD_LIMIT, state.total || state.rows.length)
-        : Math.min(parseInt(rawLimit,10) || 20, HARD_LIMIT);
-
-      const limitLabel = (rawLimit === 'all') ? '全件' : `${limit}件`;
-
-      let filtered = state.rows;
-
-      // 検索
-      if (q){
-        filtered = filtered.filter(([artist, title])=>{
-          const a = normalize(artist);
-          const t = normalize(title);
-          return a.includes(q) || t.includes(q);
-        });
-      }
-
-      // 対象フィルタ
-      if (kind !== 'all'){
-        filtered = filtered.filter(([, , cText]) => String(cText || '').trim() === kind);
-      }
-
-      // 並べ替え
-      const { key, dir } = state.sort;
-      filtered = filtered.slice().sort((r1, r2)=>{
-        if (key === 'artist'){
-          const v1 = (r1[0] || '').toString();
-          const v2 = (r2[0] || '').toString();
-          return v1.localeCompare(v2, 'ja') * dir;
-        }
-        if (key === 'title'){
-          const v1 = (r1[1] || '').toString();
-          const v2 = (r2[1] || '').toString();
-          return v1.localeCompare(v2, 'ja') * dir;
-        }
-        // date
-        let v1 = toSortableDate(r1[3] || '');
-        let v2 = toSortableDate(r2[3] || '');
-        if (v1 === 0 && r1[5]) v1 = toSortableDate(r1[5]);
-        if (v2 === 0 && r2[5]) v2 = toSortableDate(r2[5]);
-        return (v1 - v2) * dir;
-      });
-
-      const rows = filtered.slice(0, limit);
-
-      if (q || kind !== 'all'){
-        setStatus(
-          `表示中 ${rows.length}件ヒット（対象${filtered.length}件／${state.total}件）／表示上限 ${limitLabel}`
-        );
-      }else{
-        setStatus(
-          `表示中 ${rows.length}件ヒット（全${state.total}件）／表示上限 ${limitLabel}`
-        );
-      }
-
-      if (rows.length === 0){
-        hint.textContent = (q || kind !== 'all') ? '該当なし' : '検索結果がここに表示されます。';
+    function render(items) {
+      if (!items.length) {
+        rows.innerHTML = '<tr><td colspan="5" class="muted">該当データがありません</td></tr>';
         return;
       }
-      hint.textContent = '';
 
-      if (!isMobile){
-        const table = document.createElement('table');
-        table.className = 'stacked';
+      rows.innerHTML = items.map(item => `
+        <tr>
+          <td>${escapeHtml(item.title || '-')}</td>
+          <td>${escapeHtml(item.artist || '-')}</td>
+          <td><span class="tag">${escapeHtml(item.kind || 'other')}</span></td>
+          <td>${escapeHtml(fmtDate(item.publishedAt))}</td>
+          <td>${item.url ? `<a href="${encodeURI(item.url)}" target="_blank" rel="noopener noreferrer">再生</a>` : '-'}</td>
+        </tr>
+      `).join('');
+    }
 
-        const thead = document.createElement('thead');
-        const trh   = document.createElement('tr');
-        const th    = document.createElement('th');
-        th.textContent = 'アーティスト／楽曲情報';
-        trh.appendChild(th);
-        thead.appendChild(trh);
-        table.appendChild(thead);
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
 
-        const tbody = document.createElement('tbody');
+    async function load() {
+      status.textContent = '読み込み中...';
+      status.classList.remove('error');
 
-        rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
-          // 上段
-          const trTop = document.createElement('tr');
-          trTop.className = 'item-top';
-          const tdTop = document.createElement('td');
-          tdTop.style.borderBottom = 'none';
+      const params = new URLSearchParams({
+        q: state.q,
+        kind: state.kind,
+        sort: state.sort,
+        limit: String(state.limit),
+      });
 
-          const l1 = document.createElement('div');
-          l1.className = 'l1';
+      const cached = loadCache();
+      if (cached?.payload?.items) {
+        render(Array.isArray(cached.payload.items) ? cached.payload.items : []);
+        status.textContent = `キャッシュ表示 ${cached.payload.count ?? 0} / 総数 ${cached.payload.total ?? 0}`;
+      }
 
-          const a1 = document.createElement('span');
-          a1.className = 'artist';
-          a1.textContent = artist || '';
-
-          const sep = document.createElement('span');
-          sep.className = 'sep';
-          sep.textContent = '/';
-
-          const t1 = document.createElement('span');
-          t1.className = 'title';
-          t1.textContent = title || '';
-
-          l1.appendChild(a1);
-          l1.appendChild(sep);
-          l1.appendChild(t1);
-
-          tdTop.appendChild(l1);
-          trTop.appendChild(tdTop);
-          tbody.appendChild(trTop);
-
-          // 下段
-          const trOps = document.createElement('tr');
-          trOps.className = 'item-ops';
-          const tdOps = document.createElement('td');
-          tdOps.style.borderTop = 'none';
-
-          const ops = document.createElement('div');
-          ops.className = 'ops';
-
-          const cHref = safeHttpUrl(cUrl) || safeHttpUrl(urlFromText(cText));
-          if (cHref){
-            const aC = document.createElement('a');
-            aC.href = cHref;
-            aC.target = '_blank';
-            aC.rel = 'noopener noreferrer';
-            aC.className = 'btn-pill';
-            aC.title = cText || 'リンク';
-            aC.textContent = cText || 'リンク';
-            ops.appendChild(aC);
-          }
-
-          const dHref  = safeHttpUrl(dUrl) || safeHttpUrl(urlFromText(dText));
-          const dLabel = formatYmdLabel(dText);
-          if (dHref){
-            const aD = document.createElement('a');
-            aD.href   = dHref;
-            aD.target = '_blank';
-            aD.rel    = 'noopener noreferrer';
-            aD.className = 'btn-pill';
-            aD.title = dLabel ? `前回 ${dLabel}` : '前回';
-            aD.textContent = dLabel ? `▶前回${dLabel}` : '▶前回';
-            ops.appendChild(aD);
-          }
-
-          const btn = document.createElement('button');
-          btn.className = 'btn';
-          btn.textContent = 'コピー';
-          btn.addEventListener('click', ()=>copyPair(title, artist));
-          ops.appendChild(btn);
-
-          tdOps.appendChild(ops);
-          trOps.appendChild(tdOps);
-          tbody.appendChild(trOps);
+      try {
+        const res = await fetch(`/api/songs?${params.toString()}`, {
+          headers: cached?.etag ? { 'If-None-Match': cached.etag } : {},
         });
 
-        table.appendChild(tbody);
-        tableWrap.appendChild(table);
-        tableWrap.style.display = 'block';
-        $('mblist').style.display = 'none';
-      }else{
-        rows.forEach(([artist, title, cText, dText, cUrl, dUrl])=>{
-          const item = document.createElement('div');
-          item.className = 'item';
+        if (res.status === 304 && cached?.payload) {
+          status.textContent = `更新なし（ETag） 表示 ${cached.payload.count ?? 0} / 総数 ${cached.payload.total ?? 0}`;
+          return;
+        }
 
-          const l1 = document.createElement('div');
-          l1.className = 'l1';
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-          const a1 = document.createElement('span');
-          a1.className = 'artist';
-          a1.textContent = artist || '';
+        const payload = await res.json();
+        const etag = res.headers.get('etag');
+        render(Array.isArray(payload.items) ? payload.items : []);
+        status.textContent = `表示 ${payload.count ?? 0} / 総数 ${payload.total ?? 0}`;
 
-          const sep = document.createElement('span');
-          sep.className = 'sep';
-          sep.textContent = '/';
-
-          const t1 = document.createElement('span');
-          t1.className = 'title';
-          t1.textContent = title || '';
-
-          l1.appendChild(a1);
-          l1.appendChild(sep);
-          l1.appendChild(t1);
-
-          const l2 = document.createElement('div');
-          l2.className = 'l2';
-
-          const cHref = safeHttpUrl(cUrl) || safeHttpUrl(urlFromText(cText));
-          if (cHref){
-            const aC = document.createElement('a');
-            aC.href = cHref;
-            aC.target = '_blank';
-            aC.rel = 'noopener noreferrer';
-            aC.className = 'btn-pill';
-            aC.title = cText || 'リンク';
-            aC.textContent = cText || 'リンク';
-            l2.appendChild(aC);
-          }
-
-          const dHref  = safeHttpUrl(dUrl) || safeHttpUrl(urlFromText(dText));
-          const dLabel = formatYmdLabel(dText);
-          if (dHref){
-            const aD = document.createElement('a');
-            aD.href = dHref;
-            aD.target = '_blank';
-            aD.rel = 'noopener noreferrer';
-            aD.className = 'btn-pill';
-            aD.title = dLabel ? `前回 ${dLabel}` : '前回';
-            aD.textContent = dLabel ? `▶前回${dLabel}` : '▶前回';
-            l2.appendChild(aD);
-          }
-
-          const btn = document.createElement('button');
-          btn.className = 'btn';
-          btn.textContent = 'コピー';
-          btn.addEventListener('click', ()=>copyPair(title, artist));
-          l2.appendChild(btn);
-
-          item.appendChild(l1);
-          item.appendChild(l2);
-          $('mblist').appendChild(item);
-        });
-
-        $('mblist').style.display='block';
+        if (etag) {
+          saveCache({ etag, payload });
+        }
+      } catch (err) {
+        console.error(err);
+        if (!cached?.payload) {
+          rows.innerHTML = '<tr><td colspan="5" class="error">データ取得に失敗しました。Worker / R2 の設定を確認してください。</td></tr>';
+        }
+        status.classList.add('error');
+        status.textContent = `エラー: ${err.message}`;
       }
     }
 
-    /* ===== JSONP まわり ===== */
-    function jsonpOnce(url, onerror, reqId){
-      const s = document.createElement('script');
-      s.src = url;
-      s.async = true;
-      s.dataset.jsonp = String(reqId || '');
-      s.onerror = ()=>{
-        try{ s.remove(); }catch(e){}
-        if (onerror) onerror();
-      };
-      document.head.appendChild(s);
-    }
+    function bind() {
+      byId('q').addEventListener('input', e => { state.q = e.target.value.trim(); });
+      byId('kind').addEventListener('change', e => { state.kind = e.target.value; });
+      byId('sort').addEventListener('change', e => { state.sort = e.target.value; });
+      byId('limit').addEventListener('change', e => { state.limit = Number(e.target.value); });
 
-    function cleanupJsonpScripts(reqId){
-      const sel = reqId ? `script[data-jsonp="${reqId}"]` : 'script[data-jsonp]';
-      document.querySelectorAll(sel).forEach(el=>{
-        try{ el.remove(); }catch(e){}
+      byId('reload').addEventListener('click', load);
+      byId('clear').addEventListener('click', () => {
+        state.q = '';
+        state.kind = 'all';
+        state.sort = 'latest';
+        state.limit = 50;
+        byId('q').value = '';
+        byId('kind').value = 'all';
+        byId('sort').value = 'latest';
+        byId('limit').value = '50';
+        load();
       });
     }
 
-    function fetchRows(limit, attempt = 0){
-      const reqId = ++state.lastReqId;
-
-      // 既存iframeの掃除
-      if (state.iframeTimer){
-        clearTimeout(state.iframeTimer);
-        state.iframeTimer = null;
-        state.iframeReqId = null;
-      }
-      const prev = document.getElementById('gviz-frame');
-      if (prev) prev.remove();
-
-      const base = API_URL.replace(/\/macros\/u\/\d+\//, '/macros/');
-      const url  = `${base}?callback=onGviz&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit, HARD_LIMIT)}&authuser=0&v=${Date.now()}`;
-
-      setStatus(attempt === 0 ? '読み込み中…' : `読み込み中…（${attempt}）`);
-      showSkeleton();
-
-      let settled = false;
-
-      state.pendingHandler = (payload)=>{
-        clearFallbackFlag();
-        if (settled) return;
-        if (reqId !== state.lastReqId) return;
-        settled = true;
-
-        clearTimeout(state.shortTimer);
-        clearTimeout(state.globalTimer);
-
-        try{
-          if (!payload || !Array.isArray(payload.rows)){
-            setStatus('データ取得に失敗しました（不正なレスポンス）');
-            cleanupJsonpScripts(reqId);
-            clearSkeleton();
-            return;
-          }
-
-          const rows = (payload.rows || [])
-            .map(r => [
-              r.artist || '',
-              r.title  || '',
-              r.cText  || '',
-              r.dText  || '',
-              r.cUrl   || '',
-              r.dUrl   || ''
-            ])
-            .filter(([a, b]) => ((a || '') + (b || '')).trim() !== '');
-
-          state.rows  = rows;
-          state.total = Number(
-            (payload.total ?? null) != null
-              ? payload.total
-              : (payload.matched ?? rows.length)
-          );
-
-          const f = document.getElementById('gviz-frame');
-          if (f) f.remove();
-          state.usedIframe = false;
-
-          if (state.iframeReqId === reqId && state.iframeTimer){
-            clearTimeout(state.iframeTimer);
-          }
-          state.iframeTimer = null;
-          state.iframeReqId = null;
-
-          cleanupJsonpScripts(reqId);
-          state.fetchedLimit = Math.max(state.fetchedLimit || 0, state.rows.length);
-
-          setStatus(`読み込み完了：${state.rows.length}件（全${state.total}件）`);
-          clearSkeleton();
-          render();
-        }catch(e){
-          console.error(e);
-          setStatus('読み込みに失敗しました');
-          cleanupJsonpScripts(reqId);
-          clearSkeleton();
-        }
-      };
-
-      // 短時間リトライ
-      state.shortTimer = setTimeout(()=>{
-        if (!settled && attempt < MAX_RETRY){
-          fetchRows(limit, attempt + 1);
-        }
-      }, SHORT_TRY_MS);
-
-      // 全体のタイムアウト → iframe
-      state.globalTimer = setTimeout(()=>{
-        if (!settled && reqId === state.lastReqId){
-          tryIframeFallback(limit, reqId, 'jsonp-timeout');
-        }
-      }, JSONP_TIMEOUT_MS);
-
-      jsonpOnce(url, ()=>{}, reqId);
-    }
-
-    function tryIframeFallback(limit, reqId, reason){
-      if (reqId !== state.lastReqId) return;
-      if ((state.rows && state.rows.length) > 0) return;
-      if (state.usedIframe) return;
-      state.usedIframe = true;
-
-      setStatus(`別ルートで取得中…（${reason}）`, {fallback:true});
-
-      const old = document.getElementById('gviz-frame');
-      if (old) old.remove();
-
-      const base = API_URL.replace(/\/macros\/u\/\d+\//, '/macros/');
-      const urlFrame = `${base}?frame=1&sheet=${encodeURIComponent(SHEET_KEY)}&limit=${Math.min(limit, HARD_LIMIT)}&authuser=0&v=${Date.now()}`;
-
-      const f = document.createElement('iframe');
-      f.id  = 'gviz-frame';
-      f.src = urlFrame;
-      f.style.display = 'none';
-      f.width  = 0;
-      f.height = 0;
-      f.tabIndex = -1;
-      document.body.appendChild(f);
-
-      clearTimeout(state.iframeTimer);
-      state.iframeReqId = reqId;
-      state.iframeTimer = setTimeout(()=>{
-        if (state.lastReqId !== reqId) return;
-        if (!$('status')?.dataset?.fallback) return;
-        if ((state.rows && state.rows.length) > 0) return;
-
-        setStatus('取得がタイムアウトしました（公開設定/デプロイ確認・ネットワーク再試行）');
-        const g = document.getElementById('gviz-frame');
-        if (g) g.remove();
-        state.usedIframe = false;
-        clearSkeleton();
-      }, IFRAME_WATCHDOG_MS);
-    }
-
-    /* ===== イベント ===== */
-    window.addEventListener('message', (ev)=>{
-      const d = ev?.data;
-      if (!d || d.type !== 'gviz') return;
-      clearFallbackFlag();
-      if (typeof state.pendingHandler === 'function') state.pendingHandler(d.payload);
-    });
-
-    window.addEventListener('offline', ()=>{
-      setStatus('オフラインです。接続を確認してください。');
-    });
-
-    window.addEventListener('online', ()=>{
-      setStatus('オンラインに復帰しました。再取得しています…');
-      fetchRows(INITIAL_FETCH);
-    });
-
-    document.addEventListener('visibilitychange', ()=>{
-      if (document.visibilityState === 'visible'){
-        if ($('status')?.dataset?.fallback && (state.rows && state.rows.length) > 0){
-          clearFallbackFlag();
-        }
-      }
-    });
-
-    /* ===== 初期化 ===== */
-    fetchRows(INITIAL_FETCH);
-
-    $('q').addEventListener('input', scheduleSearch);
-
-    $('limit').addEventListener('change', ()=>{
-      const raw = $('limit').value;
-      if (raw === 'all' && (state.fetchedLimit || 0) < (state.total || HARD_LIMIT)){
-        setStatus('全件を取得しています…');
-        fetchRows(HARD_LIMIT);
-      }else{
-        render();
-      }
-    });
-
-    (function(){
-      const el = $('kind');
-      if (el) el.addEventListener('change', render);
-    })();
-
-    (function(){
-      const btn   = $('show-sort');
-      const panel = $('sort-panel');
-      if (!btn || !panel) return;
-      btn.addEventListener('click', ()=>{
-        state.sort.panel = !state.sort.panel;
-        if (state.sort.panel){
-          panel.classList.add('is-open');
-          btn.textContent = '非表示';
-        }else{
-          panel.classList.remove('is-open');
-          btn.textContent = '並び替え';
-        }
-      });
-    })();
-
-    (function(){
-      const btnArtist = $('sort-artist');
-      const btnTitle  = $('sort-title');
-      const btnDate   = $('sort-date');
-      if (!btnArtist || !btnTitle || !btnDate) return;
-
-      function updateSortButtons(){
-        const { key, dir } = state.sort;
-        const m = { artist: btnArtist, title: btnTitle, date: btnDate };
-
-        Object.keys(m).forEach(k=>{
-          const b = m[k];
-          if (k === key){
-            b.classList.add('is-active');
-            if (k === 'artist') b.textContent = dir === 1 ? '歌手名順↑' : '歌手名順↓';
-            if (k === 'title')  b.textContent = dir === 1 ? '楽曲順↑' : '楽曲順↓';
-            if (k === 'date')   b.textContent = dir === 1 ? '投稿日順↑' : '投稿日順↓';
-          }else{
-            b.classList.remove('is-active');
-            if (k === 'artist') b.textContent = '歌手名順↑';
-            if (k === 'title')  b.textContent = '楽曲順↑';
-            if (k === 'date')   b.textContent = '投稿日順↑';
-          }
-        });
-      }
-
-      function toggleSort(targetKey){
-        if (state.sort.key === targetKey){
-          state.sort.dir = state.sort.dir * -1;
-        } else {
-          state.sort.key = targetKey;
-          state.sort.dir = 1;
-        }
-        updateSortButtons();
-        render();
-      }
-
-      btnArtist.addEventListener('click', ()=>toggleSort('artist'));
-      btnTitle.addEventListener('click',  ()=>toggleSort('title'));
-      btnDate.addEventListener('click',   ()=>toggleSort('date'));
-
-      updateSortButtons();
-    })();
-
-    const mq = window.matchMedia('(max-width: 768px)');
-    mq.addEventListener?.('change', render);
-    window.addEventListener('resize', render);
-
-    console.log('UI layout fixed v20251023-2 + 34px-controls + black-sort');
+    bind();
+    load();
   </script>
 </body>
 </html>
