@@ -157,6 +157,67 @@
       align-items: end;
     }
 
+    .bottom-swipe-wrap {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--surface-2) 90%, black 10%);
+    }
+
+    .bottom-swipe-track {
+      display: flex;
+      width: 200%;
+      transform: translateX(0%);
+      transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.2, 1);
+      touch-action: pan-y;
+    }
+
+    .bottom-swipe-track.dragging {
+      transition: none;
+      cursor: grabbing;
+    }
+
+    .bottom-panel {
+      width: 50%;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .swipe-hint {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+      gap: 8px;
+    }
+
+    .swipe-dots {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .swipe-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #475569;
+      transition: transform 0.25s ease, background-color 0.25s ease;
+    }
+
+    .swipe-dot.active {
+      background: var(--accent);
+      transform: scale(1.2);
+    }
+
+    .bottom-panel h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+
     @media (max-width: 860px) {
       .top-summary { grid-template-columns: 1fr; }
       .top-advanced { grid-template-columns: 1fr; }
@@ -309,39 +370,50 @@
 
     <section class="card bottom-form">
       <h2>下部検索フォーム</h2>
-      <div class="bottom-grid">
-        <label>検索フォーム
-          <input id="q" type="search" placeholder="曲名 / アーティスト / メモ">
-        </label>
-        <label>弾幕選択カラム
-          <select id="danmakuType">
-            <option value="title">曲名</option>
-            <option value="artist">アーティスト</option>
-            <option value="full">曲名 + アーティスト</option>
-            <option value="my">マイ弾幕</option>
-          </select>
-        </label>
-        <button id="openMyDanmaku" type="button">弾幕編集（マイ弾幕）</button>
-        <button id="clear" type="button">検索クリア</button>
-        <button class="primary" id="copyDanmaku" type="button">弾幕コピー</button>
-      </div>
-    </section>
-  </main>
+      <div class="bottom-swipe-wrap" id="bottomSwipeWrap">
+        <div class="bottom-swipe-track" id="bottomSwipeTrack">
+          <section class="bottom-panel" aria-label="検索フォームカード">
+            <h3>検索フォーム</h3>
+            <div class="bottom-grid">
+              <label>検索フォーム
+                <input id="q" type="search" placeholder="曲名 / アーティスト / メモ">
+              </label>
+              <label>弾幕選択カラム
+                <select id="danmakuType">
+                  <option value="title">曲名</option>
+                  <option value="artist">アーティスト</option>
+                  <option value="full">曲名 + アーティスト</option>
+                  <option value="my">マイ弾幕</option>
+                </select>
+              </label>
+              <button id="clear" type="button">検索クリア</button>
+              <button class="primary" id="copyDanmaku" type="button">弾幕コピー</button>
+            </div>
+          </section>
 
-  <main class="container" id="myDanmakuPage" hidden>
-    <section class="card my-danmaku-form">
-      <h2>マイ弾幕作成</h2>
-      <p class="muted">好きな絵文字を入力すると、🍣💛絵文字 を3回つないだ弾幕を自動生成します（キャッシュ15分）。</p>
-      <label>絵文字入力
-        <input id="myEmoji" type="text" placeholder="例: 🎉" maxlength="20">
-      </label>
-      <div>
-        <div class="muted">生成プレビュー</div>
-        <div id="myDanmakuPreview" class="preview-box">🍣💛🙂🍣💛🙂🍣💛🙂</div>
+          <section class="bottom-panel my-danmaku-form" aria-label="マイ弾幕カード">
+            <h3>マイ弾幕作成</h3>
+            <p class="muted">好きな絵文字を入力すると、🍣💛絵文字 を3回つないだ弾幕を自動生成します（キャッシュ15分）。</p>
+            <label>絵文字入力
+              <input id="myEmoji" type="text" placeholder="例: 🎉" maxlength="20">
+            </label>
+            <div>
+              <div class="muted">生成プレビュー</div>
+              <div id="myDanmakuPreview" class="preview-box">🍣💛🙂🍣💛🙂🍣💛🙂</div>
+            </div>
+            <div class="my-danmaku-actions">
+              <button class="primary" id="saveMyDanmaku" type="button">この内容を使う</button>
+            </div>
+          </section>
+        </div>
       </div>
-      <div class="my-danmaku-actions">
-        <button class="primary" id="saveMyDanmaku" type="button">この内容を使う</button>
-        <button id="backToSongs" type="button">戻る</button>
+
+      <div class="swipe-hint" id="swipeHint">
+        <span id="swipeHintText">← 横スワイプでマイ弾幕カードへ →</span>
+        <span class="swipe-dots" aria-hidden="true">
+          <span class="swipe-dot active" id="swipeDotSearch"></span>
+          <span class="swipe-dot" id="swipeDotMy"></span>
+        </span>
       </div>
     </section>
   </main>
@@ -366,13 +438,83 @@
     const myDanmakuCacheKey = 'my-danmaku-cache-v1';
     const myDanmakuCacheMs = 15 * 60 * 1000;
 
-    function togglePage(page) {
-      const songsPage = byId('songsPage');
-      const myDanmakuPage = byId('myDanmakuPage');
-      const showMyPage = page === 'my-danmaku';
-      songsPage.hidden = showMyPage;
-      myDanmakuPage.hidden = !showMyPage;
-      byId('scrollTop').style.display = showMyPage ? 'none' : '';
+    function updateSwipeUi(index) {
+      const isMyCard = index === 1;
+      byId('swipeDotSearch').classList.toggle('active', !isMyCard);
+      byId('swipeDotMy').classList.toggle('active', isMyCard);
+      byId('swipeHintText').textContent = isMyCard
+        ? '← 横スワイプで検索フォームカードへ →'
+        : '← 横スワイプでマイ弾幕カードへ →';
+    }
+
+    function setupBottomSwipe() {
+      const wrap = byId('bottomSwipeWrap');
+      const track = byId('bottomSwipeTrack');
+      let current = 0;
+      let dragging = false;
+      let startX = 0;
+      let deltaX = 0;
+      let pointerId = null;
+
+      const setCard = (index, withAnimation = true) => {
+        current = Math.max(0, Math.min(1, index));
+        track.style.transition = withAnimation
+          ? 'transform 0.45s cubic-bezier(0.2, 0.9, 0.2, 1)'
+          : 'none';
+        track.style.transform = `translateX(${-current * 50}%)`;
+        updateSwipeUi(current);
+      };
+
+      const getThreshold = () => Math.max(54, wrap.clientWidth * 0.12);
+
+      const onPointerMove = (evt) => {
+        if (!dragging || evt.pointerId !== pointerId) return;
+        deltaX = evt.clientX - startX;
+        const base = -current * 50;
+        const ratio = (deltaX / wrap.clientWidth) * 50;
+        const next = Math.max(-50, Math.min(0, base + ratio));
+        track.style.transform = `translateX(${next}%)`;
+      };
+
+      const onPointerUp = (evt) => {
+        if (!dragging || evt.pointerId !== pointerId) return;
+        dragging = false;
+        track.classList.remove('dragging');
+        track.releasePointerCapture(pointerId);
+        const threshold = getThreshold();
+        if (Math.abs(deltaX) > threshold) {
+          if (deltaX < 0) setCard(current + 1);
+          else setCard(current - 1);
+        } else {
+          setCard(current);
+        }
+        pointerId = null;
+        deltaX = 0;
+      };
+
+      track.addEventListener('pointerdown', (evt) => {
+        if (evt.pointerType === 'mouse' && evt.button !== 0) return;
+        dragging = true;
+        startX = evt.clientX;
+        deltaX = 0;
+        pointerId = evt.pointerId;
+        track.classList.add('dragging');
+        track.setPointerCapture(pointerId);
+      });
+
+      track.addEventListener('pointermove', onPointerMove);
+      track.addEventListener('pointerup', onPointerUp);
+      track.addEventListener('pointercancel', onPointerUp);
+
+      byId('danmakuType').addEventListener('change', (evt) => {
+        if (evt.target.value === 'my') setCard(1);
+      });
+
+      byId('saveMyDanmaku').addEventListener('click', () => {
+        setCard(0);
+      });
+
+      setCard(0, false);
     }
 
     function buildMyDanmaku(emoji) {
@@ -708,14 +850,6 @@
       });
 
       byId('copyDanmaku').addEventListener('click', copyDanmaku);
-      byId('openMyDanmaku').addEventListener('click', () => {
-        byId('myEmoji').focus();
-        togglePage('my-danmaku');
-      });
-
-      byId('backToSongs').addEventListener('click', () => {
-        togglePage('songs');
-      });
 
       byId('myEmoji').addEventListener('input', (e) => {
         const text = buildMyDanmaku(e.target.value);
@@ -728,7 +862,6 @@
         byId('danmakuType').value = 'my';
         status.classList.remove('error');
         status.textContent = 'マイ弾幕を保存しました（15分キャッシュ）';
-        togglePage('songs');
       });
 
       byId('collapseToggle').addEventListener('click', () => {
@@ -752,6 +885,7 @@
     }
 
     bind();
+    setupBottomSwipe();
     state.myDanmaku = loadMyDanmakuCache();
     if (state.myDanmaku) {
       byId('myDanmakuPreview').textContent = state.myDanmaku;
