@@ -15,6 +15,7 @@
       --primary: #38bdf8;
       --accent: #22d3ee;
       --danger: #f87171;
+      --focus: #f59e0b;
     }
 
     * { box-sizing: border-box; }
@@ -26,13 +27,7 @@
       color: var(--text);
     }
 
-    .container {
-      max-width: 1080px;
-      margin: 0 auto;
-      display: grid;
-      gap: 16px;
-    }
-
+    .container { max-width: 1080px; margin: 0 auto; display: grid; gap: 16px; }
     .card {
       background: color-mix(in srgb, var(--surface) 90%, black 10%);
       border: 1px solid var(--line);
@@ -41,48 +36,37 @@
     }
 
     h1 { margin: 0 0 6px; font-size: 22px; }
+    h2 { margin: 0 0 12px; font-size: 17px; }
     .muted { color: var(--muted); font-size: 13px; }
-
-    .filters {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    @media (max-width: 860px) {
-      .filters { grid-template-columns: 1fr 1fr; }
-    }
-
-    @media (max-width: 500px) {
-      .filters { grid-template-columns: 1fr; }
-    }
+    .status { font-size: 13px; color: var(--muted); }
+    .error { color: var(--danger); }
 
     label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 
-    input, select {
+    .top-form input, .top-form select,
+    .middle-form input, .middle-form select,
+    .bottom-form input, .bottom-form select {
       width: 100%;
       border-radius: 10px;
       border: 1px solid var(--line);
       background: var(--surface-2);
       color: var(--text);
+      min-height: 42px;
       padding: 9px 10px;
       font-size: 15px;
     }
 
-    .actions {
-      margin-top: 10px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    button {
+    .top-form button,
+    .middle-form button,
+    .bottom-form button {
       border: 1px solid var(--line);
       border-radius: 10px;
       background: var(--surface-2);
       color: var(--text);
+      min-height: 42px;
       padding: 8px 12px;
       cursor: pointer;
+      font-size: 14px;
     }
 
     button.primary {
@@ -90,6 +74,96 @@
       background: linear-gradient(180deg, var(--primary), #0ea5e9);
       color: #001018;
       font-weight: 700;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    a:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    .top-form {
+      position: relative;
+      padding-bottom: 50px;
+      overflow: hidden;
+      transition: max-height 0.2s ease;
+      max-height: 520px;
+    }
+
+    .top-summary {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-bottom: 10px;
+    }
+
+    .summary-box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-2);
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .top-advanced {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1.8fr 1.2fr auto;
+      align-items: end;
+    }
+
+    .top-form.collapsed {
+      max-height: 182px;
+    }
+
+    .top-form.collapsed .top-advanced { display: none; }
+
+    .toggle-wrap {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 140px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .checkbox-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      padding-top: 2px;
+    }
+
+    .checkbox-row label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text);
+    }
+
+    .checkbox-row input { width: auto; min-height: auto; }
+
+    .bottom-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 2fr 1fr auto auto;
+      align-items: end;
+    }
+
+    @media (max-width: 860px) {
+      .top-summary { grid-template-columns: 1fr; }
+      .top-advanced { grid-template-columns: 1fr; }
+      .bottom-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .bottom-grid { grid-template-columns: 1fr; }
     }
 
     table { width: 100%; border-collapse: collapse; }
@@ -100,7 +174,6 @@
       padding: 9px 8px;
       font-size: 14px;
     }
-
     th { color: var(--muted); font-weight: 600; font-size: 12px; }
 
     .tag {
@@ -113,58 +186,63 @@
       color: var(--accent);
     }
 
-    .status { font-size: 12px; color: var(--muted); }
-    .error { color: var(--danger); }
+    #scrollTop {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 20;
+      display: none;
+    }
+
+    #scrollTop.show { display: inline-flex; }
   </style>
 </head>
 <body>
   <main class="container">
     <section class="card">
       <h1>雲丹ゐくら Songs DB TEST</h1>
-      <p class="muted">kasane-3kHz-songs-dbTEST 構成に合わせ、Cloudflare R2 + Worker API 経由で参照するUIに更新。チェック済みかつ公開期間内のデータのみ表示します。</p>
+      <p class="muted">kasane-3kHz-songs-dbTEST 構成に合わせ、Cloudflare R2 + Worker API 経由で参照するUIです。</p>
     </section>
 
-    <section class="card">
-      <div class="filters">
-        <label>検索
-          <input id="q" type="search" placeholder="曲名 / アーティスト / メモ">
-        </label>
-        <label>種別
-          <select id="kind">
-            <option value="all">すべて</option>
-            <option value="cover">歌ってみた</option>
-            <option value="original">オリジナル</option>
-            <option value="short">short</option>
-          </select>
-        </label>
-        <label>並び順
-          <select id="sort">
-            <option value="latest">新しい順</option>
-            <option value="oldest">古い順</option>
-            <option value="title">タイトル順</option>
-            <option value="artist">アーティスト順</option>
-          </select>
-        </label>
-        <label>件数
-          <select id="limit">
-            <option>20</option>
-            <option selected>50</option>
-            <option>100</option>
-            <option>200</option>
-          </select>
-        </label>
+    <section class="card top-form" id="topForm">
+      <h2>上部絞り込みフォーム</h2>
+      <div class="top-summary">
+        <div class="summary-box">サーバー状態表示: <span class="status" id="status">初期化中...</span></div>
+        <div class="summary-box">選択されている楽曲数: <span id="selectedCount">0</span> 曲</div>
       </div>
-      <div class="actions">
-        <button class="primary" id="reload">再読み込み</button>
-        <button id="clear">条件クリア</button>
-        <span class="status" id="status">初期化中...</span>
+
+      <div class="top-advanced">
+        <label>絞り込みメニュー
+          <div class="checkbox-row">
+            <label><input type="checkbox" id="kindLive" checked>歌枠</label>
+            <label><input type="checkbox" id="kindCover" checked>歌ってみた</label>
+            <label><input type="checkbox" id="kindShort" checked>ショート</label>
+          </div>
+        </label>
+        <label>表示切替メニュー
+          <select id="sortMode">
+            <option value="artist-asc">アーティスト名 昇順</option>
+            <option value="artist-desc">アーティスト名 降順</option>
+            <option value="title-asc">楽曲名 昇順</option>
+            <option value="title-desc">楽曲名 降順</option>
+            <option value="date-asc">投稿日付 昇順</option>
+            <option value="date-desc" selected>投稿日付 降順</option>
+          </select>
+        </label>
+        <button class="primary" id="reload" type="button">再読み込み</button>
+      </div>
+
+      <div class="toggle-wrap">
+        <button id="collapseToggle" type="button">折り畳み</button>
       </div>
     </section>
 
-    <section class="card">
+    <section class="card middle-form">
+      <h2>中部楽曲情報フォーム</h2>
       <table>
         <thead>
           <tr>
+            <th>弾幕選択</th>
             <th>タイトル</th>
             <th>アーティスト</th>
             <th>種別</th>
@@ -175,24 +253,44 @@
         <tbody id="rows"></tbody>
       </table>
     </section>
+
+    <section class="card bottom-form">
+      <h2>下部検索フォーム</h2>
+      <div class="bottom-grid">
+        <label>検索フォーム
+          <input id="q" type="search" placeholder="曲名 / アーティスト / メモ">
+        </label>
+        <label>弾幕選択カラム
+          <select id="danmakuType">
+            <option value="title">曲名</option>
+            <option value="artist">アーティスト</option>
+            <option value="full">曲名 + アーティスト</option>
+          </select>
+        </label>
+        <button id="clear" type="button">検索クリア</button>
+        <button class="primary" id="copyDanmaku" type="button">弾幕コピー</button>
+      </div>
+    </section>
   </main>
+
+  <button id="scrollTop" class="primary" type="button">↑ 上へ</button>
 
   <script>
     const state = {
       q: '',
-      kind: 'all',
-      sort: 'latest',
-      limit: 50,
+      kinds: ['cover', 'short', 'live'],
+      sortMode: 'date-desc',
+      selectedSongId: '',
     };
 
-    const byId = id => document.getElementById(id);
+    const byId = (id) => document.getElementById(id);
     const status = byId('status');
     const rows = byId('rows');
-    const cachePrefix = 'songs-cache-v1';
-
+    const selectedCount = byId('selectedCount');
+    const cachePrefix = 'songs-cache-v3';
 
     function cacheKey() {
-      return `${cachePrefix}:${state.q}|${state.kind}|${state.sort}|${state.limit}`;
+      return `${cachePrefix}:${state.q}|${state.kinds.join(',')}|${state.sortMode}`;
     }
 
     function loadCache() {
@@ -207,32 +305,13 @@
     function saveCache(entry) {
       try {
         localStorage.setItem(cacheKey(), JSON.stringify(entry));
-      } catch (_) {
-        // ignore cache error
-      }
+      } catch (_) {}
     }
 
     function fmtDate(value) {
       if (!value) return '-';
       const d = new Date(value);
       return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString('ja-JP');
-    }
-
-    function render(items) {
-      if (!items.length) {
-        rows.innerHTML = '<tr><td colspan="5" class="muted">該当データがありません</td></tr>';
-        return;
-      }
-
-      rows.innerHTML = items.map(item => `
-        <tr>
-          <td>${escapeHtml(item.title || '-')}</td>
-          <td>${escapeHtml(item.artist || '-')}</td>
-          <td><span class="tag">${escapeHtml(item.kind || 'other')}</span></td>
-          <td>${escapeHtml(fmtDate(item.publishedAt))}</td>
-          <td>${item.url ? `<a href="${encodeURI(item.url)}" target="_blank" rel="noopener noreferrer">再生</a>` : '-'}</td>
-        </tr>
-      `).join('');
     }
 
     function escapeHtml(text) {
@@ -244,21 +323,111 @@
         .replaceAll("'", '&#39;');
     }
 
+    function normalizeKind(kind) {
+      const map = { cover: 'cover', short: 'short', live: 'live', stream: 'live' };
+      return map[String(kind || '').toLowerCase()] || 'other';
+    }
+
+    function kindLabel(kind) {
+      const labels = { cover: '歌ってみた', short: 'ショート', live: '歌枠', other: 'その他' };
+      return labels[kind] || 'その他';
+    }
+
+    function dateOf(item) {
+      const t = Date.parse(item?.publishedAt || '');
+      return Number.isNaN(t) ? 0 : t;
+    }
+
+    function sortItems(items) {
+      const sorted = [...items];
+      switch (state.sortMode) {
+        case 'artist-asc':
+          return sorted.sort((a, b) => String(a.artist || '').localeCompare(String(b.artist || ''), 'ja'));
+        case 'artist-desc':
+          return sorted.sort((a, b) => String(b.artist || '').localeCompare(String(a.artist || ''), 'ja'));
+        case 'title-asc':
+          return sorted.sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'ja'));
+        case 'title-desc':
+          return sorted.sort((a, b) => String(b.title || '').localeCompare(String(a.title || ''), 'ja'));
+        case 'date-asc':
+          return sorted.sort((a, b) => dateOf(a) - dateOf(b));
+        case 'date-desc':
+        default:
+          return sorted.sort((a, b) => dateOf(b) - dateOf(a));
+      }
+    }
+
+    function render(items) {
+      selectedCount.textContent = String(items.length);
+
+      if (!items.length) {
+        rows.innerHTML = '<tr><td colspan="6" class="muted">該当データがありません</td></tr>';
+        rows.dataset.selected = '{}';
+        state.selectedSongId = '';
+        return;
+      }
+
+      rows.innerHTML = items.map((item, index) => {
+        const id = `song-${index}-${escapeHtml(item.title || '')}`;
+        const checked = state.selectedSongId === id ? 'checked' : '';
+        const safeUrl = item.url ? encodeURI(item.url) : '';
+        return `
+          <tr>
+            <td><input type="radio" name="songPick" value="${id}" ${checked}></td>
+            <td>${escapeHtml(item.title || '-')}</td>
+            <td>${escapeHtml(item.artist || '-')}</td>
+            <td><span class="tag">${escapeHtml(kindLabel(normalizeKind(item.kind)))}</span></td>
+            <td>${escapeHtml(fmtDate(item.publishedAt))}</td>
+            <td>${item.url ? `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">再生</a>` : '-'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      rows.querySelectorAll('input[type="radio"]').forEach((el, idx) => {
+        el.addEventListener('change', () => {
+          if (el.checked) {
+            state.selectedSongId = el.value;
+            rows.dataset.selected = JSON.stringify(items[idx] || {});
+          }
+        });
+      });
+
+      const selectedRadio = rows.querySelector(`input[value="${CSS.escape(state.selectedSongId)}"]`);
+      if (!selectedRadio) {
+        const first = rows.querySelector('input[type="radio"]');
+        if (first) {
+          first.checked = true;
+          state.selectedSongId = first.value;
+          rows.dataset.selected = JSON.stringify(items[0] || {});
+        }
+      }
+    }
+
+    function filterItems(items) {
+      const q = state.q.toLowerCase();
+      const kinds = new Set(state.kinds);
+      return sortItems(
+        items
+          .filter((item) => kinds.has(normalizeKind(item.kind)))
+          .filter((item) => {
+            if (!q) return true;
+            const target = [item.title, item.artist, item.memo].filter(Boolean).join(' ').toLowerCase();
+            return target.includes(q);
+          }),
+      );
+    }
+
     async function load() {
       status.textContent = '読み込み中...';
       status.classList.remove('error');
 
-      const params = new URLSearchParams({
-        q: state.q,
-        kind: state.kind,
-        sort: state.sort,
-        limit: String(state.limit),
-      });
-
+      const params = new URLSearchParams({ q: state.q, kind: 'all', sort: 'latest' });
       const cached = loadCache();
+
       if (cached?.payload?.items) {
-        render(Array.isArray(cached.payload.items) ? cached.payload.items : []);
-        status.textContent = `キャッシュ表示 ${cached.payload.count ?? 0} / 総数 ${cached.payload.total ?? 0}`;
+        const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
+        render(cachedItems);
+        status.textContent = `キャッシュ表示 ${cachedItems.length} / 総数 ${cached.payload.total ?? 0}`;
       }
 
       try {
@@ -267,7 +436,9 @@
         });
 
         if (res.status === 304 && cached?.payload) {
-          status.textContent = `更新なし（ETag） 表示 ${cached.payload.count ?? 0} / 総数 ${cached.payload.total ?? 0}`;
+          const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
+          render(cachedItems);
+          status.textContent = `更新なし（ETag） 表示 ${cachedItems.length} / 総数 ${cached.payload.total ?? 0}`;
           return;
         }
 
@@ -275,39 +446,94 @@
 
         const payload = await res.json();
         const etag = res.headers.get('etag');
-        render(Array.isArray(payload.items) ? payload.items : []);
-        status.textContent = `表示 ${payload.count ?? 0} / 総数 ${payload.total ?? 0}`;
+        const filteredItems = filterItems(Array.isArray(payload.items) ? payload.items : []);
+        render(filteredItems);
+        status.textContent = `表示 ${filteredItems.length} / 総数 ${payload.total ?? 0}`;
 
-        if (etag) {
-          saveCache({ etag, payload });
-        }
+        if (etag) saveCache({ etag, payload });
       } catch (err) {
         console.error(err);
         if (!cached?.payload) {
-          rows.innerHTML = '<tr><td colspan="5" class="error">データ取得に失敗しました。Worker / R2 の設定を確認してください。</td></tr>';
+          rows.innerHTML = '<tr><td colspan="6" class="error">データ取得に失敗しました。Worker / R2 の設定を確認してください。</td></tr>';
         }
         status.classList.add('error');
         status.textContent = `エラー: ${err.message}`;
       }
     }
 
+    async function copyDanmaku() {
+      const selected = JSON.parse(rows.dataset.selected || '{}');
+      if (!selected.title && !selected.artist) {
+        status.textContent = 'コピー対象がありません';
+        status.classList.add('error');
+        return;
+      }
+
+      const type = byId('danmakuType').value;
+      let text = selected.title || '';
+      if (type === 'artist') text = selected.artist || '';
+      if (type === 'full') text = `${selected.title || ''} - ${selected.artist || ''}`;
+
+      try {
+        await navigator.clipboard.writeText(text.trim());
+        status.classList.remove('error');
+        status.textContent = `弾幕コピー完了: ${text.trim()}`;
+      } catch (_) {
+        status.classList.add('error');
+        status.textContent = 'コピーに失敗しました（権限を確認してください）';
+      }
+    }
+
+    function toggleKind(kind) {
+      const set = new Set(state.kinds);
+      if (set.has(kind)) set.delete(kind);
+      else set.add(kind);
+      state.kinds = [...set];
+
+      if (state.kinds.length === 0) {
+        state.kinds = ['cover', 'short', 'live'];
+        byId('kindCover').checked = true;
+        byId('kindShort').checked = true;
+        byId('kindLive').checked = true;
+      }
+      load();
+    }
+
     function bind() {
-      byId('q').addEventListener('input', e => { state.q = e.target.value.trim(); });
-      byId('kind').addEventListener('change', e => { state.kind = e.target.value; });
-      byId('sort').addEventListener('change', e => { state.sort = e.target.value; });
-      byId('limit').addEventListener('change', e => { state.limit = Number(e.target.value); });
+      byId('q').addEventListener('input', (e) => {
+        state.q = e.target.value.trim();
+        load();
+      });
+
+      byId('kindCover').addEventListener('change', () => toggleKind('cover'));
+      byId('kindShort').addEventListener('change', () => toggleKind('short'));
+      byId('kindLive').addEventListener('change', () => toggleKind('live'));
+
+      byId('sortMode').addEventListener('change', (e) => {
+        state.sortMode = e.target.value;
+        load();
+      });
 
       byId('reload').addEventListener('click', load);
       byId('clear').addEventListener('click', () => {
         state.q = '';
-        state.kind = 'all';
-        state.sort = 'latest';
-        state.limit = 50;
         byId('q').value = '';
-        byId('kind').value = 'all';
-        byId('sort').value = 'latest';
-        byId('limit').value = '50';
         load();
+      });
+
+      byId('copyDanmaku').addEventListener('click', copyDanmaku);
+
+      byId('collapseToggle').addEventListener('click', () => {
+        const collapsed = byId('topForm').classList.toggle('collapsed');
+        byId('collapseToggle').textContent = collapsed ? '展開' : '折り畳み';
+      });
+
+      byId('scrollTop').addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      window.addEventListener('scroll', () => {
+        byId('scrollTop').classList.toggle('show', window.scrollY > 280);
       });
     }
 
