@@ -1,0 +1,15 @@
+name = "uni-ikura-song-dbtest"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+[assets]
+directory = "."
+binding = "ASSETS"
+exclude = ["worker.js", "wrangler.toml", "README.md"]
+
+[[r2_buckets]]
+binding = "SONG_DB"
+bucket_name = "uni-ikura-song-dbtest"
+
+[vars]
+SONGS_JSON_KEY = "songs.json"
