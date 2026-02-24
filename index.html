@@ -28,6 +28,7 @@
     }
 
     .container { max-width: 1080px; margin: 0 auto; display: grid; gap: 16px; }
+    .container[hidden] { display: none; }
     .card {
       background: color-mix(in srgb, var(--surface) 90%, black 10%);
       border: 1px solid var(--line);
@@ -237,10 +238,32 @@
     }
 
     #scrollTop.show { display: inline-flex; }
+
+    .my-danmaku-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .my-danmaku-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .preview-box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-2);
+      min-height: 84px;
+      padding: 10px;
+      font-size: 14px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
-  <main class="container">
+  <main class="container" id="songsPage">
     <section class="card">
       <h1>雲丹ゐくら Songs DB TEST</h1>
       <p class="muted">kasane-3kHz-songs-dbTEST 構成に合わせ、Cloudflare R2 + Worker API 経由で参照するUIです。</p>
@@ -295,10 +318,30 @@
             <option value="title">曲名</option>
             <option value="artist">アーティスト</option>
             <option value="full">曲名 + アーティスト</option>
+            <option value="my">マイ弾幕</option>
           </select>
         </label>
+        <button id="openMyDanmaku" type="button">弾幕編集（マイ弾幕）</button>
         <button id="clear" type="button">検索クリア</button>
         <button class="primary" id="copyDanmaku" type="button">弾幕コピー</button>
+      </div>
+    </section>
+  </main>
+
+  <main class="container" id="myDanmakuPage" hidden>
+    <section class="card my-danmaku-form">
+      <h2>マイ弾幕作成</h2>
+      <p class="muted">好きな絵文字を入力すると、🍣💛絵文字 を3回つないだ弾幕を自動生成します（キャッシュ15分）。</p>
+      <label>絵文字入力
+        <input id="myEmoji" type="text" placeholder="例: 🎉" maxlength="20">
+      </label>
+      <div>
+        <div class="muted">生成プレビュー</div>
+        <div id="myDanmakuPreview" class="preview-box">🍣💛🙂🍣💛🙂🍣💛🙂</div>
+      </div>
+      <div class="my-danmaku-actions">
+        <button class="primary" id="saveMyDanmaku" type="button">この内容を使う</button>
+        <button id="backToSongs" type="button">戻る</button>
       </div>
     </section>
   </main>
@@ -312,6 +355,7 @@
       sortMode: 'date-desc',
       selectedSongId: '',
       expandedSongId: '',
+      myDanmaku: '',
     };
 
     const byId = (id) => document.getElementById(id);
@@ -319,6 +363,46 @@
     const rows = byId('rows');
     const selectedCount = byId('selectedCount');
     const cachePrefix = 'songs-cache-v3';
+    const myDanmakuCacheKey = 'my-danmaku-cache-v1';
+    const myDanmakuCacheMs = 15 * 60 * 1000;
+
+    function togglePage(page) {
+      const songsPage = byId('songsPage');
+      const myDanmakuPage = byId('myDanmakuPage');
+      const showMyPage = page === 'my-danmaku';
+      songsPage.hidden = showMyPage;
+      myDanmakuPage.hidden = !showMyPage;
+      byId('scrollTop').style.display = showMyPage ? 'none' : '';
+    }
+
+    function buildMyDanmaku(emoji) {
+      const raw = (emoji || '').trim();
+      const safeEmoji = raw || '🙂';
+      return `🍣💛${safeEmoji}`.repeat(3);
+    }
+
+    function saveMyDanmakuCache(text) {
+      const entry = { value: text, expiresAt: Date.now() + myDanmakuCacheMs };
+      state.myDanmaku = text;
+      try {
+        sessionStorage.setItem(myDanmakuCacheKey, JSON.stringify(entry));
+      } catch (_) {}
+    }
+
+    function loadMyDanmakuCache() {
+      try {
+        const raw = sessionStorage.getItem(myDanmakuCacheKey);
+        if (!raw) return '';
+        const entry = JSON.parse(raw);
+        if (!entry?.value || Date.now() > Number(entry.expiresAt || 0)) {
+          sessionStorage.removeItem(myDanmakuCacheKey);
+          return '';
+        }
+        return String(entry.value);
+      } catch (_) {
+        return '';
+      }
+    }
 
     function cacheKey() {
       return `${cachePrefix}:${state.q}|${state.kinds.join(',')}|${state.sortMode}`;
@@ -566,6 +650,15 @@
       let text = selected.title || '';
       if (type === 'artist') text = selected.artist || '';
       if (type === 'full') text = `${selected.title || ''} - ${selected.artist || ''}`;
+      if (type === 'my') text = state.myDanmaku || loadMyDanmakuCache();
+
+      if (!text.trim()) {
+        status.classList.add('error');
+        status.textContent = type === 'my'
+          ? 'マイ弾幕がありません。弾幕編集（マイ弾幕）から作成してください。'
+          : 'コピー対象がありません';
+        return;
+      }
 
       try {
         await navigator.clipboard.writeText(text.trim());
@@ -615,6 +708,28 @@
       });
 
       byId('copyDanmaku').addEventListener('click', copyDanmaku);
+      byId('openMyDanmaku').addEventListener('click', () => {
+        byId('myEmoji').focus();
+        togglePage('my-danmaku');
+      });
+
+      byId('backToSongs').addEventListener('click', () => {
+        togglePage('songs');
+      });
+
+      byId('myEmoji').addEventListener('input', (e) => {
+        const text = buildMyDanmaku(e.target.value);
+        byId('myDanmakuPreview').textContent = text;
+      });
+
+      byId('saveMyDanmaku').addEventListener('click', () => {
+        const text = byId('myDanmakuPreview').textContent.trim();
+        saveMyDanmakuCache(text);
+        byId('danmakuType').value = 'my';
+        status.classList.remove('error');
+        status.textContent = 'マイ弾幕を保存しました（15分キャッシュ）';
+        togglePage('songs');
+      });
 
       byId('collapseToggle').addEventListener('click', () => {
         const collapsed = byId('topForm').classList.toggle('collapsed');
@@ -637,6 +752,10 @@
     }
 
     bind();
+    state.myDanmaku = loadMyDanmakuCache();
+    if (state.myDanmaku) {
+      byId('myDanmakuPreview').textContent = state.myDanmaku;
+    }
     load();
   </script>
 </body>
