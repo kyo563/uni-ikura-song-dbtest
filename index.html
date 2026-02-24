@@ -166,15 +166,57 @@
       .bottom-grid { grid-template-columns: 1fr; }
     }
 
-    table { width: 100%; border-collapse: collapse; }
-    th, td {
-      border-bottom: 1px solid var(--line);
-      text-align: left;
-      vertical-align: top;
-      padding: 9px 8px;
-      font-size: 14px;
+    .song-cards {
+      display: grid;
+      gap: 6px;
+      max-height: 54vh;
+      overflow-y: auto;
+      padding-right: 2px;
     }
-    th { color: var(--muted); font-weight: 600; font-size: 12px; }
+
+    .song-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--surface-2) 88%, black 12%);
+      padding: 10px;
+      transition: margin 0.15s ease, border-color 0.15s ease;
+      cursor: pointer;
+      scroll-snap-align: start;
+    }
+
+    .song-card.expanded {
+      margin: 5px 0;
+      border-color: var(--accent);
+    }
+
+    .song-summary { display: grid; gap: 2px; font-size: 14px; }
+    .song-title { font-weight: 700; }
+    .song-artist { color: var(--muted); font-size: 13px; }
+
+    .song-details {
+      display: none;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .song-card.expanded .song-details {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      align-items: center;
+    }
+
+    .song-meta { display: grid; gap: 4px; min-width: 0; }
+
+    .icon-btn {
+      min-width: 38px;
+      min-height: 34px;
+      padding: 6px 10px;
+    }
+
+    html.snap-active { scroll-snap-type: y proximity; }
 
     .tag {
       display: inline-block;
@@ -239,19 +281,7 @@
 
     <section class="card middle-form">
       <h2>中部楽曲情報フォーム</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>弾幕選択</th>
-            <th>タイトル</th>
-            <th>アーティスト</th>
-            <th>種別</th>
-            <th>公開日</th>
-            <th>リンク</th>
-          </tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
+      <div id="rows" class="song-cards"></div>
     </section>
 
     <section class="card bottom-form">
@@ -281,6 +311,7 @@
       kinds: ['cover', 'short', 'live'],
       sortMode: 'date-desc',
       selectedSongId: '',
+      expandedSongId: '',
     };
 
     const byId = (id) => document.getElementById(id);
@@ -357,47 +388,109 @@
       }
     }
 
+    function collapseExpanded() {
+      state.expandedSongId = '';
+      document.documentElement.classList.remove('snap-active');
+      rows.querySelectorAll('.song-card.expanded').forEach((card) => {
+        card.classList.remove('expanded');
+        card.setAttribute('aria-expanded', 'false');
+      });
+    }
+
     function render(items) {
       selectedCount.textContent = String(items.length);
 
       if (!items.length) {
-        rows.innerHTML = '<tr><td colspan="6" class="muted">該当データがありません</td></tr>';
+        rows.innerHTML = '<div class="muted">該当データがありません</div>';
         rows.dataset.selected = '{}';
         state.selectedSongId = '';
+        collapseExpanded();
         return;
       }
 
       rows.innerHTML = items.map((item, index) => {
         const id = `song-${index}-${escapeHtml(item.title || '')}`;
-        const checked = state.selectedSongId === id ? 'checked' : '';
         const safeUrl = item.url ? encodeURI(item.url) : '';
+        const expanded = state.expandedSongId === id;
         return `
-          <tr>
-            <td><input type="radio" name="songPick" value="${id}" ${checked}></td>
-            <td>${escapeHtml(item.title || '-')}</td>
-            <td>${escapeHtml(item.artist || '-')}</td>
-            <td><span class="tag">${escapeHtml(kindLabel(normalizeKind(item.kind)))}</span></td>
-            <td>${escapeHtml(fmtDate(item.publishedAt))}</td>
-            <td>${item.url ? `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">再生</a>` : '-'}</td>
-          </tr>
+          <article class="song-card ${expanded ? 'expanded' : ''}" data-id="${id}" tabindex="0" role="button" aria-expanded="${expanded ? 'true' : 'false'}">
+            <div class="song-summary">
+              <div class="song-title">${escapeHtml(item.title || '-')}</div>
+              <div class="song-artist">${escapeHtml(item.artist || '-')}</div>
+            </div>
+            <div class="song-details">
+              <div class="song-meta">
+                <div><span class="tag">${escapeHtml(kindLabel(normalizeKind(item.kind)))}</span></div>
+                <div>投稿日付: ${escapeHtml(fmtDate(item.publishedAt))}</div>
+              </div>
+              ${item.url ? `<a class="icon-btn" href="${safeUrl}" target="_blank" rel="noopener noreferrer" title="該当箇所へ移動">▶</a>` : '<span class="muted">-</span>'}
+              <button class="icon-btn copy-song" type="button">楽曲情報コピー</button>
+            </div>
+          </article>
         `;
       }).join('');
 
-      rows.querySelectorAll('input[type="radio"]').forEach((el, idx) => {
-        el.addEventListener('change', () => {
-          if (el.checked) {
-            state.selectedSongId = el.value;
-            rows.dataset.selected = JSON.stringify(items[idx] || {});
+      rows.querySelectorAll('.song-card').forEach((el, idx) => {
+        const item = items[idx] || {};
+        const id = el.dataset.id || '';
+
+        const select = () => {
+          state.selectedSongId = id;
+          rows.dataset.selected = JSON.stringify(item);
+        };
+
+        const toggle = () => {
+          select();
+          if (state.expandedSongId === id) {
+            collapseExpanded();
+            return;
+          }
+          state.expandedSongId = id;
+          document.documentElement.classList.add('snap-active');
+          rows.querySelectorAll('.song-card.expanded').forEach((card) => {
+            card.classList.remove('expanded');
+            card.setAttribute('aria-expanded', 'false');
+          });
+          el.classList.add('expanded');
+          el.setAttribute('aria-expanded', 'true');
+        };
+
+        el.addEventListener('click', (evt) => {
+          if (evt.target.closest('.copy-song') || evt.target.closest('a')) return;
+          toggle();
+        });
+
+        el.addEventListener('keydown', (evt) => {
+          if (evt.key === 'Enter' || evt.key === ' ') {
+            evt.preventDefault();
+            toggle();
+          }
+        });
+
+        const copyButton = el.querySelector('.copy-song');
+        copyButton?.addEventListener('click', async (evt) => {
+          evt.stopPropagation();
+          select();
+          const text = [
+            `アーティスト: ${item.artist || '-'}`,
+            `楽曲名: ${item.title || '-'}`,
+            `投稿日付: ${fmtDate(item.publishedAt)}`,
+          ].join('\n');
+          try {
+            await navigator.clipboard.writeText(text);
+            status.classList.remove('error');
+            status.textContent = `楽曲情報コピー完了: ${item.title || '-'}`;
+          } catch (_) {
+            status.classList.add('error');
+            status.textContent = '楽曲情報コピーに失敗しました';
           }
         });
       });
 
-      const selectedRadio = rows.querySelector(`input[value="${CSS.escape(state.selectedSongId)}"]`);
-      if (!selectedRadio) {
-        const first = rows.querySelector('input[type="radio"]');
+      if (!rows.querySelector(`.song-card[data-id="${CSS.escape(state.selectedSongId)}"]`)) {
+        const first = rows.querySelector('.song-card');
         if (first) {
-          first.checked = true;
-          state.selectedSongId = first.value;
+          state.selectedSongId = first.dataset.id || '';
           rows.dataset.selected = JSON.stringify(items[0] || {});
         }
       }
@@ -454,7 +547,7 @@
       } catch (err) {
         console.error(err);
         if (!cached?.payload) {
-          rows.innerHTML = '<tr><td colspan="6" class="error">データ取得に失敗しました。Worker / R2 の設定を確認してください。</td></tr>';
+          rows.innerHTML = '<div class="error">データ取得に失敗しました。Worker / R2 の設定を確認してください。</div>';
         }
         status.classList.add('error');
         status.textContent = `エラー: ${err.message}`;
@@ -535,6 +628,12 @@
       window.addEventListener('scroll', () => {
         byId('scrollTop').classList.toggle('show', window.scrollY > 280);
       });
+
+      window.addEventListener('wheel', (evt) => {
+        if (!state.expandedSongId) return;
+        if (Math.abs(evt.deltaY) < 140) return;
+        collapseExpanded();
+      }, { passive: true });
     }
 
     bind();
