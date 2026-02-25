@@ -11,9 +11,10 @@ function doGet(e) {
     return handleSongsApi_(e);
   }
 
-  return HtmlService.createHtmlOutputFromFile('Index')
-    .setTitle('雲丹ゐくら Songs DB TEST (GAS)')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return ContentService.createTextOutput(
+    'GAS API is running. Call this URL with ?api=songs&q=&kind=&sort=&limit=' +
+    '\n例: ?api=songs&kind=all&sort=latest'
+  ).setMimeType(ContentService.MimeType.TEXT);
 }
 
 function handleSongsApi_(e) {
