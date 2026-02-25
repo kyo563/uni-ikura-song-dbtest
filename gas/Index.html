@@ -750,7 +750,12 @@
       }
 
       try {
-        const res = await fetch(`/api/songs?${params.toString()}`, {
+        const apiUrl = new URL(window.location.href);
+        apiUrl.search = '';
+        apiUrl.searchParams.set('api', 'songs');
+        params.forEach((value, key) => apiUrl.searchParams.set(key, value));
+
+        const res = await fetch(apiUrl.toString(), {
           headers: cached?.etag ? { 'If-None-Match': cached.etag } : {},
         });
 
