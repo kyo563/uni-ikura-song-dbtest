@@ -595,6 +595,13 @@
       return Number.isNaN(t) ? 0 : t;
     }
 
+    function stableSongId(item) {
+      const videoId = String(item?.videoId || item?.videoid || item?.video_id || '').trim();
+      const title = String(item?.title || '').trim();
+      const artist = String(item?.artist || '').trim();
+      return [videoId, title, artist].map((part) => encodeURIComponent(part)).join('|');
+    }
+
     function sortItems(items) {
       const sorted = [...items];
       switch (state.sortMode) {
@@ -634,8 +641,8 @@
         return;
       }
 
-      rows.innerHTML = items.map((item, index) => {
-        const id = `song-${index}-${escapeHtml(item.title || '')}`;
+      rows.innerHTML = items.map((item) => {
+        const id = stableSongId(item);
         const safeUrl = item.url ? encodeURI(item.url) : '';
         const expanded = state.expandedSongId === id;
         return `
