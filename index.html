@@ -6,7 +6,6 @@
   <title>雲丹ゐくら Songs DB TEST</title>
   <style>
     :root {
-      --bg: #0f172a;
       --surface: #111827;
       --surface-2: #1f2937;
       --text: #f8fafc;
@@ -28,7 +27,6 @@
     }
 
     .container { max-width: 1080px; margin: 0 auto; display: grid; gap: 16px; }
-    .container[hidden] { display: none; }
     .card {
       background: color-mix(in srgb, var(--surface) 90%, black 10%);
       border: 1px solid var(--line);
@@ -44,9 +42,7 @@
 
     label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
 
-    .top-form input, .top-form select,
-    .middle-form input, .middle-form select,
-    .bottom-form input, .bottom-form select {
+    .card :is(input, select) {
       width: 100%;
       border-radius: 10px;
       border: 1px solid var(--line);
@@ -57,9 +53,7 @@
       font-size: 15px;
     }
 
-    .top-form button,
-    .middle-form button,
-    .bottom-form button {
+    .card button {
       border: 1px solid var(--line);
       border-radius: 10px;
       background: var(--surface-2);
@@ -421,9 +415,16 @@
   <button id="scrollTop" class="primary" type="button">↑ 上へ</button>
 
   <script>
+    const DEFAULT_KINDS = ['cover', 'short', 'live'];
+    const KIND_MAP = { cover: 'cover', short: 'short', live: 'live', stream: 'live' };
+    const KIND_LABELS = { cover: '歌ってみた', short: 'ショート', live: '歌枠', other: 'その他' };
+    const CACHE_PREFIX = 'songs-cache-v3';
+    const MY_DANMAKU_CACHE_KEY = 'my-danmaku-cache-v1';
+    const MY_DANMAKU_CACHE_MS = 15 * 60 * 1000;
+
     const state = {
       q: '',
-      kinds: ['cover', 'short', 'live'],
+      kinds: [...DEFAULT_KINDS],
       sortMode: 'date-desc',
       selectedSongId: '',
       expandedSongId: '',
@@ -434,9 +435,11 @@
     const status = byId('status');
     const rows = byId('rows');
     const selectedCount = byId('selectedCount');
-    const cachePrefix = 'songs-cache-v3';
-    const myDanmakuCacheKey = 'my-danmaku-cache-v1';
-    const myDanmakuCacheMs = 15 * 60 * 1000;
+
+    function setStatus(text, isError = false) {
+      status.textContent = text;
+      status.classList.toggle('error', isError);
+    }
 
     function updateSwipeUi(index) {
       const isMyCard = index === 1;
@@ -524,20 +527,20 @@
     }
 
     function saveMyDanmakuCache(text) {
-      const entry = { value: text, expiresAt: Date.now() + myDanmakuCacheMs };
+      const entry = { value: text, expiresAt: Date.now() + MY_DANMAKU_CACHE_MS };
       state.myDanmaku = text;
       try {
-        sessionStorage.setItem(myDanmakuCacheKey, JSON.stringify(entry));
+        sessionStorage.setItem(MY_DANMAKU_CACHE_KEY, JSON.stringify(entry));
       } catch (_) {}
     }
 
     function loadMyDanmakuCache() {
       try {
-        const raw = sessionStorage.getItem(myDanmakuCacheKey);
+        const raw = sessionStorage.getItem(MY_DANMAKU_CACHE_KEY);
         if (!raw) return '';
         const entry = JSON.parse(raw);
         if (!entry?.value || Date.now() > Number(entry.expiresAt || 0)) {
-          sessionStorage.removeItem(myDanmakuCacheKey);
+          sessionStorage.removeItem(MY_DANMAKU_CACHE_KEY);
           return '';
         }
         return String(entry.value);
@@ -547,7 +550,7 @@
     }
 
     function cacheKey() {
-      return `${cachePrefix}:${state.q}|${state.kinds.join(',')}|${state.sortMode}`;
+      return `${CACHE_PREFIX}:${state.q}|${state.kinds.join(',')}|${state.sortMode}`;
     }
 
     function loadCache() {
@@ -581,13 +584,11 @@
     }
 
     function normalizeKind(kind) {
-      const map = { cover: 'cover', short: 'short', live: 'live', stream: 'live' };
-      return map[String(kind || '').toLowerCase()] || 'other';
+      return KIND_MAP[String(kind || '').toLowerCase()] || 'other';
     }
 
     function kindLabel(kind) {
-      const labels = { cover: '歌ってみた', short: 'ショート', live: '歌枠', other: 'その他' };
-      return labels[kind] || 'その他';
+      return KIND_LABELS[kind] || 'その他';
     }
 
     function dateOf(item) {
@@ -711,11 +712,9 @@
           ].join('\n');
           try {
             await navigator.clipboard.writeText(text);
-            status.classList.remove('error');
-            status.textContent = `楽曲情報コピー完了: ${item.title || '-'}`;
+            setStatus(`楽曲情報コピー完了: ${item.title || '-'}`);
           } catch (_) {
-            status.classList.add('error');
-            status.textContent = '楽曲情報コピーに失敗しました';
+            setStatus('楽曲情報コピーに失敗しました', true);
           }
         });
       });
@@ -744,8 +743,7 @@
     }
 
     async function load() {
-      status.textContent = '読み込み中...';
-      status.classList.remove('error');
+      setStatus('読み込み中...');
 
       const params = new URLSearchParams({ q: state.q, kind: 'all', sort: 'latest' });
       const cached = loadCache();
@@ -753,7 +751,7 @@
       if (cached?.payload?.items) {
         const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
         render(cachedItems);
-        status.textContent = `キャッシュ表示 ${cachedItems.length} / 総数 ${cached.payload.total ?? 0}`;
+        setStatus(`キャッシュ表示 ${cachedItems.length} / 総数 ${cached.payload.total ?? 0}`);
       }
 
       try {
@@ -764,7 +762,7 @@
         if (res.status === 304 && cached?.payload) {
           const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
           render(cachedItems);
-          status.textContent = `更新なし（ETag） 表示 ${cachedItems.length} / 総数 ${cached.payload.total ?? 0}`;
+          setStatus(`更新なし（ETag） 表示 ${cachedItems.length} / 総数 ${cached.payload.total ?? 0}`);
           return;
         }
 
@@ -774,7 +772,7 @@
         const etag = res.headers.get('etag');
         const filteredItems = filterItems(Array.isArray(payload.items) ? payload.items : []);
         render(filteredItems);
-        status.textContent = `表示 ${filteredItems.length} / 総数 ${payload.total ?? 0}`;
+        setStatus(`表示 ${filteredItems.length} / 総数 ${payload.total ?? 0}`);
 
         if (etag) saveCache({ etag, payload });
       } catch (err) {
@@ -782,16 +780,14 @@
         if (!cached?.payload) {
           rows.innerHTML = '<div class="error">データ取得に失敗しました。Worker / R2 の設定を確認してください。</div>';
         }
-        status.classList.add('error');
-        status.textContent = `エラー: ${err.message}`;
+        setStatus(`エラー: ${err.message}`, true);
       }
     }
 
     async function copyDanmaku() {
       const selected = JSON.parse(rows.dataset.selected || '{}');
       if (!selected.title && !selected.artist) {
-        status.textContent = 'コピー対象がありません';
-        status.classList.add('error');
+        setStatus('コピー対象がありません', true);
         return;
       }
 
@@ -802,20 +798,20 @@
       if (type === 'my') text = state.myDanmaku || loadMyDanmakuCache();
 
       if (!text.trim()) {
-        status.classList.add('error');
-        status.textContent = type === 'my'
-          ? 'マイ弾幕がありません。弾幕編集（マイ弾幕）から作成してください。'
-          : 'コピー対象がありません';
+        setStatus(
+          type === 'my'
+            ? 'マイ弾幕がありません。弾幕編集（マイ弾幕）から作成してください。'
+            : 'コピー対象がありません',
+          true,
+        );
         return;
       }
 
       try {
         await navigator.clipboard.writeText(text.trim());
-        status.classList.remove('error');
-        status.textContent = `弾幕コピー完了: ${text.trim()}`;
+        setStatus(`弾幕コピー完了: ${text.trim()}`);
       } catch (_) {
-        status.classList.add('error');
-        status.textContent = 'コピーに失敗しました（権限を確認してください）';
+        setStatus('コピーに失敗しました（権限を確認してください）', true);
       }
     }
 
@@ -826,7 +822,7 @@
       state.kinds = [...set];
 
       if (state.kinds.length === 0) {
-        state.kinds = ['cover', 'short', 'live'];
+        state.kinds = [...DEFAULT_KINDS];
         byId('kindCover').checked = true;
         byId('kindShort').checked = true;
         byId('kindLive').checked = true;
@@ -867,8 +863,7 @@
         const text = byId('myDanmakuPreview').textContent.trim();
         saveMyDanmakuCache(text);
         byId('danmakuType').value = 'my';
-        status.classList.remove('error');
-        status.textContent = 'マイ弾幕を保存しました（15分キャッシュ）';
+        setStatus('マイ弾幕を保存しました（15分キャッシュ）');
       });
 
       byId('collapseToggle').addEventListener('click', () => {
