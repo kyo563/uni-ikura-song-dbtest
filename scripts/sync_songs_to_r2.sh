@@ -14,6 +14,22 @@ fi
 tmp_json="songs.generated.json"
 tmp_headers="songs.generated.headers"
 
+debug_enabled="${DEBUG_SYNC:-0}"
+
+if [[ "$debug_enabled" == "1" ]]; then
+  set -x
+fi
+
+print_response_preview() {
+  echo "--- response preview (first 300 bytes) ---" >&2
+  head -c 300 "$tmp_json" >&2 || true
+  echo >&2
+}
+
+extract_http_status() {
+  awk 'toupper($1) ~ /^HTTP\/./ { status=$2 } END { if (status != "") print status }' "$tmp_headers"
+}
+
 echo "Fetch from GAS..."
 curl -fsSL \
   -H 'Accept: application/json' \
@@ -30,9 +46,11 @@ first_char="$(LC_ALL=C awk '{for (i = 1; i <= length($0); i++) { c = substr($0, 
 if [[ "$first_char" != "{" && "$first_char" != "[" ]]; then
   echo "Response does not look like JSON. GAS may have returned an HTML error page." >&2
   echo "Hint: verify the endpoint includes '?api=songs' and is publicly accessible." >&2
-  echo "--- response preview (first 300 bytes) ---" >&2
-  head -c 300 "$tmp_json" >&2 || true
-  echo >&2
+  http_status="$(extract_http_status)"
+  if [[ -n "$http_status" ]]; then
+    echo "HTTP status from GAS: $http_status" >&2
+  fi
+  print_response_preview
   exit 1
 fi
 
@@ -41,22 +59,30 @@ if [[ -n "$content_type" && "$content_type" != application/json* && "$content_ty
   echo "Unexpected Content-Type from GAS: $content_type" >&2
   echo "GAS_SONGS_API_URL がJSON APIではなく、HTML/テキストの可能性があります。" >&2
   echo "Hint: GAS Web Appの公開範囲を『全員』にし、URL末尾に '?api=songs' が付いているか確認してください。" >&2
-  echo "--- response preview (first 300 bytes) ---" >&2
-  head -c 300 "$tmp_json" >&2 || true
-  echo >&2
+  http_status="$(extract_http_status)"
+  if [[ -n "$http_status" ]]; then
+    echo "HTTP status from GAS: $http_status" >&2
+  fi
+  print_response_preview
   exit 1
 fi
 
 echo "Validate JSON..."
 if ! jq -e '.items and (.items | type == "array")' "$tmp_json" >/dev/null; then
   echo "Invalid JSON schema or parse error. Expected object with array field: .items" >&2
-  if head -c 100 "$tmp_json" | tr '[:upper:]' '[:lower:]' | grep -q '<!doctype html\|<html'; then
+  response_head="$(head -c 100 "$tmp_json" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+  if grep -qiE '<!doctype html|<html' <<<"$response_head"; then
     echo "Detected HTML response. GAS endpoint likely returned an error page." >&2
     echo "Hint: endpoint URL / deployment / access permission を確認してください。" >&2
   fi
-  echo "--- response preview (first 300 bytes) ---" >&2
-  head -c 300 "$tmp_json" >&2 || true
-  echo >&2
+  http_status="$(extract_http_status)"
+  if [[ -n "$http_status" ]]; then
+    echo "HTTP status from GAS: $http_status" >&2
+  fi
+  if [[ -n "$content_type" ]]; then
+    echo "Content-Type from GAS: $content_type" >&2
+  fi
+  print_response_preview
   exit 1
 fi
 
