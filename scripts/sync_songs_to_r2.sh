@@ -24,3 +24,9 @@ aws s3 cp "$tmp_json" "s3://${R2_BUCKET}/${R2_OBJECT_KEY}" \
   --cache-control "no-cache"
 
 echo "Done. uploaded: s3://${R2_BUCKET}/${R2_OBJECT_KEY}"
+
+if [[ -n "${R2_PUBLIC_BASE_URL:-}" ]]; then
+  public_base_url="${R2_PUBLIC_BASE_URL%/}"
+  object_key_no_leading_slash="${R2_OBJECT_KEY#/}"
+  echo "Public URL: ${public_base_url}/${object_key_no_leading_slash}"
+fi
