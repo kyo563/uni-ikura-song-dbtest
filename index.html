@@ -655,9 +655,9 @@
             <div class="song-details">
               <div class="song-meta">
                 <div><span class="tag">${escapeHtml(kindLabel(normalizeKind(item.kind)))}</span></div>
-                <div>投稿日付: ${escapeHtml(fmtDate(item.publishedAt))}</div>
+                <div>最終歌唱日: ${escapeHtml(fmtDate(item.publishedAt))}</div>
               </div>
-              ${item.url ? `<a class="icon-btn" href="${safeUrl}" target="_blank" rel="noopener noreferrer" title="該当箇所へ移動">▶</a>` : '<span class="muted">-</span>'}
+              ${item.url ? `<a class="icon-btn" href="${safeUrl}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '該当箇所へ移動')}">▶</a>` : '<span class="muted">-</span>'}
               <button class="icon-btn copy-song" type="button">楽曲情報コピー</button>
             </div>
           </article>

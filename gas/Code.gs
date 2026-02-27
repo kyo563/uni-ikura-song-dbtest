@@ -1,152 +1,144 @@
 /**
- * 雲丹ゐくら Songs DB TEST (GAS版)
+ * Performance Record -> songs.json 用 API (GAS)
  *
- * Script Properties:
- * - R2_SONGS_URL: R2 上の songs.json を取得できる URL（公開URL or 署名付きURL）
- * - R2_AUTH_TOKEN: （任意）Authorization: Bearer <token> に使うトークン
+ * 使い方:
+ * 1) スプレッドシートに紐づく Apps Script にこのファイルを貼り付け
+ * 2) デプロイ > 新しいデプロイ > ウェブアプリ
+ *    - 実行ユーザー: 自分
+ *    - アクセス権: リンクを知っている全員
+ * 3) GitHub Actions から: https://.../exec?api=songs
  */
 
+const SHEET_NAME = 'Performance Record';
+
 function doGet(e) {
-  if (e && e.parameter && e.parameter.api === 'songs') {
-    return handleSongsApi_(e);
+  const api = String((e && e.parameter && e.parameter.api) || '');
+  if (api === 'songs') {
+    return outputJson_(buildSongsPayload_());
   }
 
   return ContentService.createTextOutput(
-    'GAS API is running. Call this URL with ?api=songs&q=&kind=&sort=&limit=' +
-    '\n例: ?api=songs&kind=all&sort=latest'
+    'OK: add ?api=songs to fetch songs.json payload.'
   ).setMimeType(ContentService.MimeType.TEXT);
 }
 
-function handleSongsApi_(e) {
-  try {
-    const q = String((e.parameter.q || '')).trim().toLowerCase();
-    const kind = e.parameter.kind || 'all';
-    const sort = e.parameter.sort || 'latest';
-    const limitRaw = e.parameter.limit;
-    const hasLimit = limitRaw !== undefined && limitRaw !== null && String(limitRaw) !== '';
-    const limit = hasLimit ? Math.min(200, Math.max(1, Number(limitRaw))) : null;
-
-    const songs = loadSongsFromR2_();
-    const now = new Date();
-    const visibleSongs = songs.filter(song => isChecked_(song) && isInPublishWindow_(song, now));
-
-    let filtered = visibleSongs.filter(song => {
-      if (kind !== 'all' && String(song.kind || 'other') !== kind) return false;
-      if (!q) return true;
-
-      const target = [song.title, song.artist, song.memo]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return target.indexOf(q) !== -1;
-    });
-
-    filtered = sortSongs_(filtered, sort);
-    if (hasLimit) {
-      filtered = filtered.slice(0, limit);
-    }
-
-    return jsonOutput_({
-      items: filtered,
-      count: filtered.length,
-      total: visibleSongs.length,
-      sourceTotal: songs.length,
-      updatedAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    return jsonOutput_({
-      error: error.message || String(error),
-    });
-  }
-}
-
-function loadSongsFromR2_() {
-  const props = PropertiesService.getScriptProperties();
-  const url = props.getProperty('R2_SONGS_URL');
-  const token = props.getProperty('R2_AUTH_TOKEN');
-
-  if (!url) {
-    throw new Error('Script Properties に R2_SONGS_URL を設定してください。');
+function buildSongsPayload_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    throw new Error('Sheet not found: ' + SHEET_NAME);
   }
 
-  const options = {
-    method: 'get',
-    muteHttpExceptions: true,
-    headers: {},
+  const values = sheet.getDataRange().getDisplayValues();
+  if (values.length <= 1) {
+    return { items: [], total: 0, generatedAt: new Date().toISOString() };
+  }
+
+  const rows = values.slice(1);
+  const items = [];
+
+  rows.forEach((row, i) => {
+    const artist = clean_(row[0]); // A
+    const title = clean_(row[1]); // B
+    const memo = clean_(row[2]); // C
+    const liveField = clean_(row[3]); // D
+    const source = clean_(row[4]); // E
+    const checked = clean_(row[5]); // F
+
+    if (!isChecked_(checked)) return;
+    if (!artist || !title) return;
+
+    const liveUrl = extractUrl_(liveField);
+    const liveTitle = extractLiveTitle_(liveField);
+    const liveYmd = extractYmd_(liveField);
+
+    const memoUrl = extractUrl_(memo);
+    const memoYmd = extractYmd_(memo);
+    const memoKind = inferKindFromText_(memo);
+
+    const hasLive = !!liveUrl;
+    const hasOther = !!memoUrl;
+
+    let kind = 'other';
+    if (hasLive) kind = 'live';
+    else if (memoKind) kind = memoKind;
+
+    const item = {
+      id: String(i + 2),
+      title,
+      artist,
+      kind,
+      memo,
+      source,
+      checked: true,
+      liveLink: liveUrl || '',
+      liveTitle: liveTitle || '',
+      lastSungDate: liveYmd ? formatYmd_(liveYmd) : '',
+      otherLink: hasOther ? memoUrl : '',
+      otherPublishedAt: !hasLive && memoYmd ? formatYmd_(memoYmd) : '',
+      // 互換フィールド（既存UI/Worker向け）
+      url: liveUrl || memoUrl || '',
+      publishedAt: liveYmd
+        ? formatYmd_(liveYmd)
+        : (!hasLive && memoYmd ? formatYmd_(memoYmd) : ''),
+    };
+
+    items.push(item);
+  });
+
+  return {
+    items,
+    total: items.length,
+    generatedAt: new Date().toISOString(),
+    schemaVersion: 1,
   };
-
-  if (token) {
-    options.headers.Authorization = 'Bearer ' + token;
-  }
-
-  const res = UrlFetchApp.fetch(url, options);
-  const code = res.getResponseCode();
-  if (code !== 200) {
-    throw new Error('R2 取得失敗: HTTP ' + code + ' / ' + res.getContentText());
-  }
-
-  const data = JSON.parse(res.getContentText());
-  return Array.isArray(data) ? data : [];
 }
 
-function isChecked_(song) {
-  const keys = ['checked', 'enabled', 'publish', 'active', 'isPublic', 'include'];
-  const presentValues = keys.filter(key => Object.prototype.hasOwnProperty.call(song, key))
-    .map(key => song[key]);
-
-  if (presentValues.length === 0) return true;
-  return presentValues.some(isTruthyMarker_);
+function clean_(v) {
+  return String(v || '').trim();
 }
 
-function isInPublishWindow_(song, now) {
-  if (isTruthyMarker_(song.paused) || isTruthyMarker_(song.temporaryHidden) || isTruthyMarker_(song.suspended)) {
-    return false;
-  }
-
-  const from = parseDate_(song.visibleFrom || song.publishFrom || song.startAt);
-  const to = parseDate_(song.visibleTo || song.publishTo || song.endAt || song.hiddenAt);
-
-  if (from && now < from) return false;
-  if (to && now > to) return false;
-  return true;
+function isChecked_(value) {
+  const v = String(value || '').trim().toLowerCase();
+  return ['true', '1', 'yes', 'y', 'on', 'checked', 'check', '✅', '☑', '✔'].indexOf(v) !== -1;
 }
 
-function parseDate_(value) {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
+function extractUrl_(text) {
+  if (!text) return '';
+  const m = String(text).match(/https?:\/\/[^\s)]+/i);
+  return m ? m[0] : '';
 }
 
-function isTruthyMarker_(value) {
-  if (value === true || value === 1) return true;
-  if (typeof value !== 'string') return false;
-
-  const normalized = value.trim().toLowerCase();
-  return ['true', '1', 'yes', 'y', 'on', 'checked', 'check', '✅', '☑', '✔'].indexOf(normalized) !== -1;
+function extractYmd_(text) {
+  if (!text) return '';
+  const m = String(text).match(/(^|\D)(\d{8})(\D|$)/);
+  return m ? m[2] : '';
 }
 
-function sortSongs_(items, sort) {
-  const cloned = items.slice();
-  switch (sort) {
-    case 'oldest':
-      return cloned.sort((a, b) => dateOf_(a) - dateOf_(b));
-    case 'title':
-      return cloned.sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'ja'));
-    case 'artist':
-      return cloned.sort((a, b) => String(a.artist || '').localeCompare(String(b.artist || ''), 'ja'));
-    case 'latest':
-    default:
-      return cloned.sort((a, b) => dateOf_(b) - dateOf_(a));
-  }
+function formatYmd_(ymd) {
+  return ymd.slice(0, 4) + '-' + ymd.slice(4, 6) + '-' + ymd.slice(6, 8);
 }
 
-function dateOf_(item) {
-  const timestamp = Date.parse((item && item.publishedAt) || '');
-  return Number.isNaN(timestamp) ? 0 : timestamp;
+function extractLiveTitle_(liveField) {
+  if (!liveField) return '';
+  const raw = String(liveField).trim();
+  if (/^\d{8}$/.test(raw)) return '';
+
+  const noUrl = raw.replace(/https?:\/\/[^\s)]+/ig, '').trim();
+  const noDateHead = noUrl.replace(/^\d{8}[\s_-]*/, '').trim();
+  return noDateHead;
 }
 
-function jsonOutput_(payload) {
-  return ContentService.createTextOutput(JSON.stringify(payload))
+function inferKindFromText_(memo) {
+  const t = String(memo || '').toLowerCase();
+  if (!t) return '';
+  if (t.indexOf('ショート') !== -1 || t.indexOf('short') !== -1) return 'short';
+  if (t.indexOf('歌ってみた') !== -1 || t.indexOf('cover') !== -1) return 'cover';
+  return 'other';
+}
+
+function outputJson_(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
