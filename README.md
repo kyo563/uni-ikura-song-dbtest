@@ -62,6 +62,16 @@ https://script.google.com/macros/s/AKfycbya8kd5kFaeIproZUePBtsn2-4OFCSYNvyFWKYK9
 - `R2_BUCKET`
 - `R2_OBJECT_KEY`（通常 `songs.json`）
 
+### トラブルシュート（Workflow失敗時）
+
+- `Missing credentials` エラー
+  - `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`（または `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`）を設定。
+- `Missing required R2 config` エラー
+  - `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_OBJECT_KEY` を設定。
+- `jq: parse error: Invalid numeric literal` エラー
+  - JSONの数値フォーマット不正だけでなく、**GASがHTMLエラーページを返している**場合にも起こります。
+  - まず `GAS_SONGS_API_URL` をブラウザで開き、`{` から始まるJSONが返るかを確認してください（`?api=songs` を必ず付与）。
+
 ---
 
 ## 3. R2に保存するJSONスキーマ
