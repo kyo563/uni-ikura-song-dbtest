@@ -71,6 +71,7 @@ https://script.google.com/macros/s/AKfycbya8kd5kFaeIproZUePBtsn2-4OFCSYNvyFWKYK9
 - `jq: parse error: Invalid numeric literal` エラー
   - JSONの数値フォーマット不正だけでなく、**GASがHTMLエラーページを返している**場合にも起こります。
   - まず `GAS_SONGS_API_URL` をブラウザで開き、`{` から始まるJSONが返るかを確認してください（`?api=songs` を必ず付与）。
+  - 追加で、`scripts/sync_songs_to_r2.sh` は `Content-Type` も検証します。`text/html` が返る場合はGAS公開設定（アクセス権）またはURL誤りを疑ってください。
 
 ---
 
