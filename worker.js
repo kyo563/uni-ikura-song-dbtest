@@ -50,7 +50,8 @@ async function handleSongs(request, url, env) {
 
   const raw = await object.text();
   const list = JSON.parse(raw);
-  const songs = Array.isArray(list) ? list : [];
+  const sourceItems = Array.isArray(list) ? list : (Array.isArray(list?.items) ? list.items : []);
+  const songs = sourceItems.map(normalizeSong);
 
   const now = new Date();
   const visibleSongs = songs.filter((song) => isChecked(song) && isInPublishWindow(song, now));
@@ -88,13 +89,87 @@ async function handleSongs(request, url, env) {
 }
 
 function isChecked(song) {
-  const keys = ['checked', 'enabled', 'publish', 'active', 'isPublic', 'include'];
+  const keys = ['checked', 'enabled', 'publish', 'active', 'isPublic', 'include', '掲載チェック'];
   const presentValues = keys
     .filter((key) => key in song)
     .map((key) => song[key]);
 
   if (presentValues.length === 0) return true;
   return presentValues.some(isTruthyMarker);
+}
+
+function normalizeSong(song) {
+  const artist = firstText(song, ['artist', 'artistName', 'アーティスト名']);
+  const title = firstText(song, ['title', 'song', 'songName', '曲名', '楽曲名']);
+  const memo = firstText(song, ['memo', 'note', 'remarks', '備考']);
+
+  const liveLinkTitle = firstText(song, ['liveLinkTitle', 'liveTitle', '歌枠タイトル', '歌枠直リンクタイトル']);
+  const liveLinkRaw = firstText(song, ['liveLink', 'liveUrl', 'latestLiveLink', '歌枠直リンク']);
+  const liveLink = song.liveLink || extractFirstUrl(liveLinkRaw);
+  const otherLink = firstText(song, ['otherLink', 'coverLink', 'shortLink']) || extractFirstUrl(memo);
+  const url = liveLink || otherLink || firstText(song, ['url']);
+
+  const kindRaw = firstText(song, ['kind', 'type', 'category']);
+  const kind = normalizeKind(kindRaw || memo);
+
+  const ymd =
+    firstYmd(firstText(song, ['publishedAt', 'date', 'lastSungDate', 'otherPublishedAt'])) ||
+    firstYmd(liveLinkTitle) ||
+    firstYmd(liveLinkRaw);
+
+  const publishedAt = ymd ? toIsoDate(ymd) : firstText(song, ['publishedAt', 'date', 'lastSungDate', 'otherPublishedAt']);
+
+  return {
+    ...song,
+    artist,
+    title,
+    memo,
+    kind,
+    liveLink,
+    otherLink,
+    url,
+    linkLabel: liveLinkTitle || (liveLink ? '歌枠リンクを開く' : (otherLink ? '関連リンクを開く' : '')),
+    publishedAt,
+  };
+}
+
+function firstText(source, keys) {
+  for (const key of keys) {
+    if (!(key in source)) continue;
+    const value = source[key];
+    if (value === null || value === undefined) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return '';
+}
+
+function extractFirstUrl(text) {
+  if (!text) return '';
+  const m = String(text).match(/https?:\/\/[^\s)]+/i);
+  return m ? m[0] : '';
+}
+
+function firstYmd(text) {
+  if (!text) return '';
+  const m = String(text).match(/(^|\D)(\d{8})(\D|$)/);
+  return m ? m[2] : '';
+}
+
+function toIsoDate(ymd) {
+  const y = ymd.slice(0, 4);
+  const m = ymd.slice(4, 6);
+  const d = ymd.slice(6, 8);
+  return `${y}-${m}-${d}`;
+}
+
+function normalizeKind(raw) {
+  const text = String(raw || '').toLowerCase();
+  if (!text) return 'other';
+  if (text.includes('short') || text.includes('ショート')) return 'short';
+  if (text.includes('cover') || text.includes('歌ってみた')) return 'cover';
+  if (text.includes('live') || text.includes('歌枠') || text.includes('stream')) return 'live';
+  return 'other';
 }
 
 function isInPublishWindow(song, now) {

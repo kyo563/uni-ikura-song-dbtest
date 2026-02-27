@@ -1,0 +1,33 @@
+name: Sync songs.json to Cloudflare R2
+
+on:
+  workflow_dispatch:
+  schedule:
+    # JST 14:00 = UTC 05:00
+    - cron: '0 5 * * *'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup AWS CLI
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          aws-region: auto
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Sync songs.json to R2
+        env:
+          GAS_SONGS_API_URL: ${{ secrets.GAS_SONGS_API_URL }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_OBJECT_KEY: ${{ secrets.R2_OBJECT_KEY }}
+          R2_ENDPOINT_URL: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+        run: bash scripts/sync_songs_to_r2.sh
