@@ -4,7 +4,8 @@ set -euo pipefail
 DEFAULT_GAS_SONGS_API_URL="https://script.google.com/macros/s/AKfycbyMD58NPs-RUi24wiP0AZSPziHEgNj0RPmC3_HM65hSMhQ6J4lF0cj51NtBDrFd3Kqa/exec?api=songs"
 GAS_SONGS_API_URL="${GAS_SONGS_API_URL:-$DEFAULT_GAS_SONGS_API_URL}"
 # GitHub Secrets経由で末尾改行やCRが混入するケースを吸収する
-GAS_SONGS_API_URL="$(printf '%s' "$GAS_SONGS_API_URL" | tr -d '\r\n')"
+GAS_SONGS_API_URL="${GAS_SONGS_API_URL//$'\r'/}"
+GAS_SONGS_API_URL="${GAS_SONGS_API_URL//$'\n'/}"
 
 if [[ -z "${R2_ENDPOINT_URL:-}" || -z "${R2_BUCKET:-}" || -z "${R2_OBJECT_KEY:-}" ]]; then
   echo "R2_ENDPOINT_URL / R2_BUCKET / R2_OBJECT_KEY are required" >&2
@@ -70,7 +71,8 @@ fi
 echo "Validate JSON..."
 if ! jq -e '.items and (.items | type == "array")' "$tmp_json" >/dev/null; then
   echo "Invalid JSON schema or parse error. Expected object with array field: .items" >&2
-  response_head="$(head -c 100 "$tmp_json" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+  response_head="$(head -c 100 "$tmp_json")"
+  response_head="${response_head,,}"
   if grep -qiE '<!doctype html|<html' <<<"$response_head"; then
     echo "Detected HTML response. GAS endpoint likely returned an error page." >&2
     echo "Hint: endpoint URL / deployment / access permission を確認してください。" >&2
