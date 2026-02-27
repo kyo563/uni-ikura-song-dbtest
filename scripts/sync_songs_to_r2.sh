@@ -26,7 +26,7 @@ if [[ ! -s "$tmp_json" ]]; then
   exit 1
 fi
 
-first_char="$(LC_ALL=C tr -d '[:space:]' < "$tmp_json" | head -c 1)"
+first_char="$(LC_ALL=C awk '{for (i = 1; i <= length($0); i++) { c = substr($0, i, 1); if (c !~ /[[:space:]]/) { print c; exit } }}' "$tmp_json")"
 if [[ "$first_char" != "{" && "$first_char" != "[" ]]; then
   echo "Response does not look like JSON. GAS may have returned an HTML error page." >&2
   echo "Hint: verify the endpoint includes '?api=songs' and is publicly accessible." >&2
