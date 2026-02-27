@@ -14,8 +14,29 @@ tmp_json="songs.generated.json"
 echo "Fetch from GAS..."
 curl -fsSL "$GAS_SONGS_API_URL" -o "$tmp_json"
 
+if [[ ! -s "$tmp_json" ]]; then
+  echo "Fetched response is empty. Check GAS_SONGS_API_URL and GAS deployment settings." >&2
+  exit 1
+fi
+
+first_char="$(LC_ALL=C tr -d '[:space:]' < "$tmp_json" | head -c 1)"
+if [[ "$first_char" != "{" && "$first_char" != "[" ]]; then
+  echo "Response does not look like JSON. GAS may have returned an HTML error page." >&2
+  echo "Hint: verify the endpoint includes '?api=songs' and is publicly accessible." >&2
+  echo "--- response preview (first 300 bytes) ---" >&2
+  head -c 300 "$tmp_json" >&2 || true
+  echo >&2
+  exit 1
+fi
+
 echo "Validate JSON..."
-jq -e '.items and (.items | type == "array")' "$tmp_json" >/dev/null
+if ! jq -e '.items and (.items | type == "array")' "$tmp_json" >/dev/null; then
+  echo "Invalid JSON schema or parse error. Expected object with array field: .items" >&2
+  echo "--- response preview (first 300 bytes) ---" >&2
+  head -c 300 "$tmp_json" >&2 || true
+  echo >&2
+  exit 1
+fi
 
 echo "Upload to R2..."
 aws s3 cp "$tmp_json" "s3://${R2_BUCKET}/${R2_OBJECT_KEY}" \

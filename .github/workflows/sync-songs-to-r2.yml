@@ -22,6 +22,7 @@ jobs:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           R2_OBJECT_KEY: ${{ secrets.R2_OBJECT_KEY }}
+          GAS_SONGS_API_URL: ${{ secrets.GAS_SONGS_API_URL || 'https://script.google.com/macros/s/AKfycbya8kd5kFaeIproZUePBtsn2-4OFCSYNvyFWKYK9ir2AQQzZXy028i_baiE5EeVjuK3/exec?api=songs' }}
         run: |
           set -euo pipefail
 
@@ -33,8 +34,23 @@ jobs:
             exit 1
           fi
 
-          if [[ -z "${R2_ACCOUNT_ID:-}" || -z "${R2_BUCKET:-}" || -z "${R2_OBJECT_KEY:-}" ]]; then
-            echo "Missing required R2 config. Set R2_ACCOUNT_ID, R2_BUCKET and R2_OBJECT_KEY secrets." >&2
+          missing_vars=()
+          [[ -z "${R2_ACCOUNT_ID:-}" ]] && missing_vars+=("R2_ACCOUNT_ID")
+          [[ -z "${R2_BUCKET:-}" ]] && missing_vars+=("R2_BUCKET")
+          [[ -z "${R2_OBJECT_KEY:-}" ]] && missing_vars+=("R2_OBJECT_KEY")
+
+          if (( ${#missing_vars[@]} > 0 )); then
+            echo "Missing required R2 config secrets: ${missing_vars[*]}" >&2
+            exit 1
+          fi
+
+          if [[ -z "${GAS_SONGS_API_URL:-}" ]]; then
+            echo "GAS_SONGS_API_URL is empty." >&2
+            exit 1
+          fi
+
+          if [[ "$GAS_SONGS_API_URL" != http* ]]; then
+            echo "GAS_SONGS_API_URL must start with http/https: $GAS_SONGS_API_URL" >&2
             exit 1
           fi
 
