@@ -6,7 +6,7 @@
  * 2) デプロイ > 新しいデプロイ > ウェブアプリ
  *    - 実行ユーザー: 自分
  *    - アクセス権: リンクを知っている全員
- * 3) GitHub Actions から: https://.../exec?api=songs
+ * 3) GitHub Actions から: https://script.google.com/macros/s/AKfycbya8kd5kFaeIproZUePBtsn2-4OFCSYNvyFWKYK9ir2AQQzZXy028i_baiE5EeVjuK3/exec?api=songs
  */
 
 const SHEET_NAME = 'Performance Record';

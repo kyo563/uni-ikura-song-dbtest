@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ -z "${GAS_SONGS_API_URL:-}" ]]; then
-  echo "GAS_SONGS_API_URL is required" >&2
-  exit 1
-fi
+DEFAULT_GAS_SONGS_API_URL="https://script.google.com/macros/s/AKfycbya8kd5kFaeIproZUePBtsn2-4OFCSYNvyFWKYK9ir2AQQzZXy028i_baiE5EeVjuK3/exec?api=songs"
+GAS_SONGS_API_URL="${GAS_SONGS_API_URL:-$DEFAULT_GAS_SONGS_API_URL}"
 
 if [[ -z "${R2_ENDPOINT_URL:-}" || -z "${R2_BUCKET:-}" || -z "${R2_OBJECT_KEY:-}" ]]; then
   echo "R2_ENDPOINT_URL / R2_BUCKET / R2_OBJECT_KEY are required" >&2
