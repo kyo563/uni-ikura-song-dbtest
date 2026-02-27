@@ -49,6 +49,11 @@ jobs:
           R2_OBJECT_KEY: ${{ secrets.R2_OBJECT_KEY }}
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID || secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY || secrets.AWS_SECRET_ACCESS_KEY }}
+          # Cloudflare R2 upload uses endpoint-url and static credentials.
+          # Keep AWS SDK/CLI region on a real AWS region value to avoid
+          # accidental lookups such as sts.auto.amazonaws.com.
+          AWS_REGION: us-east-1
+          AWS_DEFAULT_REGION: us-east-1
           R2_ENDPOINT_URL: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
           R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL || 'https://pub-e333d72512c24eb290119f7f2e0e4bdf.r2.dev' }}
         run: bash scripts/sync_songs_to_r2.sh
