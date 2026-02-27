@@ -13,11 +13,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate required secrets
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_OBJECT_KEY: ${{ secrets.R2_OBJECT_KEY }}
+        run: |
+          set -euo pipefail
+
+          access_key="${R2_ACCESS_KEY_ID:-${AWS_ACCESS_KEY_ID:-}}"
+          secret_key="${R2_SECRET_ACCESS_KEY:-${AWS_SECRET_ACCESS_KEY:-}}"
+
+          if [[ -z "$access_key" || -z "$secret_key" ]]; then
+            echo "Missing credentials. Set either R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY secrets." >&2
+            exit 1
+          fi
+
+          if [[ -z "${R2_ACCOUNT_ID:-}" || -z "${R2_BUCKET:-}" || -z "${R2_OBJECT_KEY:-}" ]]; then
+            echo "Missing required R2 config. Set R2_ACCOUNT_ID, R2_BUCKET and R2_OBJECT_KEY secrets." >&2
+            exit 1
+          fi
+
       - name: Setup AWS CLI
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID || secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY || secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: auto
 
       - name: Install jq
@@ -30,4 +55,5 @@ jobs:
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           R2_OBJECT_KEY: ${{ secrets.R2_OBJECT_KEY }}
           R2_ENDPOINT_URL: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL || 'https://pub-e333d72512c24eb290119f7f2e0e4bdf.r2.dev' }}
         run: bash scripts/sync_songs_to_r2.sh
