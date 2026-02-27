@@ -3,8 +3,8 @@ name: Sync songs.json to Cloudflare R2
 on:
   workflow_dispatch:
   schedule:
-    # JST 14:00 = UTC 05:00
-    - cron: '0 5 * * *'
+    # JST 12:00 = UTC 03:00
+    - cron: '0 3 * * *'
 
 jobs:
   sync:
