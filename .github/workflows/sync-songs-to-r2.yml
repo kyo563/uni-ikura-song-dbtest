@@ -25,7 +25,7 @@ jobs:
 
       - name: Sync songs.json to R2
         env:
-          GAS_SONGS_API_URL: ${{ secrets.GAS_SONGS_API_URL }}
+          GAS_SONGS_API_URL: ${{ secrets.GAS_SONGS_API_URL || 'https://script.google.com/macros/s/AKfycbya8kd5kFaeIproZUePBtsn2-4OFCSYNvyFWKYK9ir2AQQzZXy028i_baiE5EeVjuK3/exec?api=songs' }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           R2_OBJECT_KEY: ${{ secrets.R2_OBJECT_KEY }}
