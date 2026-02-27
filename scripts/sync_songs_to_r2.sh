@@ -55,19 +55,6 @@ if [[ "$first_char" != "{" && "$first_char" != "[" ]]; then
   exit 1
 fi
 
-content_type="$(awk 'BEGIN{IGNORECASE=1} /^content-type:/{sub(/\r$/, "", $0); sub(/^[^:]*:[[:space:]]*/, "", $0); print tolower($0); exit}' "$tmp_headers")"
-if [[ -n "$content_type" && "$content_type" != application/json* && "$content_type" != text/json* ]]; then
-  echo "Unexpected Content-Type from GAS: $content_type" >&2
-  echo "GAS_SONGS_API_URL がJSON APIではなく、HTML/テキストの可能性があります。" >&2
-  echo "Hint: GAS Web Appの公開範囲を『全員』にし、URL末尾に '?api=songs' が付いているか確認してください。" >&2
-  http_status="$(extract_http_status)"
-  if [[ -n "$http_status" ]]; then
-    echo "HTTP status from GAS: $http_status" >&2
-  fi
-  print_response_preview
-  exit 1
-fi
-
 echo "Validate JSON..."
 if ! jq -e '.items and (.items | type == "array")' "$tmp_json" >/dev/null; then
   echo "Invalid JSON schema or parse error. Expected object with array field: .items" >&2
@@ -86,6 +73,12 @@ if ! jq -e '.items and (.items | type == "array")' "$tmp_json" >/dev/null; then
   fi
   print_response_preview
   exit 1
+fi
+
+content_type="$(awk 'BEGIN{IGNORECASE=1} /^content-type:/{sub(/\r$/, "", $0); sub(/^[^:]*:[[:space:]]*/, "", $0); print tolower($0); exit}' "$tmp_headers")"
+if [[ -n "$content_type" && "$content_type" != application/json* && "$content_type" != text/json* ]]; then
+  echo "Warning: Unexpected Content-Type from GAS: $content_type" >&2
+  echo "レスポンス本体はJSONとして正常に解析できたため、このまま処理を続行します。" >&2
 fi
 
 echo "Upload to R2..."
