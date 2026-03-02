@@ -320,7 +320,7 @@
     .bottom-grid {
       display: grid;
       gap: var(--space-2);
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       align-items: end;
     }
 
@@ -391,6 +391,7 @@
       .sort-row { grid-template-columns: auto auto; }
       .sort-row select,
       .sort-row button { min-width: 96px; }
+      .bottom-grid { grid-template-columns: 1fr; }
       .ratio-8-2 { grid-template-columns: 1fr; }
       .song-cards { max-height: 34vh; }
       .top-form.collapsed { max-height: 170px; }
@@ -559,40 +560,40 @@
     </section>
 
     <section class="card bottom-form">
-      <div class="bottom-swipe-wrap" id="bottomSwipeWrap">
-        <div class="bottom-swipe-track" id="bottomSwipeTrack">
-          <section class="bottom-panel" aria-label="検索フォームカード">
-            <div class="bottom-grid">
+      <div class="bottom-grid">
+        <div class="bottom-swipe-wrap" id="bottomSwipeWrap">
+          <div class="bottom-swipe-track" id="bottomSwipeTrack">
+            <section class="bottom-panel" aria-label="検索フォームカード">
               <div class="ratio-8-2">
                 <label>検索テキスト
                   <input id="q" type="search" placeholder="曲名 / アーティスト / メモ">
                 </label>
                 <button id="clear" type="button">検索クリア</button>
               </div>
-              <div class="ratio-8-2">
-                <label>弾幕選択カラム
-                  <select id="danmakuType">
-                    <option value="title">曲名</option>
-                    <option value="artist">アーティスト</option>
-                    <option value="full">曲名 + アーティスト</option>
-                    <option value="my">マイ弾幕</option>
-                  </select>
-                </label>
-                <button class="primary" id="copyDanmaku" type="button">弾幕コピー</button>
-              </div>
-            </div>
-          </section>
+            </section>
 
-          <section class="bottom-panel my-danmaku-form" aria-label="マイ弾幕カード">
-            <input id="myEmoji" type="text" placeholder="🎉" maxlength="20" aria-label="絵文字入力">
-            <div class="my-danmaku-actions">
-              <button class="primary" id="saveMyDanmaku" type="button">この内容を使う</button>
-              <button id="swipeBackButton" class="swipe-back-button" type="button" disabled>戻るヘルプ</button>
-            </div>
-          </section>
+            <section class="bottom-panel my-danmaku-form" aria-label="マイ弾幕カード">
+              <input id="myEmoji" type="text" placeholder="🎉" maxlength="20" aria-label="絵文字入力">
+              <div class="my-danmaku-actions">
+                <button class="primary" id="saveMyDanmaku" type="button">この内容を使う</button>
+                <button id="swipeBackButton" class="swipe-back-button" type="button" disabled>戻るヘルプ</button>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="ratio-8-2">
+          <label>弾幕選択カラム
+            <select id="danmakuType">
+              <option value="title">曲名</option>
+              <option value="artist">アーティスト</option>
+              <option value="full">曲名 + アーティスト</option>
+              <option value="my">マイ弾幕</option>
+            </select>
+          </label>
+          <button class="primary" id="copyDanmaku" type="button">弾幕コピー</button>
         </div>
       </div>
-
     </section>
   </main>
 
