@@ -613,7 +613,17 @@
 
   <script>
     const DEFAULT_KINDS = ['cover', 'short', 'live'];
-    const KIND_MAP = { cover: 'cover', short: 'short', live: 'live', stream: 'live' };
+    const KIND_MAP = {
+      cover: 'cover',
+      short: 'short',
+      live: 'live',
+      stream: 'live',
+      '歌ってみた': 'cover',
+      '歌みた': 'cover',
+      'ショート': 'short',
+      '歌枠': 'live',
+      '配信': 'live',
+    };
     const KIND_LABELS = { cover: '歌ってみた', short: 'ショート', live: '歌枠', other: 'その他' };
     const CACHE_PREFIX = 'songs-cache-v3';
     const MY_DANMAKU_CACHE_KEY = 'my-danmaku-cache-v1';
@@ -843,7 +853,15 @@
     }
 
     function normalizeKind(kind) {
-      return KIND_MAP[String(kind || '').toLowerCase()] || 'other';
+      const raw = String(kind || '').trim();
+      if (!raw) return 'other';
+      const lowered = raw.toLowerCase();
+      if (KIND_MAP[lowered]) return KIND_MAP[lowered];
+      if (KIND_MAP[raw]) return KIND_MAP[raw];
+      if (lowered.includes('short') || raw.includes('ショート')) return 'short';
+      if (lowered.includes('cover') || raw.includes('歌ってみた') || raw.includes('歌みた')) return 'cover';
+      if (lowered.includes('live') || lowered.includes('stream') || raw.includes('歌枠') || raw.includes('配信')) return 'live';
+      return 'other';
     }
 
     function kindLabel(kind) {
