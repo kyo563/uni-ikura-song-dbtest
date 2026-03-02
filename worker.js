@@ -158,7 +158,8 @@ function normalizeSong(song) {
   const url = liveLink || otherLink || firstText(song, ['url']);
 
   const kindRaw = firstText(song, ['kind', 'type', 'category']);
-  const kind = normalizeKind(kindRaw || memo);
+  const kindFromField = normalizeKind(kindRaw);
+  const kind = kindFromField === 'other' ? normalizeKind(memo) : kindFromField;
 
   const ymd =
     firstYmd(firstText(song, ['publishedAt', 'date', 'lastSungDate', 'otherPublishedAt'])) ||
