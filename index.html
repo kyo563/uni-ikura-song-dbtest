@@ -296,6 +296,12 @@
 
     .song-meta { display: grid; gap: 4px; min-width: 0; }
 
+    .song-date-link {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
     .icon-btn {
       min-width: 38px;
       min-height: 34px;
@@ -717,6 +723,10 @@
         const id = stableSongId(item);
         const safeUrl = item.url ? encodeURI(item.url) : '';
         const expanded = state.expandedSongId === id;
+        const latestDate = escapeHtml(fmtDate(item.publishedAt));
+        const latestDateContent = item.url
+          ? `<a class="song-date-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '該当箇所へ移動')}">${latestDate}</a>`
+          : latestDate;
         return `
           <article class="song-card ${expanded ? 'expanded' : ''}" data-id="${id}" tabindex="0" role="button" aria-expanded="${expanded ? 'true' : 'false'}">
             <div class="song-summary">
@@ -726,7 +736,7 @@
             <div class="song-details">
               <div class="song-meta">
                 <div><span class="tag">${escapeHtml(kindLabel(normalizeKind(item.kind)))}</span></div>
-                <div>最終歌唱日: ${escapeHtml(fmtDate(item.publishedAt))}</div>
+                <div>最終歌唱日: ${latestDateContent}</div>
               </div>
               ${item.url ? `<a class="icon-btn" href="${safeUrl}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '該当箇所へ移動')}">▶</a>` : '<span class="muted">-</span>'}
               <button class="icon-btn copy-song" type="button">楽曲情報コピー</button>
