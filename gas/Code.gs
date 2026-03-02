@@ -10,6 +10,8 @@
  */
 
 const SHEET_NAME = 'Performance Record';
+const REQUIRED_COLUMNS = 6;
+const CHECKED_MARKERS = ['true', '1', 'yes', 'y', 'on', 'checked', 'check', '✅', '☑', '✔'];
 
 function doGet(e) {
   const api = String((e && e.parameter && e.parameter.api) || '');
@@ -29,15 +31,19 @@ function buildSongsPayload_() {
     throw new Error('Sheet not found: ' + SHEET_NAME);
   }
 
-  const values = sheet.getDataRange().getDisplayValues();
-  if (values.length <= 1) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) {
     return { items: [], total: 0, generatedAt: new Date().toISOString() };
   }
 
+  // 現要件は A〜F のみ利用するため、必要列だけ読む
+  const values = sheet.getRange(1, 1, lastRow, REQUIRED_COLUMNS).getDisplayValues();
   const rows = values.slice(1);
   const items = [];
 
-  rows.forEach((row, i) => {
+  // 重複データはスプレッドシート作成・編集時に解消される前提で扱う
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
     const artist = clean_(row[0]); // A
     const title = clean_(row[1]); // B
     const memo = clean_(row[2]); // C
@@ -45,8 +51,7 @@ function buildSongsPayload_() {
     const source = clean_(row[4]); // E
     const checked = clean_(row[5]); // F
 
-    if (!isChecked_(checked)) return;
-    if (!artist || !title) return;
+    if (!isChecked_(checked) || !artist || !title) continue;
 
     const liveUrl = extractUrl_(liveField);
     const liveTitle = extractLiveTitle_(liveField);
@@ -57,13 +62,11 @@ function buildSongsPayload_() {
     const memoKind = inferKindFromText_(memo);
 
     const hasLive = !!liveUrl || !!liveYmd;
-    const hasOther = !!memoUrl;
+    const normalizedLiveDate = liveYmd ? formatYmd_(liveYmd) : '';
+    const normalizedMemoDate = memoYmd ? formatYmd_(memoYmd) : '';
+    const kind = hasLive ? 'live' : (memoKind || 'other');
 
-    let kind = 'other';
-    if (hasLive) kind = 'live';
-    else if (memoKind) kind = memoKind;
-
-    const item = {
+    items.push({
       id: String(i + 2),
       title,
       artist,
@@ -73,18 +76,14 @@ function buildSongsPayload_() {
       checked: true,
       liveLink: liveUrl || '',
       liveTitle: liveTitle || '',
-      lastSungDate: liveYmd ? formatYmd_(liveYmd) : '',
-      otherLink: hasOther ? memoUrl : '',
-      otherPublishedAt: !hasLive && memoYmd ? formatYmd_(memoYmd) : '',
+      lastSungDate: normalizedLiveDate,
+      otherLink: memoUrl || '',
+      otherPublishedAt: hasLive ? '' : normalizedMemoDate,
       // 互換フィールド（既存UI/Worker向け）
       url: liveUrl || memoUrl || '',
-      publishedAt: liveYmd
-        ? formatYmd_(liveYmd)
-        : (!hasLive && memoYmd ? formatYmd_(memoYmd) : ''),
-    };
-
-    items.push(item);
-  });
+      publishedAt: normalizedLiveDate || (hasLive ? '' : normalizedMemoDate),
+    });
+  }
 
   return {
     items,
@@ -100,7 +99,7 @@ function clean_(v) {
 
 function isChecked_(value) {
   const v = String(value || '').trim().toLowerCase();
-  return ['true', '1', 'yes', 'y', 'on', 'checked', 'check', '✅', '☑', '✔'].indexOf(v) !== -1;
+  return CHECKED_MARKERS.includes(v);
 }
 
 function extractUrl_(text) {
