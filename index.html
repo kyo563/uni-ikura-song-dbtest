@@ -667,6 +667,14 @@
       return Number.isNaN(t) ? 0 : t;
     }
 
+    function openSongLink(item) {
+      const rawUrl = String(item?.url || '').trim();
+      if (!rawUrl) return false;
+      const safeUrl = encodeURI(rawUrl);
+      window.open(safeUrl, '_blank', 'noopener,noreferrer');
+      return true;
+    }
+
     function stableSongId(item) {
       const videoId = String(item?.videoId || item?.videoid || item?.video_id || '').trim();
       const title = String(item?.title || '').trim();
@@ -762,13 +770,19 @@
 
         el.addEventListener('click', (evt) => {
           if (evt.target.closest('.copy-song') || evt.target.closest('a')) return;
-          toggle();
+          select();
+          if (!openSongLink(item)) {
+            toggle();
+          }
         });
 
         el.addEventListener('keydown', (evt) => {
           if (evt.key === 'Enter' || evt.key === ' ') {
             evt.preventDefault();
-            toggle();
+            select();
+            if (!openSongLink(item)) {
+              toggle();
+            }
           }
         });
 
