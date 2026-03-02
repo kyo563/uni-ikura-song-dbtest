@@ -12,6 +12,7 @@
 const SHEET_NAME = 'Performance Record';
 const REQUIRED_COLUMNS = 6;
 const CHECKED_MARKERS = ['true', '1', 'yes', 'y', 'on', 'checked', 'check', '✅', '☑', '✔'];
+const SPREADSHEET_ID = '';
 
 function doGet(e) {
   const api = String((e && e.parameter && e.parameter.api) || '');
@@ -25,10 +26,10 @@ function doGet(e) {
 }
 
 function buildSongsPayload_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet_();
   const sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
-    throw new Error('Sheet not found: ' + SHEET_NAME);
+    throw new Error('Sheet not found: ' + SHEET_NAME + ' (シート名を確認してください)');
   }
 
   const lastRow = sheet.getLastRow();
@@ -91,6 +92,23 @@ function buildSongsPayload_() {
     generatedAt: new Date().toISOString(),
     schemaVersion: 1,
   };
+}
+
+function getSpreadsheet_() {
+  const active = SpreadsheetApp.getActiveSpreadsheet();
+  if (active) return active;
+
+  if (!SPREADSHEET_ID) {
+    throw new Error(
+      'Spreadsheet could not be resolved. Webアプリ実行時は getActiveSpreadsheet() が null になる場合があります。SPREADSHEET_ID を設定してください。'
+    );
+  }
+
+  try {
+    return SpreadsheetApp.openById(SPREADSHEET_ID);
+  } catch (error) {
+    throw new Error('Failed to open spreadsheet by SPREADSHEET_ID: ' + error.message);
+  }
 }
 
 function clean_(v) {
