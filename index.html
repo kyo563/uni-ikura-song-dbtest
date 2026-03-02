@@ -624,6 +624,7 @@
     const errorLogWrap = byId('errorLogWrap');
     const errorLog = byId('errorLog');
     const MAX_ERROR_BODY_CHARS = 4000;
+    const ENABLE_ERROR_LOG_UI = false;
     let latestErrorLogText = '';
     let lastRowsScrollTop = 0;
 
@@ -656,14 +657,18 @@
 
     function setErrorLog(logObject) {
       latestErrorLogText = JSON.stringify(logObject, null, 2);
-      errorLog.textContent = latestErrorLogText;
-      errorLogWrap.classList.add('show');
+      if (ENABLE_ERROR_LOG_UI) {
+        errorLog.textContent = latestErrorLogText;
+        errorLogWrap.classList.add('show');
+      }
       console.error('songs-db-detailed-error', logObject);
     }
 
     function clearErrorLog() {
       latestErrorLogText = '';
-      errorLog.textContent = 'エラー発生時にここへ詳細を表示します。';
+      if (ENABLE_ERROR_LOG_UI) {
+        errorLog.textContent = 'エラー発生時にここへ詳細を表示します。';
+      }
       errorLogWrap.classList.remove('show');
     }
 
@@ -1193,6 +1198,10 @@
     }
 
     function bind() {
+      if (!ENABLE_ERROR_LOG_UI) {
+        errorLogWrap.hidden = true;
+      }
+
       byId('q').addEventListener('input', (e) => {
         state.q = e.target.value.trim();
         load();
@@ -1221,7 +1230,9 @@
       });
 
       byId('copyDanmaku').addEventListener('click', copyDanmaku);
-      byId('copyErrorLog').addEventListener('click', copyErrorLog);
+      if (ENABLE_ERROR_LOG_UI) {
+        byId('copyErrorLog').addEventListener('click', copyErrorLog);
+      }
 
       byId('saveMyDanmaku').addEventListener('click', () => {
         const text = buildMyDanmaku(byId('myEmoji').value);
