@@ -1082,18 +1082,21 @@
 
     // CORS 回避のため、ブラウザからの外部GAS直アクセスは行わない。
     // 既定は同一オリジンの Worker API (/api/songs) を利用し、
-    // GitHub Pages 配信時は workers.dev の推定URLもフォールバック候補に含める。
-    function guessWorkersApiEndpoint() {
+    // GitHub Pages 配信時は workers.dev の推定URL群もフォールバック候補に含める。
+    function guessWorkersApiEndpoints() {
       const host = window.location.hostname || '';
-      if (!host.endsWith('.github.io')) return '';
+      if (!host.endsWith('.github.io')) return [];
 
       const owner = host.split('.')[0] || '';
       const account = getWorkersAccountHint() || owner;
       const pathSegments = window.location.pathname.split('/').filter(Boolean);
       const repo = pathSegments[0] || '';
-      if (!account || !repo) return '';
+      if (!repo) return [];
 
-      return `https://${repo}.${account}.workers.dev/api/songs`;
+      return Array.from(new Set([
+        `https://${repo}.workers.dev/api/songs`,
+        ...(account ? [`https://${repo}.${account}.workers.dev/api/songs`] : []),
+      ]));
     }
 
     const META_FALLBACK_ENDPOINTS =
@@ -1103,10 +1106,10 @@
         .filter(Boolean)
       || [];
 
-    const guessedWorkersApi = guessWorkersApiEndpoint();
+    const guessedWorkersApis = guessWorkersApiEndpoints();
     const API_FALLBACK_ENDPOINTS = Array.from(new Set([
       ...META_FALLBACK_ENDPOINTS,
-      ...(guessedWorkersApi ? [guessedWorkersApi] : []),
+      ...guessedWorkersApis,
     ]));
 
     const API_BASE_OVERRIDE =
