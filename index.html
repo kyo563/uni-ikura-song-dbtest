@@ -13,8 +13,8 @@
       --space-4: 16px;
       --radius-sm: 8px;
       --radius-md: 12px;
-      --control-height: 40px;
-      --font-control: 14px;
+      --control-height: 36px;
+      --font-control: 13px;
       --surface: #111827;
       --surface-2: #1f2937;
       --text: #f8fafc;
@@ -211,10 +211,10 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 6px 14px;
+      flex-wrap: nowrap;
+      gap: 4px 10px;
       padding: var(--space-2) var(--space-3);
-      font-size: 13px;
+      font-size: 12px;
       color: var(--text);
     }
 
@@ -358,9 +358,9 @@
 
     .bottom-panel {
       width: 50%;
-      padding: var(--space-2);
+      padding: var(--space-1) var(--space-2);
       display: grid;
-      gap: var(--space-2);
+      gap: var(--space-1);
       min-width: 0;
     }
 
@@ -397,6 +397,7 @@
       .sort-row select,
       .sort-row button { min-width: 96px; }
       .ratio-8-2 { grid-template-columns: 1fr; }
+      .summary-box { font-size: 11px; }
       .song-cards { max-height: 34vh; }
       .top-form.collapsed { max-height: 170px; }
     }
@@ -507,7 +508,7 @@
 
     .my-danmaku-actions {
       display: flex;
-      gap: var(--space-2);
+      gap: var(--space-1);
       flex-wrap: wrap;
     }
 
@@ -518,42 +519,38 @@
     <section class="card top-form" id="topForm">
       <div class="top-summary">
         <div class="summary-box">
-          <div class="summary-inline">サーバー:
-            <span class="status-shell" id="statusShell" data-state="loading">
-              <span class="status-dot" aria-hidden="true"></span>
-              <span class="status" id="status">起動中</span>
-            </span>
-          </div>
+          <span class="status-shell" id="statusShell" data-state="loading">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span class="status" id="status">起動</span>
+          </span>
           <div class="summary-inline">表示楽曲数: <span id="selectedCount">0</span> 曲</div>
         </div>
       </div>
 
       <div id="errorLogWrap" class="error-log-wrap" aria-live="polite">
         <div class="error-log-head">
-          <strong>詳細エラーログ（AI解析用）</strong>
-          <button id="copyErrorLog" type="button">エラーログをコピー</button>
+          <strong>エラー情報</strong>
+          <button id="copyErrorLog" type="button">コピー</button>
         </div>
-        <pre id="errorLog" class="error-log">エラー発生時にここへ詳細を表示します。</pre>
+        <pre id="errorLog" class="error-log">エラー時に情報を表示します。</pre>
       </div>
 
       <div class="top-advanced">
-        <label>絞り込み
-          <div class="checkbox-row">
+        <div class="checkbox-row" aria-label="絞り込み">
             <label><input type="checkbox" id="kindLive" checked>歌枠</label>
             <label><input type="checkbox" id="kindCover" checked>歌ってみた</label>
             <label><input type="checkbox" id="kindShort" checked>ショート</label>
-          </div>
-        </label>
+        </div>
         <div class="sort-row" aria-label="表示切替">
-          <label>並び替え
-            <select id="sortField">
+          <label aria-label="並び替え項目">
+            <select id="sortField" aria-label="並び替え項目">
               <option value="artist">アーティスト名</option>
               <option value="title">楽曲名</option>
               <option value="date" selected>投稿日</option>
             </select>
           </label>
-          <label>順序
-            <select id="sortOrder">
+          <label aria-label="並び順">
+            <select id="sortOrder" aria-label="並び順">
               <option value="asc">昇順</option>
               <option value="desc" selected>降順</option>
             </select>
@@ -575,10 +572,10 @@
         <div class="bottom-swipe-track" id="bottomSwipeTrack">
           <section class="bottom-panel" aria-label="検索フォームカード">
             <div class="ratio-8-2">
-              <label>検索テキスト
-                <input id="q" type="search" placeholder="曲名 / アーティスト / メモ">
+              <label aria-label="検索">
+                <input id="q" type="search" aria-label="検索" placeholder="曲名 / アーティスト / メモ">
               </label>
-              <button id="clear" type="button">検索クリア</button>
+              <button id="clear" type="button">クリア</button>
             </div>
           </section>
 
@@ -594,8 +591,8 @@
 
       <div class="bottom-grid bottom-static-controls">
         <div class="ratio-8-2">
-          <label>弾幕選択カラム
-            <select id="danmakuType">
+          <label aria-label="弾幕選択">
+            <select id="danmakuType" aria-label="弾幕選択">
               <option value="custom:🧡🎶🍣🥂🧡🎶🍣🥂🧡🎶🍣🥂">🧡🎶🍣🥂…(🥂)</option>
               <option value="custom:🍣🎶🧡✨🍣🎶🧡✨🍣🎶🧡✨">🍣🎶🧡✨…(🍣)</option>
               <option value="custom:🍶🧡🎺🍶🧡🎺🍶🧡🎺🍶🧡🎺">🍶🧡🎺🍶…(🍶)</option>
@@ -607,7 +604,7 @@
               <option value="my">マイ弾幕</option>
             </select>
           </label>
-          <button class="primary" id="copyDanmaku" type="button">弾幕コピー</button>
+          <button class="primary" id="copyDanmaku" type="button">コピー</button>
         </div>
       </div>
 
@@ -664,7 +661,7 @@
         statusShell.dataset.state = 'error';
         return;
       }
-      statusShell.dataset.state = text.includes('読み込み中') ? 'loading' : 'ok';
+      statusShell.dataset.state = text.includes('読込') ? 'loading' : 'ok';
     }
 
     function clipText(value, max = MAX_ERROR_BODY_CHARS) {
@@ -683,33 +680,6 @@
       return obj;
     }
 
-    function describeHttpStatus(status) {
-      const code = Number(status);
-      if (!Number.isInteger(code)) return '';
-
-      const map = {
-        400: '不正なリクエストです（パラメータ不正など）。',
-        401: '認証が必要です。',
-        403: 'アクセス権限がありません。',
-        404: 'APIエンドポイントまたはR2オブジェクトが見つかりません。',
-        405: '許可されていないHTTPメソッドです。',
-        408: 'リクエストがタイムアウトしました。',
-        409: 'リソース競合が発生しました。',
-        413: 'リクエストサイズが大きすぎます。',
-        415: 'サポートされていないデータ形式です。',
-        429: 'リクエストが多すぎます（レート制限）。',
-        500: 'サーバー内部エラーです。',
-        502: '上流サーバー応答が不正です。',
-        503: 'サービスが一時的に利用不可です。',
-        504: '上流サーバーの応答待ちでタイムアウトしました。',
-      };
-
-      if (map[code]) return map[code];
-      if (code >= 400 && code < 500) return 'クライアント側要因のHTTPエラーです。';
-      if (code >= 500 && code < 600) return 'サーバー側要因のHTTPエラーです。';
-      return '';
-    }
-
     function setErrorLog(logObject) {
       latestErrorLogText = JSON.stringify(logObject, null, 2);
       if (ENABLE_ERROR_LOG_UI) {
@@ -722,21 +692,21 @@
     function clearErrorLog() {
       latestErrorLogText = '';
       if (ENABLE_ERROR_LOG_UI) {
-        errorLog.textContent = 'エラー発生時にここへ詳細を表示します。';
+        errorLog.textContent = 'エラー時に情報を表示します。';
       }
       errorLogWrap.classList.remove('show');
     }
 
     async function copyErrorLog() {
       if (!latestErrorLogText) {
-        setStatus('コピー可能なエラーログはありません', true);
+        setStatus('ログなし', true);
         return;
       }
       try {
         await navigator.clipboard.writeText(latestErrorLogText);
-        setStatus('詳細エラーログをコピーしました');
+        setStatus('ログコピー');
       } catch (_) {
-        setStatus('エラーログのコピーに失敗しました', true);
+        setStatus('ログ失敗', true);
       }
     }
 
@@ -1092,9 +1062,9 @@
           ].join('\n');
           try {
             await navigator.clipboard.writeText(text);
-            setStatus(`楽曲情報コピー完了: ${item.title || '-'}`);
+            setStatus('曲コピー');
           } catch (_) {
-            setStatus('楽曲情報コピーに失敗しました', true);
+            setStatus('曲コピ失敗', true);
           }
         });
       });
@@ -1131,9 +1101,6 @@
       ).trim();
     }
 
-    // CORS 回避のため、ブラウザからの外部GAS直アクセスは行わない。
-    // 既定は同一オリジンの Worker API (/api/songs) を利用し、
-    // GitHub Pages 配信時は workers.dev の推定URL群もフォールバック候補に含める。
     function guessWorkersApiEndpoints() {
       const host = window.location.hostname || '';
       if (!host.endsWith('.github.io')) return [];
@@ -1191,7 +1158,7 @@
     }
 
     async function load() {
-      setStatus('読込中');
+      setStatus('読込');
       clearErrorLog();
 
       const params = new URLSearchParams({ q: state.q, kind: 'all', sort: 'latest' });
@@ -1206,7 +1173,7 @@
       if (cached?.payload?.items) {
         const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
         render(cachedItems);
-        setStatus(`キャッシュ ${cachedItems.length}/${cached.payload.total ?? 0}`);
+        setStatus(`キャ${cachedItems.length}`);
       }
 
       try {
@@ -1255,7 +1222,7 @@
         if (res.status === 304 && cached?.payload) {
           const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
           render(cachedItems);
-          setStatus(`更新なし ${cachedItems.length}/${cached.payload.total ?? 0}`);
+          setStatus(`更無${cachedItems.length}`);
           return;
         }
 
@@ -1278,7 +1245,7 @@
         const etag = res.headers.get('etag');
         const filteredItems = filterItems(Array.isArray(payload.items) ? payload.items : []);
         render(filteredItems);
-        setStatus(`表示 ${filteredItems.length}/${payload.total ?? 0}`);
+        setStatus(`表示${filteredItems.length}`);
 
         if (etag) saveCache({ etag, payload });
       } catch (err) {
@@ -1289,39 +1256,14 @@
         const detail = {
           timestamp: new Date().toISOString(),
           errorName: err?.name || 'Error',
-          message: err?.message || 'Unknown error',
           statusCode,
-          statusDescription: describeHttpStatus(statusCode),
-          stack: clipText(err?.stack || ''),
-          request: {
-            url: requestUrl,
-            method: 'GET',
-            params: Object.fromEntries(params.entries()),
-            hasIfNoneMatch: Boolean(cached?.etag),
-          },
-          response: err?.details || null,
-          cache: {
-            hasCachedPayload: Boolean(cached?.payload),
-            cachedEtag: cached?.etag || null,
-          },
-          client: {
-            location: window.location.href,
-            userAgent: navigator.userAgent,
-            language: navigator.language,
-          },
-          cause: err?.cause ? {
-            name: err.cause?.name || 'Error',
-            message: err.cause?.message || String(err.cause),
-            stack: clipText(err.cause?.stack || ''),
-          } : null,
+          statusDescription: '通信エラー',
         };
         setErrorLog(detail);
         if (!cached?.payload) {
           rows.innerHTML = '<div class="error">データ取得に失敗しました。Worker / R2 の設定を確認してください。</div>';
         }
-        const shortDescription = describeHttpStatus(statusCode);
-        const suffix = shortDescription ? ` ${shortDescription}` : '';
-        setStatus(`エラー:${err.message}${suffix}`, true);
+        setStatus('失敗', true);
       }
     }
 
@@ -1329,7 +1271,7 @@
       const type = byId('danmakuType').value;
       const isCustomDanmaku = type.startsWith('custom:');
       if (!isCustomDanmaku && type !== 'my') {
-        setStatus('コピー対象がありません', true);
+        setStatus('対象なし', true);
         return;
       }
 
@@ -1340,8 +1282,8 @@
       if (!text.trim()) {
         setStatus(
           type === 'my'
-            ? 'マイ弾幕がありません。弾幕編集（マイ弾幕）から作成してください。'
-            : 'コピー対象がありません',
+            ? '弾幕未設定'
+            : '対象なし',
           true,
         );
         return;
@@ -1349,9 +1291,9 @@
 
       try {
         await navigator.clipboard.writeText(text.trim());
-        setStatus(`弾幕コピー完了: ${text.trim()}`);
+        setStatus('弾幕コピ');
       } catch (_) {
-        setStatus('コピーに失敗しました（権限を確認してください）', true);
+        setStatus('コピー失敗', true);
       }
     }
 
@@ -1411,7 +1353,7 @@
         const text = buildMyDanmaku(byId('myEmoji').value);
         saveMyDanmakuCache(text);
         byId('danmakuType').value = 'my';
-        setStatus('マイ弾幕を保存しました（15分キャッシュ）');
+        setStatus('保存');
       });
 
       byId('collapseToggle').addEventListener('click', () => {
