@@ -79,6 +79,7 @@ https://script.google.com/macros/s/AKfycbyIefR5ZknV0UOS40ZuQxrQW92bv8TaRCA4PU-AC
   - **開いているURLがWorkerドメインか**を最初に確認。GitHub Pagesで開くと `api/songs` が404になりやすいです。
   - Workerドメイン例: `https://uni-ikura-song-dbtest.<account>.workers.dev/`
   - フロントは GitHub Pages (`<owner>.github.io/<repo>/`) で開いた場合、`https://<repo>.<owner>.workers.dev/api/songs` も自動で試行します。
+  - Cloudflareアカウント名がGitHubユーザー名と異なる場合、`localStorage.setItem("songs_workers_account", "<account>")` を実行すると `https://<repo>.<account>.workers.dev/api/songs` を自動推定するようになります。
   - 自動推定で接続できない場合は `localStorage.setItem("songs_api_base", "https://uni-ikura-song-dbtest.<account>.workers.dev/")` を実行してAPIベースを固定し、再読込してください。
   - `GET /api/health` の `r2.exists` が `true` か確認。`false` なら `SONG_DB` / `SONGS_JSON_KEY` / R2オブジェクトキーを見直してください。
 

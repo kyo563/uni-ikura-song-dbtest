@@ -1044,6 +1044,15 @@
       );
     }
 
+    function getWorkersAccountHint() {
+      return (
+        window.__SONGS_WORKERS_ACCOUNT__
+        || document.querySelector('meta[name="songs-workers-account"]')?.content
+        || localStorage.getItem('songs_workers_account')
+        || ''
+      ).trim();
+    }
+
     // CORS 回避のため、ブラウザからの外部GAS直アクセスは行わない。
     // 既定は同一オリジンの Worker API (/api/songs) を利用し、
     // GitHub Pages 配信時は workers.dev の推定URLもフォールバック候補に含める。
@@ -1052,11 +1061,12 @@
       if (!host.endsWith('.github.io')) return '';
 
       const owner = host.split('.')[0] || '';
+      const account = getWorkersAccountHint() || owner;
       const pathSegments = window.location.pathname.split('/').filter(Boolean);
       const repo = pathSegments[0] || '';
-      if (!owner || !repo) return '';
+      if (!account || !repo) return '';
 
-      return `https://${repo}.${owner}.workers.dev/api/songs`;
+      return `https://${repo}.${account}.workers.dev/api/songs`;
     }
 
     const META_FALLBACK_ENDPOINTS =
