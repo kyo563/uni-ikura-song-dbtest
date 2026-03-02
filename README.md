@@ -64,6 +64,30 @@ https://script.google.com/macros/s/AKfycbyIefR5ZknV0UOS40ZuQxrQW92bv8TaRCA4PU-AC
 - `R2_BUCKET`
 - `R2_OBJECT_KEY`（通常 `songs.json`）
 
+
+### R2アップロード/読み取りを個別検証する（切り分け用）
+
+`sync` ワークフローとは別に、アップロード可否と読み取り可否を分けて確認したい場合は次を実行します。
+
+```bash
+chmod +x scripts/verify_r2_upload_and_read.sh
+R2_ENDPOINT_URL="https://<ACCOUNT_ID>.r2.cloudflarestorage.com" \
+R2_BUCKET="<bucket>" \
+R2_OBJECT_KEY="songs.json" \
+AWS_ACCESS_KEY_ID="<access_key>" \
+AWS_SECRET_ACCESS_KEY="<secret_key>" \
+# 任意: Worker経由の読み取りも同時確認
+WORKER_BASE_URL="https://uni-ikura-song-dbtest.<account>.workers.dev" \
+bash scripts/verify_r2_upload_and_read.sh
+```
+
+このスクリプトは以下を順に検証します。
+
+1. GASレスポンスがJSONとして妥当か（`.items` 配列を持つか）
+2. R2へアップロードできるか（検証用キーへ保存）
+3. R2から同じオブジェクトを読み戻せるか（S3 API経由）
+4. 任意でWorker `/api/health` と `/api/songs` が読めるか
+
 ### トラブルシュート（Workflow失敗時）
 
 - `Missing credentials` エラー
