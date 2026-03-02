@@ -1044,9 +1044,7 @@
       );
     }
 
-    const API_FALLBACK_ENDPOINTS = [
-      'https://script.google.com/macros/s/AKfycbw7Ogfu60tm5ohwXZ1XstGNEs8vHg7Y_IW4fQKeM4Srz0aYNDUFS-t9vdnurpZoR5cQ/exec?api=songs',
-    ];
+    const DEFAULT_WORKER_API_BASE = 'https://uni-ikura-song-dbtest.workers.dev/';
 
     const API_BASE_OVERRIDE =
       window.__SONGS_API_BASE__
@@ -1054,19 +1052,21 @@
       || localStorage.getItem('songs_api_base')
       || '';
 
-    function apiUrl(path, params) {
-      const baseRoot = API_BASE_OVERRIDE || window.location.href;
+    const IS_GITHUB_PAGES = window.location.hostname.endsWith('github.io');
+
+    function apiUrl(path, params, baseRoot = window.location.href) {
       const base = new URL(path.replace(/^\/+/, ''), baseRoot);
       if (params) base.search = params.toString();
       return base.toString();
     }
 
-    function withQuery(url, params) {
-      const base = new URL(url, window.location.href);
-      params.forEach((value, key) => {
-        if (!base.searchParams.has(key)) base.searchParams.set(key, value);
+    function uniqueUrls(urls) {
+      const seen = new Set();
+      return urls.filter((url) => {
+        if (seen.has(url)) return false;
+        seen.add(url);
+        return true;
       });
-      return base.toString();
     }
 
     function clearApiCache() {
@@ -1081,10 +1081,11 @@
 
       const params = new URLSearchParams({ q: state.q, kind: 'all', sort: 'latest' });
       const cached = loadCache();
-      const requestCandidates = [
+      const requestCandidates = uniqueUrls([
+        ...(API_BASE_OVERRIDE ? [apiUrl('api/songs', params, API_BASE_OVERRIDE)] : []),
+        ...(IS_GITHUB_PAGES ? [apiUrl('api/songs', params, DEFAULT_WORKER_API_BASE)] : []),
         apiUrl('api/songs', params),
-        ...API_FALLBACK_ENDPOINTS.map((endpoint) => withQuery(endpoint, params)),
-      ];
+      ]);
 
       let requestUrl = requestCandidates[0];
 
