@@ -647,7 +647,7 @@
     const errorLogWrap = byId('errorLogWrap');
     const errorLog = byId('errorLog');
     const MAX_ERROR_BODY_CHARS = 4000;
-    const ENABLE_ERROR_LOG_UI = false;
+    const ENABLE_ERROR_LOG_UI = true;
     let latestErrorLogText = '';
     let lastRowsScrollTop = 0;
 
@@ -676,6 +676,33 @@
         if (value) obj[key] = value;
       }
       return obj;
+    }
+
+    function describeHttpStatus(status) {
+      const code = Number(status);
+      if (!Number.isInteger(code)) return '';
+
+      const map = {
+        400: '不正なリクエストです（パラメータ不正など）。',
+        401: '認証が必要です。',
+        403: 'アクセス権限がありません。',
+        404: 'APIエンドポイントまたはR2オブジェクトが見つかりません。',
+        405: '許可されていないHTTPメソッドです。',
+        408: 'リクエストがタイムアウトしました。',
+        409: 'リソース競合が発生しました。',
+        413: 'リクエストサイズが大きすぎます。',
+        415: 'サポートされていないデータ形式です。',
+        429: 'リクエストが多すぎます（レート制限）。',
+        500: 'サーバー内部エラーです。',
+        502: '上流サーバー応答が不正です。',
+        503: 'サービスが一時的に利用不可です。',
+        504: '上流サーバーの応答待ちでタイムアウトしました。',
+      };
+
+      if (map[code]) return map[code];
+      if (code >= 400 && code < 500) return 'クライアント側要因のHTTPエラーです。';
+      if (code >= 500 && code < 600) return 'サーバー側要因のHTTPエラーです。';
+      return '';
     }
 
     function setErrorLog(logObject) {
@@ -1204,10 +1231,13 @@
         if (String(err?.message || '').includes('404')) {
           clearApiCache();
         }
+        const statusCode = err?.details?.status || (String(err?.message || '').match(/HTTP\s+(\d{3})/)?.[1] ?? null);
         const detail = {
           timestamp: new Date().toISOString(),
           errorName: err?.name || 'Error',
           message: err?.message || 'Unknown error',
+          statusCode,
+          statusDescription: describeHttpStatus(statusCode),
           stack: clipText(err?.stack || ''),
           request: {
             url: requestUrl,
@@ -1235,7 +1265,9 @@
         if (!cached?.payload) {
           rows.innerHTML = '<div class="error">データ取得に失敗しました。Worker / R2 の設定を確認してください。</div>';
         }
-        setStatus(`エラー:${err.message}`, true);
+        const shortDescription = describeHttpStatus(statusCode);
+        const suffix = shortDescription ? ` ${shortDescription}` : '';
+        setStatus(`エラー:${err.message}${suffix}`, true);
       }
     }
 
