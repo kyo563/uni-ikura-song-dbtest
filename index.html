@@ -394,7 +394,13 @@
       gap: var(--space-1);
       max-height: 54vh;
       overflow-y: auto;
-      padding-right: 2px;
+      padding-right: 0;
+    }
+
+    .middle-form {
+      padding: 0;
+      background: transparent;
+      border: 0;
     }
 
     .song-card {
@@ -402,6 +408,7 @@
       border-radius: var(--radius-sm);
       background: color-mix(in srgb, var(--surface-2) 88%, black 12%);
       padding: var(--space-2);
+      width: 100%;
       transition: margin 0.15s ease, border-color 0.15s ease;
       cursor: pointer;
       scroll-snap-align: start;
@@ -609,6 +616,7 @@
     const errorLog = byId('errorLog');
     const MAX_ERROR_BODY_CHARS = 4000;
     let latestErrorLogText = '';
+    let lastRowsScrollTop = 0;
 
     const statusShell = byId('statusShell');
 
@@ -863,6 +871,14 @@
       });
     }
 
+    rows?.addEventListener('scroll', () => {
+      const currentTop = rows.scrollTop;
+      if (Math.abs(currentTop - lastRowsScrollTop) > 2 && state.expandedSongId) {
+        collapseExpanded();
+      }
+      lastRowsScrollTop = currentTop;
+    }, { passive: true });
+
     function render(items) {
       selectedCount.textContent = String(items.length);
 
@@ -912,7 +928,6 @@
         const toggle = () => {
           select();
           if (state.expandedSongId === id) {
-            collapseExpanded();
             return;
           }
           state.expandedSongId = id;
