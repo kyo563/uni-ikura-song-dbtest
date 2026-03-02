@@ -25,12 +25,8 @@ async function handleSongs(request, url, env) {
   const q = (url.searchParams.get('q') || '').trim().toLowerCase();
   const kind = url.searchParams.get('kind') || 'all';
   const sort = url.searchParams.get('sort') || 'latest';
-  const limitRaw = url.searchParams.get('limit');
-  const hasLimit = limitRaw !== null && limitRaw !== '';
-  const limit = hasLimit ? Math.min(200, Math.max(1, Number(limitRaw))) : null;
-
   const sourceEtag = normalizeEtag(head.httpEtag || head.etag || '');
-  const responseEtag = `W/"${sourceEtag}:${hashOf([q, kind, sort, hasLimit ? limit : 'all'].join('|'))}"`;
+  const responseEtag = `W/"${sourceEtag}:${hashOf([q, kind, sort, 'all'].join('|'))}"`;
   const ifNoneMatch = request.headers.get('if-none-match');
 
   if (ifNoneMatch && ifNoneMatch === responseEtag) {
@@ -68,9 +64,6 @@ async function handleSongs(request, url, env) {
   });
 
   filtered = sortSongs(filtered, sort);
-  if (hasLimit) {
-    filtered = filtered.slice(0, limit);
-  }
 
   return json(
     {
