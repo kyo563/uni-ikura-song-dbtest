@@ -5,7 +5,7 @@ compatibility_date = "2026-01-01"
 [assets]
 directory = "."
 binding = "ASSETS"
-exclude = ["worker.js", "wrangler.toml", "README.md"]
+include = ["index.html"]
 
 [[r2_buckets]]
 binding = "SONG_DB"
