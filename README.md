@@ -1,5 +1,7 @@
 # uni-ikura-song-dbtest
 
+公開ページ: https://kyo563.github.io/uni-ikura-song-dbtest/
+
 `kasane-3kHz-songs-dbTEST` を参考にした、**Cloudflare Worker + R2 + Static Assets** 構成です。  
 このリポジトリでは、`Performance Record` シートをGASでJSON化し、GitHub ActionsでR2へ定期同期する運用を想定しています。
 
