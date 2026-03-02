@@ -862,9 +862,21 @@
       );
     }
 
+    const API_FALLBACK_ENDPOINTS = [
+      'https://script.google.com/macros/s/AKfycbyMD58NPs-RUi24wiP0AZSPziHEgNj0RPmC3_HM65hSMhQ6J4lF0cj51NtBDrFd3Kqa/exec?api=songs',
+    ];
+
     function apiUrl(path, params) {
       const base = new URL(path.replace(/^\/+/, ''), window.location.href);
       if (params) base.search = params.toString();
+      return base.toString();
+    }
+
+    function withQuery(url, params) {
+      const base = new URL(url, window.location.href);
+      params.forEach((value, key) => {
+        if (!base.searchParams.has(key)) base.searchParams.set(key, value);
+      });
       return base.toString();
     }
 
@@ -874,7 +886,12 @@
 
       const params = new URLSearchParams({ q: state.q, kind: 'all', sort: 'latest' });
       const cached = loadCache();
-      const requestUrl = apiUrl('api/songs', params);
+      const requestCandidates = [
+        apiUrl('api/songs', params),
+        ...API_FALLBACK_ENDPOINTS.map((endpoint) => withQuery(endpoint, params)),
+      ];
+
+      let requestUrl = requestCandidates[0];
 
       if (cached?.payload?.items) {
         const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
@@ -883,9 +900,40 @@
       }
 
       try {
-        const res = await fetch(requestUrl, {
-          headers: cached?.etag ? { 'If-None-Match': cached.etag } : {},
-        });
+        let res;
+        let lastError = null;
+
+        for (const candidateUrl of requestCandidates) {
+          requestUrl = candidateUrl;
+          try {
+            res = await fetch(candidateUrl, {
+              headers: cached?.etag ? { 'If-None-Match': cached.etag } : {},
+            });
+          } catch (fetchErr) {
+            lastError = fetchErr;
+            continue;
+          }
+
+          if (res.ok || res.status === 304) break;
+
+          if (res.status !== 404) {
+            const bodyText = await res.text();
+            const httpError = new Error(`HTTP ${res.status}`);
+            httpError.name = 'HttpResponseError';
+            httpError.details = {
+              status: res.status,
+              statusText: res.statusText,
+              headers: headersToObject(res.headers),
+              bodyPreview: clipText(bodyText),
+            };
+            throw httpError;
+          }
+
+          lastError = new Error('HTTP 404');
+          lastError.name = 'HttpResponseError';
+        }
+
+        if (!res) throw lastError || new Error('Fetch failed');
 
         if (res.status === 304 && cached?.payload) {
           const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
@@ -894,18 +942,7 @@
           return;
         }
 
-        if (!res.ok) {
-          const bodyText = await res.text();
-          const httpError = new Error(`HTTP ${res.status}`);
-          httpError.name = 'HttpResponseError';
-          httpError.details = {
-            status: res.status,
-            statusText: res.statusText,
-            headers: headersToObject(res.headers),
-            bodyPreview: clipText(bodyText),
-          };
-          throw httpError;
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         let payload;
         try {
