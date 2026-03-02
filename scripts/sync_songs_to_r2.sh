@@ -14,6 +14,7 @@ fi
 
 tmp_json="songs.generated.json"
 tmp_headers="songs.generated.headers"
+content_type=""
 
 debug_enabled="${DEBUG_SYNC:-0}"
 

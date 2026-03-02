@@ -2,8 +2,15 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (url.pathname.startsWith('/api/') && request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders(request),
+      });
+    }
+
     if (url.pathname === '/api/health') {
-      return handleHealth(env);
+      return handleHealth(request, env);
     }
 
     if (url.pathname === '/api/songs') {
@@ -14,25 +21,41 @@ export default {
   },
 };
 
-async function handleHealth(env) {
+async function handleHealth(request, env) {
   const key = env.SONGS_JSON_KEY || 'songs.json';
-  const head = await env.SONG_DB.head(key);
-  return json({
-    ok: true,
-    service: 'uni-ikura-song-dbtest-worker',
-    r2: {
-      key,
-      exists: Boolean(head),
-    },
-  });
+  try {
+    const head = await env.SONG_DB?.head?.(key);
+    return json(request, {
+      ok: true,
+      service: 'uni-ikura-song-dbtest-worker',
+      r2: {
+        key,
+        exists: Boolean(head),
+      },
+    });
+  } catch (error) {
+    return json(request, {
+      ok: false,
+      service: 'uni-ikura-song-dbtest-worker',
+      error: error?.message || 'Health check failed',
+      hint: 'Check SONG_DB binding and R2 configuration.',
+    }, 500);
+  }
 }
 
 async function handleSongs(request, url, env) {
   const key = env.SONGS_JSON_KEY || 'songs.json';
+  if (!env.SONG_DB || typeof env.SONG_DB.get !== 'function' || typeof env.SONG_DB.head !== 'function') {
+    return json(request, {
+      error: 'SONG_DB binding is not available',
+      hint: 'Check wrangler.toml [[r2_buckets]] binding name.',
+    }, 500);
+  }
+
   const head = await env.SONG_DB.head(key);
 
   if (!head) {
-    return json({
+    return json(request, {
       error: `R2 object not found: ${key}`,
       key,
       hint: 'Check SONG_DB binding, SONGS_JSON_KEY, and object key in R2.',
@@ -50,6 +73,7 @@ async function handleSongs(request, url, env) {
     return new Response(null, {
       status: 304,
       headers: {
+        ...corsHeaders(request),
         etag: responseEtag,
         'cache-control': 'no-cache',
       },
@@ -58,7 +82,7 @@ async function handleSongs(request, url, env) {
 
   const object = await env.SONG_DB.get(key);
   if (!object) {
-    return json({
+    return json(request, {
       error: `R2 object not found: ${key}`,
       key,
       hint: 'Check SONG_DB binding, SONGS_JSON_KEY, and object key in R2.',
@@ -70,7 +94,7 @@ async function handleSongs(request, url, env) {
   try {
     list = JSON.parse(raw);
   } catch (_) {
-    return json({
+    return json(request, {
       error: 'Invalid songs JSON in R2 object',
       key,
       hint: 'songs.json must be valid JSON.',
@@ -96,6 +120,7 @@ async function handleSongs(request, url, env) {
   filtered = sortSongs(filtered, sort);
 
   return json(
+    request,
     {
       items: filtered,
       count: filtered.length,
@@ -255,10 +280,22 @@ function dateOf(item) {
   return Number.isNaN(t) ? 0 : t;
 }
 
-function json(data, status = 200, extraHeaders = {}) {
+function corsHeaders(request) {
+  const origin = request.headers.get('origin');
+  return {
+    'access-control-allow-origin': origin || '*',
+    'access-control-allow-methods': 'GET,HEAD,OPTIONS',
+    'access-control-allow-headers': 'If-None-Match,Content-Type',
+    'access-control-max-age': '86400',
+    vary: 'Origin',
+  };
+}
+
+function json(request, data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
+      ...corsHeaders(request),
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
       ...extraHeaders,
