@@ -1044,9 +1044,9 @@
       );
     }
 
-    const API_FALLBACK_ENDPOINTS = [
-      'https://script.google.com/macros/s/AKfycbw7Ogfu60tm5ohwXZ1XstGNEs8vHg7Y_IW4fQKeM4Srz0aYNDUFS-t9vdnurpZoR5cQ/exec?api=songs',
-    ];
+    // CORS 回避のため、ブラウザからの外部GAS直アクセスは行わない。
+    // データ取得は同一オリジンの Worker API (/api/songs) のみを利用する。
+    const API_FALLBACK_ENDPOINTS = [];
 
     const API_BASE_OVERRIDE =
       window.__SONGS_API_BASE__
