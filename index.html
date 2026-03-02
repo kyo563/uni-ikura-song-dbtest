@@ -591,6 +591,14 @@
               <option value="title">曲名</option>
               <option value="artist">アーティスト</option>
               <option value="full">曲名 + アーティスト</option>
+              <option value="custom:🧡🎶🍣🥂🧡🎶🍣🥂🧡🎶🍣🥂">🧡🎶🍣🥂…(🥂)</option>
+              <option value="custom:🍣🎶🧡✨🍣🎶🧡✨🍣🎶🧡✨">🍣🎶🧡✨…(🍣)</option>
+              <option value="custom:🍶🧡🎺🍶🧡🎺🍶🧡🎺🍶🧡🎺">🍶🧡🎺🍶…(🍶)</option>
+              <option value="custom:🎧💫♬🧡🎧💫♬🧡🎧💫♬🧡">🎧💫♬🧡…(🎧)</option>
+              <option value="custom:🧡🎹🎶🍣🧡🎹🎶🍣🧡🎹🎶🍣">🧡🎹🎶🍣…(🎹)</option>
+              <option value="custom:🎵☀🧡～🎵☀🧡～🎵☀🧡～">🎵☀🧡～…(🎵)</option>
+              <option value="custom:世界一🌏🌟⋆꙳イケボ✨世界一🌏🌟⋆꙳イケボ✨世界一🌏🌟⋆꙳イケボ✨">世界一イケボ…(🌏)</option>
+              <option value="custom:✩࿐⋆*🍼👶 ﾟ·꒰ঌ ﾊﾞｯﾌﾞｰ ໒꒱· ﾟ👶🍼✩࿐⋆*">✩࿐⋆*🍼👶…(🍼)</option>
               <option value="my">マイ弾幕</option>
             </select>
           </label>
@@ -1159,7 +1167,8 @@
     async function copyDanmaku() {
       const selected = JSON.parse(rows.dataset.selected || '{}');
       const type = byId('danmakuType').value;
-      if (type !== 'my' && !selected.title && !selected.artist) {
+      const isCustomDanmaku = type.startsWith('custom:');
+      if (!isCustomDanmaku && type !== 'my' && !selected.title && !selected.artist) {
         setStatus('コピー対象がありません', true);
         return;
       }
@@ -1168,6 +1177,7 @@
       if (type === 'artist') text = selected.artist || '';
       if (type === 'full') text = `${selected.title || ''} - ${selected.artist || ''}`;
       if (type === 'my') text = state.myDanmaku || loadMyDanmakuCache();
+      if (isCustomDanmaku) text = type.slice('custom:'.length);
 
       if (!text.trim()) {
         setStatus(
