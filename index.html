@@ -188,6 +188,29 @@
       gap: 8px;
     }
 
+    .swipe-back-button {
+      min-height: auto;
+      padding: 2px 6px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.2;
+      border-radius: 8px;
+    }
+
+    .swipe-back-button:not(:disabled) {
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .swipe-back-button:disabled {
+      cursor: default;
+      opacity: 0.7;
+    }
+
     .swipe-dots {
       display: inline-flex;
       gap: 6px;
@@ -403,7 +426,7 @@
       </div>
 
       <div class="swipe-hint" id="swipeHint">
-        <span id="swipeHintText">← 横スワイプでマイ弾幕カードへ →</span>
+        <button id="swipeBackButton" class="swipe-back-button" type="button" disabled>スワイプで戻る</button>
         <span class="swipe-dots" aria-hidden="true">
           <span class="swipe-dot active" id="swipeDotSearch"></span>
           <span class="swipe-dot" id="swipeDotMy"></span>
@@ -445,9 +468,9 @@
       const isMyCard = index === 1;
       byId('swipeDotSearch').classList.toggle('active', !isMyCard);
       byId('swipeDotMy').classList.toggle('active', isMyCard);
-      byId('swipeHintText').textContent = isMyCard
-        ? '← 横スワイプで検索フォームカードへ →'
-        : '← 横スワイプでマイ弾幕カードへ →';
+      const swipeBackButton = byId('swipeBackButton');
+      swipeBackButton.disabled = !isMyCard;
+      swipeBackButton.setAttribute('aria-disabled', String(!isMyCard));
     }
 
     function setupBottomSwipe() {
@@ -514,6 +537,10 @@
       });
 
       byId('saveMyDanmaku').addEventListener('click', () => {
+        setCard(0);
+      });
+
+      byId('swipeBackButton').addEventListener('click', () => {
         setCard(0);
       });
 
