@@ -6,6 +6,14 @@
   <title>雲丹ゐくら Songs DB TEST</title>
   <style>
     :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --control-height: 40px;
+      --font-control: 14px;
       --surface: #111827;
       --surface-2: #1f2937;
       --text: #f8fafc;
@@ -20,22 +28,22 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      padding: 16px;
+      padding: var(--space-4);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
       background: #ffffff;
       color: var(--text);
     }
 
-    .container { max-width: 1080px; margin: 0 auto; display: grid; gap: 16px; }
+    .container { max-width: 1080px; margin: 0 auto; display: grid; gap: var(--space-3); }
     .card {
       background: color-mix(in srgb, var(--surface) 90%, black 10%);
       border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px;
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
     }
 
-    h1 { margin: 0 0 6px; font-size: 22px; }
-    h2 { margin: 0 0 12px; font-size: 17px; }
+    h1 { margin: 0 0 var(--space-1); font-size: 21px; }
+    h2 { margin: 0 0 var(--space-2); font-size: 16px; }
     .muted { color: var(--muted); font-size: 13px; }
     .status-shell {
       position: relative;
@@ -142,28 +150,29 @@
       }
     }
 
-    label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+    label { display: grid; gap: var(--space-1); font-size: 13px; color: var(--muted); }
 
     .card :is(input, select) {
       width: 100%;
-      border-radius: 10px;
+      border-radius: var(--radius-sm);
       border: 1px solid var(--line);
       background: var(--surface-2);
       color: var(--text);
-      min-height: 42px;
-      padding: 9px 10px;
-      font-size: 15px;
+      min-height: var(--control-height);
+      padding: var(--space-2) var(--space-3);
+      font-size: var(--font-control);
     }
 
     .card button {
       border: 1px solid var(--line);
-      border-radius: 10px;
+      border-radius: var(--radius-sm);
       background: var(--surface-2);
       color: var(--text);
-      min-height: 42px;
-      padding: 8px 12px;
+      min-height: var(--control-height);
+      padding: var(--space-2) var(--space-3);
       cursor: pointer;
-      font-size: 14px;
+      font-size: var(--font-control);
+      font-weight: 600;
     }
 
     button.primary {
@@ -183,7 +192,7 @@
 
     .top-form {
       position: relative;
-      padding-bottom: 50px;
+      padding-bottom: 46px;
       overflow: hidden;
       transition: max-height 0.2s ease;
       max-height: 900px;
@@ -191,31 +200,31 @@
 
     .top-summary {
       display: grid;
-      gap: 8px;
+      gap: var(--space-2);
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      margin-bottom: 10px;
+      margin-bottom: var(--space-2);
     }
 
     .summary-box {
       border: 1px solid var(--line);
-      border-radius: 10px;
+      border-radius: var(--radius-sm);
       background: var(--surface-2);
-      min-height: 42px;
+      min-height: var(--control-height);
       display: flex;
       align-items: center;
-      padding: 8px 10px;
+      padding: var(--space-2) var(--space-3);
       font-size: 13px;
       color: var(--text);
     }
 
     .error-log-wrap {
-      margin-top: 10px;
+      margin-top: var(--space-2);
       border: 1px solid var(--line);
-      border-radius: 10px;
+      border-radius: var(--radius-sm);
       background: var(--surface-2);
-      padding: 10px;
+      padding: var(--space-2);
       display: none;
-      gap: 8px;
+      gap: var(--space-2);
     }
 
     .error-log-wrap.show {
@@ -233,10 +242,10 @@
     .error-log {
       margin: 0;
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       background: #0b1220;
       color: #dbeafe;
-      padding: 10px;
+      padding: var(--space-2);
       max-height: 280px;
       overflow: auto;
       font-size: 12px;
@@ -247,9 +256,27 @@
 
     .top-advanced {
       display: grid;
-      gap: 10px;
-      grid-template-columns: 1.8fr 1.2fr auto;
+      gap: var(--space-2);
+      grid-template-columns: 1.5fr auto;
       align-items: end;
+    }
+
+    .sort-row {
+      display: grid;
+      gap: var(--space-2);
+      grid-template-columns: auto auto;
+      align-items: end;
+      justify-content: start;
+    }
+
+    .sort-row label {
+      min-width: 0;
+    }
+
+    .sort-row select,
+    .sort-row button {
+      width: fit-content;
+      min-width: 112px;
     }
 
     .top-form.collapsed {
@@ -262,7 +289,7 @@
       position: absolute;
       right: 0;
       bottom: 0;
-      width: 140px;
+      width: auto;
       display: flex;
       justify-content: flex-end;
     }
@@ -270,7 +297,7 @@
     .checkbox-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 14px;
+      gap: var(--space-3);
       padding-top: 2px;
     }
 
@@ -285,14 +312,14 @@
 
     .bottom-grid {
       display: grid;
-      gap: 8px;
+      gap: var(--space-2);
       grid-template-columns: 1fr;
       align-items: end;
     }
 
     .ratio-8-2 {
       display: grid;
-      gap: 8px;
+      gap: var(--space-2);
       grid-template-columns: 8fr 2fr;
       align-items: end;
     }
@@ -300,7 +327,7 @@
     .bottom-swipe-wrap {
       overflow: hidden;
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: var(--radius-md);
       background: color-mix(in srgb, var(--surface-2) 90%, black 10%);
     }
 
@@ -319,9 +346,9 @@
 
     .bottom-panel {
       width: 50%;
-      padding: 8px;
+      padding: var(--space-2);
       display: grid;
-      gap: 8px;
+      gap: var(--space-2);
       min-width: 0;
     }
 
@@ -333,7 +360,7 @@
       color: var(--muted);
       font-size: 11px;
       line-height: 1.2;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
     }
 
     .swipe-back-button:not(:disabled) {
@@ -349,14 +376,22 @@
     }
 
     @media (max-width: 860px) {
+      body { padding: var(--space-2); }
+      .container { gap: var(--space-2); }
+      .card { padding: var(--space-2); }
       .top-summary { grid-template-columns: 1fr; }
-      .top-advanced { grid-template-columns: 1fr; }
+      .top-advanced { grid-template-columns: 1fr; gap: var(--space-2); }
+      .sort-row { grid-template-columns: auto auto; }
+      .sort-row select,
+      .sort-row button { min-width: 96px; }
       .ratio-8-2 { grid-template-columns: 1fr; }
+      .song-cards { max-height: 34vh; }
+      .top-form.collapsed { max-height: 170px; }
     }
 
     .song-cards {
       display: grid;
-      gap: 6px;
+      gap: var(--space-1);
       max-height: 54vh;
       overflow-y: auto;
       padding-right: 2px;
@@ -364,29 +399,29 @@
 
     .song-card {
       border: 1px solid var(--line);
-      border-radius: 10px;
+      border-radius: var(--radius-sm);
       background: color-mix(in srgb, var(--surface-2) 88%, black 12%);
-      padding: 10px;
+      padding: var(--space-2);
       transition: margin 0.15s ease, border-color 0.15s ease;
       cursor: pointer;
       scroll-snap-align: start;
     }
 
     .song-card.expanded {
-      margin: 5px 0;
+      margin: var(--space-1) 0;
       border-color: var(--accent);
     }
 
-    .song-summary { display: grid; gap: 2px; font-size: 14px; }
+    .song-summary { display: grid; gap: 2px; font-size: 13px; }
     .song-title { font-weight: 700; }
     .song-artist { color: var(--muted); font-size: 13px; }
 
     .song-details {
       display: none;
-      margin-top: 8px;
-      padding-top: 8px;
+      margin-top: var(--space-2);
+      padding-top: var(--space-2);
       border-top: 1px solid var(--line);
-      gap: 8px;
+      gap: var(--space-2);
       font-size: 13px;
     }
 
@@ -396,7 +431,7 @@
       align-items: center;
     }
 
-    .song-meta { display: grid; gap: 4px; min-width: 0; }
+    .song-meta { display: grid; gap: var(--space-1); min-width: 0; }
 
     .song-date-link {
       color: var(--accent);
@@ -405,9 +440,9 @@
     }
 
     .icon-btn {
-      min-width: 38px;
-      min-height: 34px;
-      padding: 6px 10px;
+      min-width: 36px;
+      min-height: 32px;
+      padding: var(--space-1) var(--space-2);
     }
 
     html.snap-active { scroll-snap-type: y proximity; }
@@ -416,7 +451,7 @@
       display: inline-block;
       border: 1px solid var(--line);
       border-radius: 999px;
-      padding: 2px 8px;
+      padding: 2px var(--space-2);
       font-size: 12px;
       background: #0b2232;
       color: var(--accent);
@@ -424,8 +459,8 @@
 
     #scrollTop {
       position: fixed;
-      right: 18px;
-      bottom: 18px;
+      right: var(--space-4);
+      bottom: var(--space-4);
       z-index: 20;
       display: none;
     }
@@ -434,7 +469,7 @@
 
     .my-danmaku-form {
       display: grid;
-      gap: 8px;
+      gap: var(--space-2);
     }
 
     #myEmoji {
@@ -446,7 +481,7 @@
 
     .my-danmaku-actions {
       display: flex;
-      gap: 10px;
+      gap: var(--space-2);
       flex-wrap: wrap;
     }
 
@@ -481,16 +516,21 @@
             <label><input type="checkbox" id="kindShort" checked>ショート</label>
           </div>
         </label>
-        <label>表示切替メニュー
-          <select id="sortMode">
-            <option value="artist-asc">アーティスト名 昇順</option>
-            <option value="artist-desc">アーティスト名 降順</option>
-            <option value="title-asc">楽曲名 昇順</option>
-            <option value="title-desc">楽曲名 降順</option>
-            <option value="date-asc">投稿日付 昇順</option>
-            <option value="date-desc" selected>投稿日付 降順</option>
-          </select>
-        </label>
+        <div class="sort-row" aria-label="表示切替メニュー">
+          <label>並び替え項目
+            <select id="sortField">
+              <option value="artist">アーティスト名</option>
+              <option value="title">楽曲名</option>
+              <option value="date" selected>投稿日</option>
+            </select>
+          </label>
+          <label>順序
+            <select id="sortOrder">
+              <option value="asc">昇順</option>
+              <option value="desc" selected>降順</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       <div class="toggle-wrap">
@@ -554,6 +594,8 @@
       q: '',
       kinds: [...DEFAULT_KINDS],
       sortMode: 'date-desc',
+      sortField: 'date',
+      sortOrder: 'desc',
       selectedSongId: '',
       expandedSongId: '',
       myDanmaku: '',
@@ -1136,8 +1178,15 @@
       byId('kindShort').addEventListener('change', () => toggleKind('short'));
       byId('kindLive').addEventListener('change', () => toggleKind('live'));
 
-      byId('sortMode').addEventListener('change', (e) => {
-        state.sortMode = e.target.value;
+      byId('sortField').addEventListener('change', (e) => {
+        state.sortField = e.target.value;
+        state.sortMode = `${state.sortField}-${state.sortOrder}`;
+        load();
+      });
+
+      byId('sortOrder').addEventListener('change', (e) => {
+        state.sortOrder = e.target.value;
+        state.sortMode = `${state.sortField}-${state.sortOrder}`;
         load();
       });
 
@@ -1176,6 +1225,10 @@
         collapseExpanded();
       }, { passive: true });
     }
+
+    byId('sortField').value = state.sortField;
+    byId('sortOrder').value = state.sortOrder;
+    state.sortMode = `${state.sortField}-${state.sortOrder}`;
 
     bind();
     setupBottomSwipe();
