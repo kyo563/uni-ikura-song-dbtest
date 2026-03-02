@@ -183,7 +183,7 @@
 
     .bottom-grid {
       display: grid;
-      gap: 10px;
+      gap: 8px;
       grid-template-columns: 2fr 1fr auto auto;
       align-items: end;
     }
@@ -210,9 +210,9 @@
 
     .bottom-panel {
       width: 50%;
-      padding: 12px;
+      padding: 8px;
       display: grid;
-      gap: 10px;
+      gap: 8px;
       min-width: 0;
     }
 
@@ -356,7 +356,14 @@
 
     .my-danmaku-form {
       display: grid;
-      gap: 12px;
+      gap: 8px;
+    }
+
+    #myEmoji {
+      width: 7ch;
+      min-width: 7ch;
+      padding-left: 8px;
+      padding-right: 8px;
     }
 
     .my-danmaku-actions {
@@ -454,13 +461,8 @@
           </section>
 
           <section class="bottom-panel my-danmaku-form" aria-label="マイ弾幕カード">
-            <h3>マイ弾幕作成</h3>
-            <p class="muted">好きな絵文字を入力すると、🍣💛絵文字 を3回つないだ弾幕を自動生成します（キャッシュ15分）。</p>
-            <label>絵文字入力
-              <input id="myEmoji" type="text" placeholder="例: 🎉" maxlength="20">
-            </label>
+            <input id="myEmoji" type="text" placeholder="🎉" maxlength="20" aria-label="絵文字入力">
             <div>
-              <div class="muted">生成プレビュー</div>
               <div id="myDanmakuPreview" class="preview-box">🍣💛🙂🍣💛🙂🍣💛🙂</div>
             </div>
             <div class="my-danmaku-actions">
