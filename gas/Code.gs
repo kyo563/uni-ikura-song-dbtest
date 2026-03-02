@@ -56,7 +56,7 @@ function buildSongsPayload_() {
     const memoYmd = extractYmd_(memo);
     const memoKind = inferKindFromText_(memo);
 
-    const hasLive = !!liveUrl;
+    const hasLive = !!liveUrl || !!liveYmd;
     const hasOther = !!memoUrl;
 
     let kind = 'other';
