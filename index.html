@@ -184,7 +184,14 @@
     .bottom-grid {
       display: grid;
       gap: 8px;
-      grid-template-columns: 2fr 1fr auto auto;
+      grid-template-columns: 1fr;
+      align-items: end;
+    }
+
+    .ratio-8-2 {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 8fr 2fr;
       align-items: end;
     }
 
@@ -239,19 +246,10 @@
       opacity: 0.7;
     }
 
-    .bottom-panel h3 {
-      margin: 0;
-      font-size: 15px;
-    }
-
     @media (max-width: 860px) {
       .top-summary { grid-template-columns: 1fr; }
       .top-advanced { grid-template-columns: 1fr; }
-      .bottom-grid { grid-template-columns: 1fr 1fr; }
-    }
-
-    @media (max-width: 560px) {
-      .bottom-grid { grid-template-columns: 1fr; }
+      .ratio-8-2 { grid-template-columns: 1fr; }
     }
 
     .song-cards {
@@ -348,13 +346,7 @@
 </head>
 <body>
   <main class="container" id="songsPage">
-    <section class="card">
-      <h1>雲丹ゐくら Songs DB TEST</h1>
-      <p class="muted">kasane-3kHz-songs-dbTEST 構成に合わせ、Cloudflare R2 + Worker API 経由で参照するUIです。</p>
-    </section>
-
     <section class="card top-form" id="topForm">
-      <h2>上部絞り込みフォーム</h2>
       <div class="top-summary">
         <div class="summary-box">サーバー状態表示: <span class="status" id="status">初期化中...</span></div>
         <div class="summary-box">選択されている楽曲数: <span id="selectedCount">0</span> 曲</div>
@@ -395,30 +387,31 @@
     </section>
 
     <section class="card middle-form">
-      <h2>中部楽曲情報フォーム</h2>
       <div id="rows" class="song-cards"></div>
     </section>
 
     <section class="card bottom-form">
-      <h2>下部検索フォーム</h2>
       <div class="bottom-swipe-wrap" id="bottomSwipeWrap">
         <div class="bottom-swipe-track" id="bottomSwipeTrack">
           <section class="bottom-panel" aria-label="検索フォームカード">
-            <h3>検索フォーム</h3>
             <div class="bottom-grid">
-              <label>検索フォーム
-                <input id="q" type="search" placeholder="曲名 / アーティスト / メモ">
-              </label>
-              <label>弾幕選択カラム
-                <select id="danmakuType">
-                  <option value="title">曲名</option>
-                  <option value="artist">アーティスト</option>
-                  <option value="full">曲名 + アーティスト</option>
-                  <option value="my">マイ弾幕</option>
-                </select>
-              </label>
-              <button id="clear" type="button">検索クリア</button>
-              <button class="primary" id="copyDanmaku" type="button">弾幕コピー</button>
+              <div class="ratio-8-2">
+                <label>検索テキスト
+                  <input id="q" type="search" placeholder="曲名 / アーティスト / メモ">
+                </label>
+                <button id="clear" type="button">検索クリア</button>
+              </div>
+              <div class="ratio-8-2">
+                <label>弾幕選択カラム
+                  <select id="danmakuType">
+                    <option value="title">曲名</option>
+                    <option value="artist">アーティスト</option>
+                    <option value="full">曲名 + アーティスト</option>
+                    <option value="my">マイ弾幕</option>
+                  </select>
+                </label>
+                <button class="primary" id="copyDanmaku" type="button">弾幕コピー</button>
+              </div>
             </div>
           </section>
 
@@ -967,12 +960,12 @@
 
     async function copyDanmaku() {
       const selected = JSON.parse(rows.dataset.selected || '{}');
-      if (!selected.title && !selected.artist) {
+      const type = byId('danmakuType').value;
+      if (type !== 'my' && !selected.title && !selected.artist) {
         setStatus('コピー対象がありません', true);
         return;
       }
 
-      const type = byId('danmakuType').value;
       let text = selected.title || '';
       if (type === 'artist') text = selected.artist || '';
       if (type === 'full') text = `${selected.title || ''} - ${selected.artist || ''}`;
