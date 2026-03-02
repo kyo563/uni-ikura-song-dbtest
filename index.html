@@ -1045,8 +1045,32 @@
     }
 
     // CORS 回避のため、ブラウザからの外部GAS直アクセスは行わない。
-    // データ取得は同一オリジンの Worker API (/api/songs) のみを利用する。
-    const API_FALLBACK_ENDPOINTS = [];
+    // 既定は同一オリジンの Worker API (/api/songs) を利用し、
+    // GitHub Pages 配信時は workers.dev の推定URLもフォールバック候補に含める。
+    function guessWorkersApiEndpoint() {
+      const host = window.location.hostname || '';
+      if (!host.endsWith('.github.io')) return '';
+
+      const owner = host.split('.')[0] || '';
+      const pathSegments = window.location.pathname.split('/').filter(Boolean);
+      const repo = pathSegments[0] || '';
+      if (!owner || !repo) return '';
+
+      return `https://${repo}.${owner}.workers.dev/api/songs`;
+    }
+
+    const META_FALLBACK_ENDPOINTS =
+      document.querySelector('meta[name="songs-api-fallbacks"]')?.content
+        ?.split(',')
+        .map((v) => v.trim())
+        .filter(Boolean)
+      || [];
+
+    const guessedWorkersApi = guessWorkersApiEndpoint();
+    const API_FALLBACK_ENDPOINTS = Array.from(new Set([
+      ...META_FALLBACK_ENDPOINTS,
+      ...(guessedWorkersApi ? [guessedWorkersApi] : []),
+    ]));
 
     const API_BASE_OVERRIDE =
       window.__SONGS_API_BASE__
