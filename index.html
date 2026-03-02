@@ -199,9 +199,6 @@
     }
 
     .top-summary {
-      display: grid;
-      gap: var(--space-2);
-      grid-template-columns: repeat(2, minmax(0, 1fr));
       margin-bottom: var(--space-2);
     }
 
@@ -212,9 +209,19 @@
       min-height: var(--control-height);
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px 14px;
       padding: var(--space-2) var(--space-3);
       font-size: 13px;
       color: var(--text);
+    }
+
+    .summary-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
     }
 
     .error-log-wrap {
@@ -498,13 +505,15 @@
   <main class="container" id="songsPage">
     <section class="card top-form" id="topForm">
       <div class="top-summary">
-        <div class="summary-box">サーバー状態表示:
-          <span class="status-shell" id="statusShell" data-state="loading">
-            <span class="status-dot" aria-hidden="true"></span>
-            <span class="status" id="status">初期化中...</span>
-          </span>
+        <div class="summary-box">
+          <div class="summary-inline">サーバー:
+            <span class="status-shell" id="statusShell" data-state="loading">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span class="status" id="status">起動中</span>
+            </span>
+          </div>
+          <div class="summary-inline">表示楽曲数: <span id="selectedCount">0</span> 曲</div>
         </div>
-        <div class="summary-box">選択されている楽曲数: <span id="selectedCount">0</span> 曲</div>
       </div>
 
       <div id="errorLogWrap" class="error-log-wrap" aria-live="polite">
@@ -1018,7 +1027,7 @@
     }
 
     async function load() {
-      setStatus('読み込み中...');
+      setStatus('読込中');
       clearErrorLog();
 
       const params = new URLSearchParams({ q: state.q, kind: 'all', sort: 'latest' });
@@ -1033,7 +1042,7 @@
       if (cached?.payload?.items) {
         const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
         render(cachedItems);
-        setStatus(`キャッシュ表示 ${cachedItems.length} / 総数 ${cached.payload.total ?? 0}`);
+        setStatus(`キャッシュ ${cachedItems.length}/${cached.payload.total ?? 0}`);
       }
 
       try {
@@ -1075,7 +1084,7 @@
         if (res.status === 304 && cached?.payload) {
           const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
           render(cachedItems);
-          setStatus(`更新なし（ETag） 表示 ${cachedItems.length} / 総数 ${cached.payload.total ?? 0}`);
+          setStatus(`更新なし ${cachedItems.length}/${cached.payload.total ?? 0}`);
           return;
         }
 
@@ -1098,7 +1107,7 @@
         const etag = res.headers.get('etag');
         const filteredItems = filterItems(Array.isArray(payload.items) ? payload.items : []);
         render(filteredItems);
-        setStatus(`表示 ${filteredItems.length} / 総数 ${payload.total ?? 0}`);
+        setStatus(`表示 ${filteredItems.length}/${payload.total ?? 0}`);
 
         if (etag) saveCache({ etag, payload });
       } catch (err) {
@@ -1133,7 +1142,7 @@
         if (!cached?.payload) {
           rows.innerHTML = '<div class="error">データ取得に失敗しました。Worker / R2 の設定を確認してください。</div>';
         }
-        setStatus(`エラー: ${err.message}`, true);
+        setStatus(`エラー:${err.message}`, true);
       }
     }
 
