@@ -84,7 +84,7 @@
       padding-bottom: 50px;
       overflow: hidden;
       transition: max-height 0.2s ease;
-      max-height: 520px;
+      max-height: 900px;
     }
 
     .top-summary {
@@ -104,6 +104,43 @@
       padding: 8px 10px;
       font-size: 13px;
       color: var(--text);
+    }
+
+    .error-log-wrap {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-2);
+      padding: 10px;
+      display: none;
+      gap: 8px;
+    }
+
+    .error-log-wrap.show {
+      display: grid;
+    }
+
+    .error-log-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .error-log {
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #0b1220;
+      color: #dbeafe;
+      padding: 10px;
+      max-height: 280px;
+      overflow: auto;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
     .top-advanced {
@@ -354,6 +391,14 @@
         <div class="summary-box">選択されている楽曲数: <span id="selectedCount">0</span> 曲</div>
       </div>
 
+      <div id="errorLogWrap" class="error-log-wrap" aria-live="polite">
+        <div class="error-log-head">
+          <strong>詳細エラーログ（AI解析用）</strong>
+          <button id="copyErrorLog" type="button">エラーログをコピー</button>
+        </div>
+        <pre id="errorLog" class="error-log">エラー発生時にここへ詳細を表示します。</pre>
+      </div>
+
       <div class="top-advanced">
         <label>絞り込みメニュー
           <div class="checkbox-row">
@@ -458,10 +503,56 @@
     const status = byId('status');
     const rows = byId('rows');
     const selectedCount = byId('selectedCount');
+    const errorLogWrap = byId('errorLogWrap');
+    const errorLog = byId('errorLog');
+    const MAX_ERROR_BODY_CHARS = 4000;
+    let latestErrorLogText = '';
 
     function setStatus(text, isError = false) {
       status.textContent = text;
       status.classList.toggle('error', isError);
+    }
+
+    function clipText(value, max = MAX_ERROR_BODY_CHARS) {
+      const text = String(value ?? '');
+      if (text.length <= max) return text;
+      return `${text.slice(0, max)}\n...<truncated ${text.length - max} chars>`;
+    }
+
+    function headersToObject(headers) {
+      const picked = ['content-type', 'cache-control', 'etag', 'cf-ray', 'server', 'date'];
+      const obj = {};
+      for (const key of picked) {
+        const value = headers.get(key);
+        if (value) obj[key] = value;
+      }
+      return obj;
+    }
+
+    function setErrorLog(logObject) {
+      latestErrorLogText = JSON.stringify(logObject, null, 2);
+      errorLog.textContent = latestErrorLogText;
+      errorLogWrap.classList.add('show');
+      console.error('songs-db-detailed-error', logObject);
+    }
+
+    function clearErrorLog() {
+      latestErrorLogText = '';
+      errorLog.textContent = 'エラー発生時にここへ詳細を表示します。';
+      errorLogWrap.classList.remove('show');
+    }
+
+    async function copyErrorLog() {
+      if (!latestErrorLogText) {
+        setStatus('コピー可能なエラーログはありません', true);
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(latestErrorLogText);
+        setStatus('詳細エラーログをコピーしました');
+      } catch (_) {
+        setStatus('エラーログのコピーに失敗しました', true);
+      }
     }
 
     function updateSwipeUi(index) {
@@ -777,9 +868,11 @@
 
     async function load() {
       setStatus('読み込み中...');
+      clearErrorLog();
 
       const params = new URLSearchParams({ q: state.q, kind: 'all', sort: 'latest' });
       const cached = loadCache();
+      const requestUrl = apiUrl('api/songs', params);
 
       if (cached?.payload?.items) {
         const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
@@ -788,7 +881,7 @@
       }
 
       try {
-        const res = await fetch(apiUrl('api/songs', params), {
+        const res = await fetch(requestUrl, {
           headers: cached?.etag ? { 'If-None-Match': cached.etag } : {},
         });
 
@@ -799,9 +892,33 @@
           return;
         }
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const bodyText = await res.text();
+          const httpError = new Error(`HTTP ${res.status}`);
+          httpError.name = 'HttpResponseError';
+          httpError.details = {
+            status: res.status,
+            statusText: res.statusText,
+            headers: headersToObject(res.headers),
+            bodyPreview: clipText(bodyText),
+          };
+          throw httpError;
+        }
 
-        const payload = await res.json();
+        let payload;
+        try {
+          payload = await res.json();
+        } catch (jsonErr) {
+          const parseError = new Error('JSON parse failed');
+          parseError.name = 'JsonParseError';
+          parseError.details = {
+            status: res.status,
+            statusText: res.statusText,
+            headers: headersToObject(res.headers),
+          };
+          parseError.cause = jsonErr;
+          throw parseError;
+        }
         const etag = res.headers.get('etag');
         const filteredItems = filterItems(Array.isArray(payload.items) ? payload.items : []);
         render(filteredItems);
@@ -809,7 +926,34 @@
 
         if (etag) saveCache({ etag, payload });
       } catch (err) {
-        console.error(err);
+        const detail = {
+          timestamp: new Date().toISOString(),
+          errorName: err?.name || 'Error',
+          message: err?.message || 'Unknown error',
+          stack: clipText(err?.stack || ''),
+          request: {
+            url: requestUrl,
+            method: 'GET',
+            params: Object.fromEntries(params.entries()),
+            hasIfNoneMatch: Boolean(cached?.etag),
+          },
+          response: err?.details || null,
+          cache: {
+            hasCachedPayload: Boolean(cached?.payload),
+            cachedEtag: cached?.etag || null,
+          },
+          client: {
+            location: window.location.href,
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+          },
+          cause: err?.cause ? {
+            name: err.cause?.name || 'Error',
+            message: err.cause?.message || String(err.cause),
+            stack: clipText(err.cause?.stack || ''),
+          } : null,
+        };
+        setErrorLog(detail);
         if (!cached?.payload) {
           rows.innerHTML = '<div class="error">データ取得に失敗しました。Worker / R2 の設定を確認してください。</div>';
         }
@@ -886,6 +1030,7 @@
       });
 
       byId('copyDanmaku').addEventListener('click', copyDanmaku);
+      byId('copyErrorLog').addEventListener('click', copyErrorLog);
 
       byId('myEmoji').addEventListener('input', (e) => {
         const text = buildMyDanmaku(e.target.value);
