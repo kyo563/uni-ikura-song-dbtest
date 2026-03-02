@@ -105,6 +105,7 @@ bash scripts/verify_r2_upload_and_read.sh
   - フロントは GitHub Pages (`<owner>.github.io/<repo>/`) で開いた場合、`https://<repo>.<owner>.workers.dev/api/songs` も自動で試行します。
   - Cloudflareアカウント名がGitHubユーザー名と異なる場合、`localStorage.setItem("songs_workers_account", "<account>")` を実行すると `https://<repo>.<account>.workers.dev/api/songs` を自動推定するようになります。
   - 自動推定で接続できない場合は `localStorage.setItem("songs_api_base", "https://uni-ikura-song-dbtest.<account>.workers.dev/")` を実行してAPIベースを固定し、再読込してください。
+  - 恒久対応として、`index.html` の `meta[name="songs-api-base"]` に Worker URL を設定するとブラウザごとの再設定が不要になります。
   - `GET /api/health` の `r2.exists` が `true` か確認。`false` なら `SONG_DB` / `SONGS_JSON_KEY` / R2オブジェクトキーを見直してください。
 
 ---
