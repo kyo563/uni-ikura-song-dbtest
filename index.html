@@ -378,7 +378,6 @@
             <option value="date-desc" selected>投稿日付 降順</option>
           </select>
         </label>
-        <button class="primary" id="reload" type="button">再読み込み</button>
       </div>
 
       <div class="toggle-wrap">
@@ -1019,7 +1018,6 @@
         load();
       });
 
-      byId('reload').addEventListener('click', load);
       byId('clear').addEventListener('click', () => {
         state.q = '';
         byId('q').value = '';
