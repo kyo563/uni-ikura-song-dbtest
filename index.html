@@ -1048,8 +1048,15 @@
       'https://script.google.com/macros/s/AKfycbw7Ogfu60tm5ohwXZ1XstGNEs8vHg7Y_IW4fQKeM4Srz0aYNDUFS-t9vdnurpZoR5cQ/exec?api=songs',
     ];
 
+    const API_BASE_OVERRIDE =
+      window.__SONGS_API_BASE__
+      || document.querySelector('meta[name="songs-api-base"]')?.content
+      || localStorage.getItem('songs_api_base')
+      || '';
+
     function apiUrl(path, params) {
-      const base = new URL(path.replace(/^\/+/, ''), window.location.href);
+      const baseRoot = API_BASE_OVERRIDE || window.location.href;
+      const base = new URL(path.replace(/^\/+/, ''), baseRoot);
       if (params) base.search = params.toString();
       return base.toString();
     }
@@ -1060,6 +1067,12 @@
         if (!base.searchParams.has(key)) base.searchParams.set(key, value);
       });
       return base.toString();
+    }
+
+    function clearApiCache() {
+      try {
+        localStorage.removeItem(cacheKey());
+      } catch (_) {}
     }
 
     async function load() {
@@ -1085,6 +1098,8 @@
         let res;
         let lastError = null;
 
+        const requestAttemptLogs = [];
+
         for (const candidateUrl of requestCandidates) {
           requestUrl = candidateUrl;
           try {
@@ -1093,8 +1108,11 @@
             });
           } catch (fetchErr) {
             lastError = fetchErr;
+            requestAttemptLogs.push({ url: candidateUrl, status: 'network_error' });
             continue;
           }
+
+          requestAttemptLogs.push({ url: candidateUrl, status: res.status });
 
           if (res.ok || res.status === 304) break;
 
@@ -1107,12 +1125,14 @@
               statusText: res.statusText,
               headers: headersToObject(res.headers),
               bodyPreview: clipText(bodyText),
+              attempts: requestAttemptLogs,
             };
             throw httpError;
           }
 
           lastError = new Error('HTTP 404');
           lastError.name = 'HttpResponseError';
+          lastError.details = { attempts: requestAttemptLogs };
         }
 
         if (!res) throw lastError || new Error('Fetch failed');
@@ -1147,6 +1167,9 @@
 
         if (etag) saveCache({ etag, payload });
       } catch (err) {
+        if (String(err?.message || '').includes('404')) {
+          clearApiCache();
+        }
         const detail = {
           timestamp: new Date().toISOString(),
           errorName: err?.name || 'Error',

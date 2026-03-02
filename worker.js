@@ -3,7 +3,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/health') {
-      return json({ ok: true, service: 'uni-ikura-song-dbtest-worker' });
+      return handleHealth(env);
     }
 
     if (url.pathname === '/api/songs') {
@@ -14,12 +14,29 @@ export default {
   },
 };
 
+async function handleHealth(env) {
+  const key = env.SONGS_JSON_KEY || 'songs.json';
+  const head = await env.SONG_DB.head(key);
+  return json({
+    ok: true,
+    service: 'uni-ikura-song-dbtest-worker',
+    r2: {
+      key,
+      exists: Boolean(head),
+    },
+  });
+}
+
 async function handleSongs(request, url, env) {
   const key = env.SONGS_JSON_KEY || 'songs.json';
   const head = await env.SONG_DB.head(key);
 
   if (!head) {
-    return json({ error: `R2 object not found: ${key}` }, 404);
+    return json({
+      error: `R2 object not found: ${key}`,
+      key,
+      hint: 'Check SONG_DB binding, SONGS_JSON_KEY, and object key in R2.',
+    }, 404);
   }
 
   const q = (url.searchParams.get('q') || '').trim().toLowerCase();
@@ -41,11 +58,24 @@ async function handleSongs(request, url, env) {
 
   const object = await env.SONG_DB.get(key);
   if (!object) {
-    return json({ error: `R2 object not found: ${key}` }, 404);
+    return json({
+      error: `R2 object not found: ${key}`,
+      key,
+      hint: 'Check SONG_DB binding, SONGS_JSON_KEY, and object key in R2.',
+    }, 404);
   }
 
   const raw = await object.text();
-  const list = JSON.parse(raw);
+  let list;
+  try {
+    list = JSON.parse(raw);
+  } catch (_) {
+    return json({
+      error: 'Invalid songs JSON in R2 object',
+      key,
+      hint: 'songs.json must be valid JSON.',
+    }, 502);
+  }
   const sourceItems = Array.isArray(list) ? list : (Array.isArray(list?.items) ? list.items : []);
   const songs = sourceItems.map(normalizeSong);
 

@@ -75,6 +75,12 @@ https://script.google.com/macros/s/AKfycbw7Ogfu60tm5ohwXZ1XstGNEs8vHg7Y_IW4fQKeM
   - まず `GAS_SONGS_API_URL` をブラウザで開き、`{` から始まるJSONが返るかを確認してください（`?api=songs` を必ず付与）。
   - 追加で、`scripts/sync_songs_to_r2.sh` は `Content-Type` も検証します。`text/html` が返る場合はGAS公開設定（アクセス権）またはURL誤りを疑ってください。
 
+- フロントで `サーバー: エラー:HTTP 404` が出る
+  - **開いているURLがWorkerドメインか**を最初に確認。GitHub Pagesで開くと `api/songs` が404になりやすいです。
+  - Workerドメイン例: `https://uni-ikura-song-dbtest.<account>.workers.dev/`
+  - 必要なら `localStorage.setItem("songs_api_base", "https://uni-ikura-song-dbtest.<account>.workers.dev/")` を実行してAPIベースを固定し、再読込してください。
+  - `GET /api/health` の `r2.exists` が `true` か確認。`false` なら `SONG_DB` / `SONGS_JSON_KEY` / R2オブジェクトキーを見直してください。
+
 ---
 
 ## 3. R2に保存するJSONスキーマ
