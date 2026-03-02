@@ -476,6 +476,13 @@
       color: var(--accent);
     }
 
+    .tag-link {
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .tag-link:hover { filter: brightness(1.1); }
+
     #scrollTop {
       position: fixed;
       right: var(--space-4);
@@ -589,9 +596,6 @@
         <div class="ratio-8-2">
           <label>弾幕選択カラム
             <select id="danmakuType">
-              <option value="title">曲名</option>
-              <option value="artist">アーティスト</option>
-              <option value="full">曲名 + アーティスト</option>
               <option value="custom:🧡🎶🍣🥂🧡🎶🍣🥂🧡🎶🍣🥂">🧡🎶🍣🥂…(🥂)</option>
               <option value="custom:🍣🎶🧡✨🍣🎶🧡✨🍣🎶🧡✨">🍣🎶🧡✨…(🍣)</option>
               <option value="custom:🍶🧡🎺🍶🧡🎺🍶🧡🎺🍶🧡🎺">🍶🧡🎺🍶…(🍶)</option>
@@ -909,6 +913,46 @@
       return true;
     }
 
+    function urlsFromText(text) {
+      if (!text) return [];
+      const matches = String(text).match(/https?:\/\/[^\s)]+/ig) || [];
+      return Array.from(new Set(matches.map((url) => url.trim()).filter(Boolean)));
+    }
+
+    function linksForExpanded(item) {
+      const links = [];
+      const pushLink = (label, url) => {
+        const cleanUrl = String(url || '').trim();
+        if (!cleanUrl) return;
+        links.push({ label, url: cleanUrl });
+      };
+
+      pushLink('歌枠', item.liveLink || item.url);
+
+      const memo = String(item.memo || '').trim();
+      const memoUrls = urlsFromText(memo);
+      if (!memoUrls.length && item.otherLink) memoUrls.push(String(item.otherLink).trim());
+
+      const memoLower = memo.toLowerCase();
+      const memoLabel = memoLower.includes('short') || memo.includes('ショート')
+        ? 'ショート'
+        : (memoLower.includes('cover') || memo.includes('歌ってみた') || memo.includes('歌みた'))
+          ? '歌ってみた'
+          : '関連動画';
+
+      memoUrls.forEach((url) => pushLink(memoLabel, url));
+
+      const unique = [];
+      const seen = new Set();
+      links.forEach((link) => {
+        const key = `${link.label}|${link.url}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        unique.push(link);
+      });
+      return unique;
+    }
+
     function stableSongId(item) {
       const videoId = String(item?.videoId || item?.videoid || item?.video_id || '').trim();
       const title = String(item?.title || '').trim();
@@ -967,6 +1011,12 @@
         const id = stableSongId(item);
         const safeUrl = item.url ? encodeURI(item.url) : '';
         const expanded = state.expandedSongId === id;
+        const expandedLinks = linksForExpanded(item);
+        const expandedLinksHtml = expandedLinks.length
+          ? expandedLinks.map((link) => (
+            `<a class="tag tag-link" href="${escapeHtml(encodeURI(link.url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.label)}</a>`
+          )).join(' ')
+          : `<span class="tag">${escapeHtml(kindLabel(normalizeKind(item.kind)))}</span>`;
         const latestDate = escapeHtml(fmtDate(item.publishedAt));
         const latestDateContent = item.url
           ? `<a class="song-date-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '該当箇所へ移動')}">${latestDate}</a>`
@@ -979,11 +1029,11 @@
             </div>
             <div class="song-details">
               <div class="song-meta">
-                <div><span class="tag">${escapeHtml(kindLabel(normalizeKind(item.kind)))}</span></div>
+                <div>${expandedLinksHtml}</div>
                 <div>最終歌唱日: ${latestDateContent}</div>
               </div>
               ${item.url ? `<a class="icon-btn" href="${safeUrl}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '該当箇所へ移動')}">▶</a>` : '<span class="muted">-</span>'}
-              <button class="icon-btn copy-song" type="button">楽曲情報コピー</button>
+              <button class="icon-btn copy-song" type="button">コピー</button>
             </div>
           </article>
         `;
@@ -1276,17 +1326,14 @@
     }
 
     async function copyDanmaku() {
-      const selected = JSON.parse(rows.dataset.selected || '{}');
       const type = byId('danmakuType').value;
       const isCustomDanmaku = type.startsWith('custom:');
-      if (!isCustomDanmaku && type !== 'my' && !selected.title && !selected.artist) {
+      if (!isCustomDanmaku && type !== 'my') {
         setStatus('コピー対象がありません', true);
         return;
       }
 
-      let text = selected.title || '';
-      if (type === 'artist') text = selected.artist || '';
-      if (type === 'full') text = `${selected.title || ''} - ${selected.artist || ''}`;
+      let text = '';
       if (type === 'my') text = state.myDanmaku || loadMyDanmakuCache();
       if (isCustomDanmaku) text = type.slice('custom:'.length);
 
