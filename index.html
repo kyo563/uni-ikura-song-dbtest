@@ -931,11 +931,18 @@
     }
 
     function canOpenDetailLink(target) {
-      return Boolean(target?.closest?.('a.song-detail-link, a.song-date-link'));
+      const el = eventTargetElement(target);
+      return Boolean(el?.closest?.('a.song-detail-link, a.song-date-link'));
+    }
+
+    function eventTargetElement(target) {
+      if (target instanceof Element) return target;
+      return target?.parentElement || null;
     }
 
     function isInteractiveTarget(target) {
-      return Boolean(target?.closest?.('a, button, input, select, textarea, [role="button"]'));
+      const el = eventTargetElement(target);
+      return Boolean(el?.closest?.('a, button, input, select, textarea, [role="button"]'));
     }
 
     function urlsFromText(text) {
@@ -1095,8 +1102,7 @@
                 <div>${singingTagHtml}</div>
                 <div>最終歌唱日: ${latestDateContent}</div>
               </div>
-              <button class="icon-btn copy-text-btn" type="button" data-copy-kind="artist" title="アーティスト名をコピー" aria-label="アーティスト名をコピー">歌手コピー</button>
-              <button class="icon-btn copy-text-btn" type="button" data-copy-kind="title" title="楽曲名をコピー" aria-label="楽曲名をコピー">曲名コピー</button>
+              <button class="icon-btn copy-text-btn" type="button" data-copy-kind="artist" title="アーティスト名 / 歌手名をコピー" aria-label="アーティスト名 / 歌手名をコピー">コピー</button>
             </div>
           </article>
         `;
@@ -1127,12 +1133,12 @@
         };
 
         el.addEventListener('click', (evt) => {
-          const copyButton = evt.target?.closest?.('button[data-copy-kind]');
+          const targetEl = eventTargetElement(evt.target);
+          const copyButton = targetEl?.closest?.('button[data-copy-kind]');
           if (copyButton) {
             evt.preventDefault();
             evt.stopPropagation();
-            const kind = copyButton.dataset.copyKind;
-            const text = kind === 'artist' ? item.artist : item.title;
+            const text = item.artist;
             copyTextToClipboard(text).then((copied) => {
               setStatus(copied ? 'コピー完了' : 'コピー失敗', !copied);
             });
