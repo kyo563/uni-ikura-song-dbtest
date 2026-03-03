@@ -342,6 +342,21 @@
       align-items: end;
     }
 
+
+    .search-inline {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+    }
+
+    #clear {
+      min-width: 72px;
+      width: auto;
+      padding-left: var(--space-2);
+      padding-right: var(--space-2);
+      white-space: nowrap;
+      justify-self: end;
+    }
+
     .bottom-swipe-wrap {
       overflow: hidden;
       border: 1px solid var(--line);
@@ -384,6 +399,7 @@
       .sort-row select,
       .sort-row button { min-width: 96px; }
       .ratio-8-2 { grid-template-columns: 1fr; }
+      .search-inline { grid-template-columns: minmax(0, 1fr) auto; }
       .summary-box { font-size: 11px; }
       .song-cards { max-height: 34vh; }
       .top-form.collapsed { max-height: 170px; }
@@ -601,7 +617,7 @@
       <div class="bottom-swipe-wrap" id="bottomSwipeWrap">
         <div class="bottom-swipe-track" id="bottomSwipeTrack">
           <section class="bottom-panel" aria-label="検索フォームカード">
-            <div class="ratio-8-2">
+            <div class="ratio-8-2 search-inline">
               <label aria-label="検索">
                 <input id="q" type="search" aria-label="検索" placeholder="曲名 / アーティスト">
               </label>
