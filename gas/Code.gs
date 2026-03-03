@@ -41,6 +41,7 @@ function buildSongsPayload_() {
   const range = sheet.getRange(1, 1, lastRow, REQUIRED_COLUMNS);
   const values = range.getDisplayValues();
   const richTexts = range.getRichTextValues();
+  const formulas = range.getFormulas();
   const rows = values.slice(1);
   const items = [];
 
@@ -48,6 +49,7 @@ function buildSongsPayload_() {
   for (let i = 0; i < rows.length; i += 1) {
     const row = rows[i];
     const richRow = richTexts[i + 1] || [];
+    const formulaRow = formulas[i + 1] || [];
     const artist = clean_(row[0]); // A
     const title = clean_(row[1]); // B
     const memo = clean_(row[2]); // C
@@ -59,7 +61,8 @@ function buildSongsPayload_() {
 
     if (!isChecked_(checked) || !artist || !title) continue;
 
-    const liveUrl = extractCellUrl_(liveField, liveRich);
+    const liveFormula = clean_(formulaRow[3]); // D formula
+    const liveUrl = extractCellUrl_(liveField, liveRich, liveFormula);
     const liveTitle = extractLiveTitle_(liveField);
     const liveYmd = extractYmd_(liveField);
 
@@ -125,9 +128,25 @@ function isChecked_(value) {
   return CHECKED_MARKERS.includes(v);
 }
 
-function extractCellUrl_(text, richText) {
+function extractCellUrl_(text, richText, formula) {
   const richUrl = extractRichTextUrl_(richText);
-  return richUrl || extractUrl_(text);
+  if (richUrl) return richUrl;
+
+  const formulaUrl = extractHyperlinkUrlFromFormula_(formula);
+  if (formulaUrl) return formulaUrl;
+
+  return extractUrl_(text);
+}
+
+function extractHyperlinkUrlFromFormula_(formula) {
+  const raw = String(formula || '').trim();
+  if (!raw) return '';
+
+  const m = raw.match(/^=\s*HYPERLINK\s*\(\s*"([^"]+)"\s*[;,]/i);
+  if (!m) return '';
+
+  const url = String(m[1] || '').trim();
+  return /^https?:\/\//i.test(url) ? url : '';
 }
 
 function extractRichTextUrl_(richText) {
