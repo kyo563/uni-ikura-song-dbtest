@@ -501,6 +501,11 @@
       padding: var(--space-1) var(--space-2);
     }
 
+    .copy-text-btn {
+      white-space: nowrap;
+      min-width: 74px;
+    }
+
     html.snap-active { scroll-snap-type: y proximity; }
 
     .tag {
@@ -929,6 +934,10 @@
       return Boolean(target?.closest?.('a.song-detail-link, a.song-date-link'));
     }
 
+    function isInteractiveTarget(target) {
+      return Boolean(target?.closest?.('a, button, input, select, textarea, [role="button"]'));
+    }
+
     function urlsFromText(text) {
       if (!text) return [];
       const matches = String(text).match(/https?:\/\/[^\s)]+/ig) || [];
@@ -977,6 +986,31 @@
       const title = String(item?.title || '').trim();
       const artist = String(item?.artist || '').trim();
       return [videoId, title, artist].map((part) => encodeURIComponent(part)).join('|');
+    }
+
+    async function copyTextToClipboard(text) {
+      const normalized = String(text || '').trim();
+      if (!normalized) return false;
+      try {
+        await navigator.clipboard.writeText(normalized);
+        return true;
+      } catch (_) {
+        try {
+          const fallbackInput = document.createElement('textarea');
+          fallbackInput.value = normalized;
+          fallbackInput.setAttribute('readonly', '');
+          fallbackInput.style.position = 'fixed';
+          fallbackInput.style.top = '-9999px';
+          document.body.appendChild(fallbackInput);
+          fallbackInput.focus();
+          fallbackInput.select();
+          const copied = document.execCommand('copy');
+          document.body.removeChild(fallbackInput);
+          return copied;
+        } catch (_) {
+          return false;
+        }
+      }
     }
 
     function sortItems(items) {
@@ -1061,8 +1095,8 @@
                 <div>${singingTagHtml}</div>
                 <div>最終歌唱日: ${latestDateContent}</div>
               </div>
-              <span class="muted">-</span>
-              <span class="muted">-</span>
+              <button class="icon-btn copy-text-btn" type="button" data-copy-kind="artist" title="アーティスト名をコピー" aria-label="アーティスト名をコピー">歌手コピー</button>
+              <button class="icon-btn copy-text-btn" type="button" data-copy-kind="title" title="楽曲名をコピー" aria-label="楽曲名をコピー">曲名コピー</button>
             </div>
           </article>
         `;
@@ -1093,6 +1127,18 @@
         };
 
         el.addEventListener('click', (evt) => {
+          const copyButton = evt.target?.closest?.('button[data-copy-kind]');
+          if (copyButton) {
+            evt.preventDefault();
+            evt.stopPropagation();
+            const kind = copyButton.dataset.copyKind;
+            const text = kind === 'artist' ? item.artist : item.title;
+            copyTextToClipboard(text).then((copied) => {
+              setStatus(copied ? 'コピー完了' : 'コピー失敗', !copied);
+            });
+            return;
+          }
+
           if (canOpenDetailLink(evt.target)) return;
           select();
           if (state.expandedSongId === id) return;
@@ -1100,6 +1146,7 @@
         });
 
         el.addEventListener('keydown', (evt) => {
+          if (isInteractiveTarget(evt.target)) return;
           if (evt.key !== 'Enter' && evt.key !== ' ') return;
           evt.preventDefault();
           select();
