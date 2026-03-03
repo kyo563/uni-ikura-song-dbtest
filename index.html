@@ -849,7 +849,7 @@
       const safeEmoji = raw || '🙂';
       const emojiLength = Array.from(safeEmoji).length;
       const repeat = emojiLength >= 3 ? 2 : 3;
-      return `🍣💛${safeEmoji}`.repeat(repeat);
+      return `🍣🧡${safeEmoji}`.repeat(repeat);
     }
 
     function saveMyDanmakuCache(text) {
@@ -1092,7 +1092,7 @@
           ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.latestDateUrl))}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '歌枠リンクを開く')}">${latestDate}</a>`
           : latestDate;
         return `
-          <article class="song-card ${expanded ? 'expanded' : ''}" data-id="${id}" tabindex="0" role="button" aria-expanded="${expanded ? 'true' : 'false'}">
+          <article class="song-card ${expanded ? 'expanded' : ''}" data-id="${id}" tabindex="0" aria-expanded="${expanded ? 'true' : 'false'}">
             <div class="song-summary">
               <div class="song-title">${escapeHtml(item.title || '-')}</div>
               <div class="song-artist">${escapeHtml(item.artist || '-')}</div>
@@ -1102,7 +1102,7 @@
                 <div>${singingTagHtml}</div>
                 <div>最終歌唱日: ${latestDateContent}</div>
               </div>
-              <button class="icon-btn copy-text-btn" type="button" data-copy-kind="artist" title="アーティスト名 / 歌手名をコピー" aria-label="アーティスト名 / 歌手名をコピー">コピー</button>
+              <button class="icon-btn copy-text-btn" type="button" data-copy-kind="song-artist" title="楽曲名 / アーティスト名をコピー" aria-label="楽曲名 / アーティスト名をコピー">コピー</button>
             </div>
           </article>
         `;
@@ -1138,7 +1138,9 @@
           if (copyButton) {
             evt.preventDefault();
             evt.stopPropagation();
-            const text = item.artist;
+            const title = String(item.title || '').trim();
+            const artist = String(item.artist || '').trim();
+            const text = [title, artist].filter(Boolean).join(' / ');
             copyTextToClipboard(text).then((copied) => {
               setStatus(copied ? 'コピー完了' : 'コピー失敗', !copied);
             });
