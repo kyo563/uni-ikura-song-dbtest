@@ -35,7 +35,7 @@
       color: var(--text);
     }
 
-    .container { max-width: 1080px; margin: 0 auto; display: grid; gap: var(--space-3); }
+    .container { width: min(100%, 1080px); margin: 0 auto; display: grid; gap: var(--space-3); }
     .card {
       background: color-mix(in srgb, var(--surface) 90%, black 10%);
       border: 1px solid var(--line);
@@ -372,7 +372,11 @@
 
     @media (max-width: 860px) {
       body { padding: var(--space-2); }
-      .container { gap: var(--space-2); }
+      .container { width: 100%; gap: var(--space-2); }
+      .card,
+      .top-form,
+      .middle-form,
+      .bottom-form { width: 100%; }
       .card { padding: var(--space-2); }
       .top-summary { grid-template-columns: 1fr; }
       .top-advanced { grid-template-columns: 1fr; gap: var(--space-2); }
@@ -508,13 +512,13 @@
     .my-danmaku-row {
       display: grid;
       gap: var(--space-2);
-      grid-template-columns: 3ch auto;
+      grid-template-columns: 6ch auto;
       align-items: end;
     }
 
     #myEmoji {
       width: 100%;
-      min-width: 3ch;
+      min-width: 6ch;
       padding-left: 8px;
       padding-right: 8px;
     }
@@ -895,12 +899,8 @@
       return Number.isNaN(t) ? 0 : t;
     }
 
-    function openSongLink(item) {
-      const rawUrl = String(item?.url || '').trim();
-      if (!rawUrl) return false;
-      const safeUrl = encodeURI(rawUrl);
-      window.open(safeUrl, '_blank', 'noopener,noreferrer');
-      return true;
+    function canOpenDetailLink(target) {
+      return Boolean(target?.closest?.('a.song-detail-link, a.song-date-link'));
     }
 
     function urlsFromText(text) {
@@ -910,37 +910,12 @@
     }
 
     function linksForExpanded(item) {
-      const links = [];
-      const pushLink = (label, url) => {
-        const cleanUrl = String(url || '').trim();
-        if (!cleanUrl) return;
-        links.push({ label, url: cleanUrl });
+      const coverUrl = String(item.otherLink || '').trim();
+      const liveUrl = String(item.liveLink || item.url || '').trim();
+      return {
+        coverUrl,
+        liveUrl,
       };
-
-      pushLink('歌枠', item.liveLink || item.url);
-
-      const memo = String(item.memo || '').trim();
-      const memoUrls = urlsFromText(memo);
-      if (!memoUrls.length && item.otherLink) memoUrls.push(String(item.otherLink).trim());
-
-      const memoLower = memo.toLowerCase();
-      const memoLabel = memoLower.includes('short') || memo.includes('ショート')
-        ? 'ショート'
-        : (memoLower.includes('cover') || memo.includes('歌ってみた') || memo.includes('歌みた'))
-          ? '歌ってみた'
-          : '関連動画';
-
-      memoUrls.forEach((url) => pushLink(memoLabel, url));
-
-      const unique = [];
-      const seen = new Set();
-      links.forEach((link) => {
-        const key = `${link.label}|${link.url}`;
-        if (seen.has(key)) return;
-        seen.add(key);
-        unique.push(link);
-      });
-      return unique;
     }
 
     function stableSongId(item) {
@@ -1010,17 +985,17 @@
 
       rows.innerHTML = items.map((item) => {
         const id = stableSongId(item);
-        const safeUrl = item.url ? encodeURI(item.url) : '';
         const expanded = state.expandedSongId === id;
-        const expandedLinks = linksForExpanded(item);
-        const expandedLinksHtml = expandedLinks.length
-          ? expandedLinks.map((link) => (
-            `<a class="tag tag-link" href="${escapeHtml(encodeURI(link.url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.label)}</a>`
-          )).join(' ')
-          : `<span class="tag">${escapeHtml(kindLabel(normalizeKind(item.kind)))}</span>`;
+        const detailLinks = linksForExpanded(item);
+        const coverLinkHtml = detailLinks.coverUrl
+          ? `<a class="tag tag-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.coverUrl))}" target="_blank" rel="noopener noreferrer">歌ってみた</a>`
+          : `<span class="tag">歌ってみた</span>`;
+        const liveLinkHtml = detailLinks.liveUrl
+          ? `<a class="tag tag-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.liveUrl))}" target="_blank" rel="noopener noreferrer">歌枠</a>`
+          : `<span class="tag">歌枠</span>`;
         const latestDate = escapeHtml(fmtDate(item.publishedAt));
-        const latestDateContent = item.url
-          ? `<a class="song-date-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '該当箇所へ移動')}">${latestDate}</a>`
+        const latestDateContent = detailLinks.liveUrl
+          ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.liveUrl))}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '歌枠リンクを開く')}">${latestDate}</a>`
           : latestDate;
         return `
           <article class="song-card ${expanded ? 'expanded' : ''}" data-id="${id}" tabindex="0" role="button" aria-expanded="${expanded ? 'true' : 'false'}">
@@ -1030,11 +1005,11 @@
             </div>
             <div class="song-details">
               <div class="song-meta">
-                <div>${expandedLinksHtml}</div>
+                <div>${coverLinkHtml} ${liveLinkHtml}</div>
                 <div>最終歌唱日: ${latestDateContent}</div>
               </div>
-              ${item.url ? `<a class="icon-btn" href="${safeUrl}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '該当箇所へ移動')}">▶</a>` : '<span class="muted">-</span>'}
-              <button class="icon-btn copy-song" type="button">コピー</button>
+              <span class="muted">-</span>
+              <span class="muted">-</span>
             </div>
           </article>
         `;
@@ -1065,38 +1040,18 @@
         };
 
         el.addEventListener('click', (evt) => {
-          if (evt.target.closest('.copy-song') || evt.target.closest('a')) return;
+          if (canOpenDetailLink(evt.target)) return;
           select();
-          if (!openSongLink(item)) {
-            toggle();
-          }
+          if (state.expandedSongId === id) return;
+          toggle();
         });
 
         el.addEventListener('keydown', (evt) => {
-          if (evt.key === 'Enter' || evt.key === ' ') {
-            evt.preventDefault();
-            select();
-            if (!openSongLink(item)) {
-              toggle();
-            }
-          }
-        });
-
-        const copyButton = el.querySelector('.copy-song');
-        copyButton?.addEventListener('click', async (evt) => {
-          evt.stopPropagation();
+          if (evt.key !== 'Enter' && evt.key !== ' ') return;
+          evt.preventDefault();
           select();
-          const text = [
-            `アーティスト: ${item.artist || '-'}`,
-            `楽曲名: ${item.title || '-'}`,
-            `投稿日付: ${fmtDate(item.publishedAt)}`,
-          ].join('\n');
-          try {
-            await navigator.clipboard.writeText(text);
-            setStatus('曲コピー');
-          } catch (_) {
-            setStatus('曲コピ失敗', true);
-          }
+          if (state.expandedSongId === id) return;
+          toggle();
         });
       });
 
