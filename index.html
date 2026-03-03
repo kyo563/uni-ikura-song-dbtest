@@ -454,18 +454,18 @@
     }
 
     .song-expand-hitarea {
-      border: 1px solid color-mix(in srgb, var(--line) 70%, var(--accent) 30%);
+      border: 0;
       border-radius: var(--radius-sm);
-      background: color-mix(in srgb, var(--surface-2) 74%, #0369a1 26%);
-      color: var(--text);
-      font-size: 12px;
-      font-weight: 700;
+      background: transparent;
+      color: transparent;
+      font-size: 0;
+      font-weight: 400;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       min-height: 100%;
       width: 100%;
-      padding: 0 var(--space-2);
+      padding: 0;
       white-space: nowrap;
     }
 
@@ -959,11 +959,6 @@
       return Number.isNaN(t) ? 0 : t;
     }
 
-    function canOpenDetailLink(target) {
-      const el = eventTargetElement(target);
-      return Boolean(el?.closest?.('a.song-detail-link, a.song-date-link'));
-    }
-
     function eventTargetElement(target) {
       if (target instanceof Element) return target;
       return target?.parentElement || null;
@@ -1166,6 +1161,11 @@
 
         el.addEventListener('click', (evt) => {
           const targetEl = eventTargetElement(evt.target);
+          const detailLink = targetEl?.closest?.('a.song-detail-link, a.song-date-link');
+          if (detailLink) {
+            evt.stopPropagation();
+            return;
+          }
           const copyButton = targetEl?.closest?.('button[data-copy-kind]');
           if (copyButton) {
             evt.preventDefault();
@@ -1179,7 +1179,6 @@
             return;
           }
 
-          if (canOpenDetailLink(evt.target)) return;
           select();
           const expandZone = targetEl?.closest?.('.song-expand-hitarea');
           if (!expandZone) return;
