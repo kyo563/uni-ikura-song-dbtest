@@ -153,9 +153,9 @@ function normalizeSong(song) {
 
   const liveLinkTitle = firstText(song, ['liveLinkTitle', 'liveTitle', '歌枠タイトル', '歌枠直リンクタイトル']);
   const liveLinkRaw = firstText(song, ['liveLink', 'liveUrl', 'latestLiveLink', '歌枠直リンク']);
-  const liveLink = normalizeExternalUrl(song.liveLink) || extractFirstUrl(liveLinkRaw);
-  const otherLink = normalizeExternalUrl(firstText(song, ['otherLink', 'coverLink', 'shortLink'])) || extractFirstUrl(memo);
-  const url = liveLink || otherLink || normalizeExternalUrl(firstText(song, ['url']));
+  const liveLink = extractUrlFromUnknown(song.liveLink) || extractUrlFromUnknown(liveLinkRaw);
+  const otherLink = extractUrlFromUnknown(firstText(song, ['otherLink', 'coverLink', 'shortLink'])) || extractUrlFromUnknown(memo);
+  const url = liveLink || otherLink || extractUrlFromUnknown(firstText(song, ['url']));
 
   const kindRaw = firstText(song, ['kind', 'type', 'category']);
   const kindFromField = normalizeKind(kindRaw);
@@ -185,6 +185,33 @@ function normalizeSong(song) {
 function normalizeExternalUrl(value) {
   const text = String(value || '').trim();
   return /^https?:\/\//i.test(text) ? text : '';
+}
+
+function extractUrlFromUnknown(value) {
+  if (value === null || value === undefined) return '';
+
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    const text = String(value).trim();
+    return normalizeExternalUrl(text) || extractFirstUrl(text);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const url = extractUrlFromUnknown(item);
+      if (url) return url;
+    }
+    return '';
+  }
+
+  if (typeof value === 'object') {
+    for (const key of ['url', 'href', 'link', 'text', 'value']) {
+      const url = extractUrlFromUnknown(value[key]);
+      if (url) return url;
+    }
+    return extractFirstUrl(JSON.stringify(value));
+  }
+
+  return '';
 }
 
 function firstText(source, keys) {
