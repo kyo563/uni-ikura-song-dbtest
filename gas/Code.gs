@@ -38,27 +38,32 @@ function buildSongsPayload_() {
   }
 
   // 現要件は A〜F のみ利用するため、必要列だけ読む
-  const values = sheet.getRange(1, 1, lastRow, REQUIRED_COLUMNS).getDisplayValues();
+  const range = sheet.getRange(1, 1, lastRow, REQUIRED_COLUMNS);
+  const values = range.getDisplayValues();
+  const richTexts = range.getRichTextValues();
   const rows = values.slice(1);
   const items = [];
 
   // 重複データはスプレッドシート作成・編集時に解消される前提で扱う
   for (let i = 0; i < rows.length; i += 1) {
     const row = rows[i];
+    const richRow = richTexts[i + 1] || [];
     const artist = clean_(row[0]); // A
     const title = clean_(row[1]); // B
     const memo = clean_(row[2]); // C
     const liveField = clean_(row[3]); // D
+    const memoRich = richRow[2] || null; // C rich text
+    const liveRich = richRow[3] || null; // D rich text
     const source = clean_(row[4]); // E
     const checked = clean_(row[5]); // F
 
     if (!isChecked_(checked) || !artist || !title) continue;
 
-    const liveUrl = extractUrl_(liveField);
+    const liveUrl = extractCellUrl_(liveField, liveRich);
     const liveTitle = extractLiveTitle_(liveField);
     const liveYmd = extractYmd_(liveField);
 
-    const memoUrl = extractUrl_(memo);
+    const memoUrl = extractCellUrl_(memo, memoRich);
     const memoYmd = extractYmd_(memo);
     const memoKind = inferKindFromText_(memo);
 
@@ -118,6 +123,25 @@ function clean_(v) {
 function isChecked_(value) {
   const v = String(value || '').trim().toLowerCase();
   return CHECKED_MARKERS.includes(v);
+}
+
+function extractCellUrl_(text, richText) {
+  const richUrl = extractRichTextUrl_(richText);
+  return richUrl || extractUrl_(text);
+}
+
+function extractRichTextUrl_(richText) {
+  if (!richText || typeof richText.getRuns !== 'function') return '';
+
+  const direct = richText.getLinkUrl();
+  if (direct) return String(direct).trim();
+
+  const runs = richText.getRuns() || [];
+  for (let i = 0; i < runs.length; i += 1) {
+    const runUrl = runs[i].getLinkUrl();
+    if (runUrl) return String(runUrl).trim();
+  }
+  return '';
 }
 
 function extractUrl_(text) {
