@@ -992,11 +992,13 @@
       const memoTag = resolveSingingTag(item.memo);
       const cLinkUrl = normalizeExternalUrl(item.otherLink);
       const dLinkUrl = normalizeExternalUrl(item.liveLink || item.url);
+      const detailUrl = dLinkUrl || cLinkUrl || normalizeExternalUrl(item.url);
 
       return {
         singingTagLabel: memoTag.label,
         singingTagUrl: memoTag.kind === 'cover' || memoTag.kind === 'short' ? cLinkUrl : '',
         latestDateUrl: dLinkUrl,
+        detailUrl,
       };
     }
 
@@ -1123,6 +1125,10 @@
         const latestDateContent = detailLinks.latestDateUrl
           ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.latestDateUrl))}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '歌枠リンクを開く')}">${latestDate}</a>`
           : latestDate;
+        const fallbackLinkLabel = escapeHtml(item.linkLabel || '関連リンクを開く');
+        const fallbackLinkHtml = detailLinks.detailUrl
+          ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}">${fallbackLinkLabel}</a>`
+          : '<span class="muted">リンクなし</span>';
         return `
           <article class="song-card ${expanded ? 'expanded' : ''}" data-id="${id}" tabindex="0" aria-expanded="${expanded ? 'true' : 'false'}">
             <div class="song-card-main">
@@ -1136,6 +1142,7 @@
               <div class="song-meta">
                 <div>${singingTagHtml}</div>
                 <div>最終歌唱日: ${latestDateContent}</div>
+                <div>リンク: ${fallbackLinkHtml}</div>
               </div>
               <button class="icon-btn copy-text-btn" type="button" data-copy-kind="song-artist" title="楽曲名 / アーティスト名をコピー" aria-label="楽曲名 / アーティスト名をコピー">コピー</button>
             </div>
