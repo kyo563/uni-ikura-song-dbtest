@@ -153,9 +153,9 @@ function normalizeSong(song) {
 
   const liveLinkTitle = firstText(song, ['liveLinkTitle', 'liveTitle', '歌枠タイトル', '歌枠直リンクタイトル']);
   const liveLinkRaw = firstText(song, ['liveLink', 'liveUrl', 'latestLiveLink', '歌枠直リンク']);
-  const liveLink = song.liveLink || extractFirstUrl(liveLinkRaw);
-  const otherLink = firstText(song, ['otherLink', 'coverLink', 'shortLink']) || extractFirstUrl(memo);
-  const url = liveLink || otherLink || firstText(song, ['url']);
+  const liveLink = normalizeExternalUrl(song.liveLink) || extractFirstUrl(liveLinkRaw);
+  const otherLink = normalizeExternalUrl(firstText(song, ['otherLink', 'coverLink', 'shortLink'])) || extractFirstUrl(memo);
+  const url = liveLink || otherLink || normalizeExternalUrl(firstText(song, ['url']));
 
   const kindRaw = firstText(song, ['kind', 'type', 'category']);
   const kindFromField = normalizeKind(kindRaw);
@@ -180,6 +180,11 @@ function normalizeSong(song) {
     linkLabel: liveLinkTitle || (liveLink ? '歌枠リンクを開く' : (otherLink ? '関連リンクを開く' : '')),
     publishedAt,
   };
+}
+
+function normalizeExternalUrl(value) {
+  const text = String(value || '').trim();
+  return /^https?:\/\//i.test(text) ? text : '';
 }
 
 function firstText(source, keys) {
