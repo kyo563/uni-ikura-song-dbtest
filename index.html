@@ -936,12 +936,35 @@
     }
 
     function linksForExpanded(item) {
-      const coverUrl = String(item.otherLink || '').trim();
-      const liveUrl = String(item.liveLink || item.url || '').trim();
+      const memoTag = resolveSingingTag(item.memo);
+      const cLinkUrl = String(item.otherLink || '').trim();
+      const dLinkUrl = String(item.liveLink || item.url || '').trim();
+
       return {
-        coverUrl,
-        liveUrl,
+        singingTagLabel: memoTag.label,
+        singingTagUrl: memoTag.kind === 'cover' || memoTag.kind === 'short' ? cLinkUrl : '',
+        latestDateUrl: dLinkUrl,
       };
+    }
+
+    function resolveSingingTag(text) {
+      const raw = String(text || '').trim();
+      if (!raw) return { kind: 'other', label: '' };
+      const lowered = raw.toLowerCase();
+
+      if (lowered.includes('short') || raw.includes('ショート')) {
+        return { kind: 'short', label: 'ショート' };
+      }
+
+      if (lowered.includes('cover') || raw.includes('歌ってみた') || raw.includes('歌みた')) {
+        return { kind: 'cover', label: '歌ってみた' };
+      }
+
+      if (lowered.includes('live') || lowered.includes('stream') || raw.includes('歌枠') || raw.includes('配信')) {
+        return { kind: 'live', label: '' };
+      }
+
+      return { kind: 'other', label: '' };
     }
 
     function stableSongId(item) {
@@ -1013,15 +1036,14 @@
         const id = stableSongId(item);
         const expanded = state.expandedSongId === id;
         const detailLinks = linksForExpanded(item);
-        const coverLinkHtml = detailLinks.coverUrl
-          ? `<a class="tag tag-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.coverUrl))}" target="_blank" rel="noopener noreferrer">歌ってみた</a>`
-          : `<span class="tag">歌ってみた</span>`;
-        const liveLinkHtml = detailLinks.liveUrl
-          ? `<a class="tag tag-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.liveUrl))}" target="_blank" rel="noopener noreferrer">歌枠</a>`
-          : `<span class="tag">歌枠</span>`;
+        const singingTagHtml = detailLinks.singingTagLabel
+          ? (detailLinks.singingTagUrl
+            ? `<a class="tag tag-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.singingTagUrl))}" target="_blank" rel="noopener noreferrer">${escapeHtml(detailLinks.singingTagLabel)}</a>`
+            : `<span class="tag">${escapeHtml(detailLinks.singingTagLabel)}</span>`)
+          : '<span class="muted">-</span>';
         const latestDate = escapeHtml(fmtDate(item.publishedAt));
-        const latestDateContent = detailLinks.liveUrl
-          ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.liveUrl))}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '歌枠リンクを開く')}">${latestDate}</a>`
+        const latestDateContent = detailLinks.latestDateUrl
+          ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.latestDateUrl))}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '歌枠リンクを開く')}">${latestDate}</a>`
           : latestDate;
         return `
           <article class="song-card ${expanded ? 'expanded' : ''}" data-id="${id}" tabindex="0" role="button" aria-expanded="${expanded ? 'true' : 'false'}">
@@ -1031,7 +1053,7 @@
             </div>
             <div class="song-details">
               <div class="song-meta">
-                <div>${coverLinkHtml} ${liveLinkHtml}</div>
+                <div>${singingTagHtml}</div>
                 <div>最終歌唱日: ${latestDateContent}</div>
               </div>
               <span class="muted">-</span>
