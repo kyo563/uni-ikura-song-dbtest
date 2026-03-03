@@ -62,11 +62,12 @@ function buildSongsPayload_() {
     if (!isChecked_(checked) || !artist || !title) continue;
 
     const liveFormula = clean_(formulaRow[3]); // D formula
+    const memoFormula = clean_(formulaRow[2]); // C formula
     const liveUrl = extractCellUrl_(liveField, liveRich, liveFormula);
     const liveTitle = extractLiveTitle_(liveField);
     const liveYmd = extractYmd_(liveField);
 
-    const memoUrl = extractCellUrl_(memo, memoRich);
+    const memoUrl = extractCellUrl_(memo, memoRich, memoFormula);
     const memoYmd = extractYmd_(memo);
     const memoKind = inferKindFromText_(memo);
 
