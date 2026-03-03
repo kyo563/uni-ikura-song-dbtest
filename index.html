@@ -225,6 +225,12 @@
       flex-wrap: wrap;
     }
 
+    .count-inline {
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
     .error-log-wrap {
       margin-top: var(--space-2);
       border: 1px solid var(--line);
@@ -364,29 +370,6 @@
       min-width: 0;
     }
 
-    .swipe-back-button {
-      min-height: auto;
-      padding: 2px 6px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--muted);
-      font-size: 11px;
-      line-height: 1.2;
-      border-radius: var(--radius-sm);
-    }
-
-    .swipe-back-button:not(:disabled) {
-      color: var(--accent);
-      cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-
-    .swipe-back-button:disabled {
-      cursor: default;
-      opacity: 0.7;
-    }
-
     @media (max-width: 860px) {
       body { padding: var(--space-2); }
       .container { gap: var(--space-2); }
@@ -422,7 +405,7 @@
       background: color-mix(in srgb, var(--surface-2) 88%, black 12%);
       padding: var(--space-2);
       width: 100%;
-      transition: margin 0.15s ease, border-color 0.15s ease;
+      transition: margin 0.2s ease, border-color 0.2s ease, opacity 0.25s ease;
       cursor: pointer;
       scroll-snap-align: start;
     }
@@ -430,6 +413,10 @@
     .song-card.expanded {
       margin: var(--space-1) 0;
       border-color: var(--accent);
+    }
+
+    .song-card.collapsing {
+      border-color: color-mix(in srgb, var(--line) 75%, var(--accent) 25%);
     }
 
     .song-summary { display: grid; gap: 2px; font-size: 13px; }
@@ -443,12 +430,31 @@
       border-top: 1px solid var(--line);
       gap: var(--space-2);
       font-size: 13px;
+      transform-origin: top;
     }
 
     .song-card.expanded .song-details {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto auto;
       align-items: center;
+      animation: details-open 0.2s ease-out;
+    }
+
+    .song-card.collapsing .song-details {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      align-items: center;
+      animation: details-close 0.36s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+    }
+
+    @keyframes details-open {
+      from { opacity: 0; transform: translateY(-4px) scaleY(0.96); }
+      to { opacity: 1; transform: translateY(0) scaleY(1); }
+    }
+
+    @keyframes details-close {
+      from { opacity: 1; transform: translateY(0) scaleY(1); }
+      to { opacity: 0; transform: translateY(-2px) scaleY(0.92); }
     }
 
     .song-meta { display: grid; gap: var(--space-1); min-width: 0; }
@@ -499,17 +505,37 @@
       gap: var(--space-2);
     }
 
+    .my-danmaku-row {
+      display: grid;
+      gap: var(--space-2);
+      grid-template-columns: 3ch auto;
+      align-items: end;
+    }
+
     #myEmoji {
-      width: 7ch;
-      min-width: 7ch;
+      width: 100%;
+      min-width: 3ch;
       padding-left: 8px;
       padding-right: 8px;
     }
 
-    .my-danmaku-actions {
-      display: flex;
-      gap: var(--space-1);
-      flex-wrap: wrap;
+    .roll-highlight {
+      animation: roll-highlight 0.45s ease;
+    }
+
+    @keyframes roll-highlight {
+      0% { transform: translateY(-6px); filter: brightness(1); }
+      45% { transform: translateY(2px); filter: brightness(1.2); }
+      100% { transform: translateY(0); filter: brightness(1); }
+    }
+
+    .dummy-end-card {
+      border: 1px dashed var(--line);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2);
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
     }
 
   </style>
@@ -523,7 +549,7 @@
             <span class="status-dot" aria-hidden="true"></span>
             <span class="status" id="status">起動</span>
           </span>
-          <div class="summary-inline">表示楽曲数: <span id="selectedCount">0</span> 曲</div>
+          <div class="summary-inline count-inline"><span id="selectedCount">0</span>/<span id="totalCount">0</span>曲</div>
         </div>
       </div>
 
@@ -573,17 +599,16 @@
           <section class="bottom-panel" aria-label="検索フォームカード">
             <div class="ratio-8-2">
               <label aria-label="検索">
-                <input id="q" type="search" aria-label="検索" placeholder="曲名 / アーティスト / メモ">
+                <input id="q" type="search" aria-label="検索" placeholder="曲名 / アーティスト">
               </label>
               <button id="clear" type="button">クリア</button>
             </div>
           </section>
 
           <section class="bottom-panel my-danmaku-form" aria-label="マイ弾幕カード">
-            <input id="myEmoji" type="text" placeholder="🎉" maxlength="20" aria-label="絵文字入力">
-            <div class="my-danmaku-actions">
-              <button class="primary" id="saveMyDanmaku" type="button">この内容を使う</button>
-              <button id="swipeBackButton" class="swipe-back-button" type="button" disabled>戻る</button>
+            <div class="my-danmaku-row">
+              <input id="myEmoji" type="text" placeholder="🎉" maxlength="6" aria-label="絵文字入力">
+              <button class="primary" id="saveMyDanmaku" type="button">弾幕を作成する</button>
             </div>
           </section>
         </div>
@@ -601,7 +626,7 @@
               <option value="custom:🎵☀🧡～🎵☀🧡～🎵☀🧡～">🎵☀🧡～…(🎵)</option>
               <option value="custom:世界一🌏🌟⋆꙳イケボ✨世界一🌏🌟⋆꙳イケボ✨世界一🌏🌟⋆꙳イケボ✨">世界一イケボ…(🌏)</option>
               <option value="custom:✩࿐⋆*🍼👶 ﾟ·꒰ঌ ﾊﾞｯﾌﾞｰ ໒꒱· ﾟ👶🍼✩࿐⋆*">✩࿐⋆*🍼👶…(🍼)</option>
-              <option value="my">マイ弾幕</option>
+              <option value="my">カスタム弾幕</option>
             </select>
           </label>
           <button class="primary" id="copyDanmaku" type="button">コピー</button>
@@ -646,6 +671,7 @@
     const status = byId('status');
     const rows = byId('rows');
     const selectedCount = byId('selectedCount');
+    const totalCount = byId('totalCount');
     const errorLogWrap = byId('errorLogWrap');
     const errorLog = byId('errorLog');
     const MAX_ERROR_BODY_CHARS = 4000;
@@ -710,12 +736,7 @@
       }
     }
 
-    function updateSwipeUi(index) {
-      const isMyCard = index === 1;
-      const swipeBackButton = byId('swipeBackButton');
-      swipeBackButton.disabled = !isMyCard;
-      swipeBackButton.setAttribute('aria-disabled', String(!isMyCard));
-    }
+    let setSwipeCard = () => {};
 
     function setupBottomSwipe() {
       const wrap = byId('bottomSwipeWrap');
@@ -732,7 +753,6 @@
           ? 'transform 0.45s cubic-bezier(0.2, 0.9, 0.2, 1)'
           : 'none';
         track.style.transform = `translateX(${-current * 50}%)`;
-        updateSwipeUi(current);
       };
 
       const getThreshold = () => Math.max(54, wrap.clientWidth * 0.12);
@@ -784,9 +804,7 @@
         setCard(0);
       });
 
-      byId('swipeBackButton').addEventListener('click', () => {
-        setCard(0);
-      });
+      setSwipeCard = setCard;
 
       setCard(0, false);
     }
@@ -794,7 +812,9 @@
     function buildMyDanmaku(emoji) {
       const raw = (emoji || '').trim();
       const safeEmoji = raw || '🙂';
-      return `🍣💛${safeEmoji}`.repeat(3);
+      const emojiLength = Array.from(safeEmoji).length;
+      const repeat = emojiLength >= 3 ? 2 : 3;
+      return `🍣💛${safeEmoji}`.repeat(repeat);
     }
 
     function saveMyDanmakuCache(text) {
@@ -949,28 +969,39 @@
       }
     }
 
-    function collapseExpanded() {
+    function collapseExpanded(withSlowAnimation = false) {
+      const expandedId = state.expandedSongId;
       state.expandedSongId = '';
       document.documentElement.classList.remove('snap-active');
-      rows.querySelectorAll('.song-card.expanded').forEach((card) => {
-        card.classList.remove('expanded');
+      const expandedCards = rows.querySelectorAll('.song-card.expanded');
+      expandedCards.forEach((card) => {
+        if (!withSlowAnimation || card.dataset.id !== expandedId) {
+          card.classList.remove('expanded', 'collapsing');
+          card.setAttribute('aria-expanded', 'false');
+          return;
+        }
+        card.classList.add('collapsing');
         card.setAttribute('aria-expanded', 'false');
+        window.setTimeout(() => {
+          card.classList.remove('expanded', 'collapsing');
+        }, 340);
       });
     }
 
     rows?.addEventListener('scroll', () => {
       const currentTop = rows.scrollTop;
       if (Math.abs(currentTop - lastRowsScrollTop) > 2 && state.expandedSongId) {
-        collapseExpanded();
+        collapseExpanded(true);
       }
       lastRowsScrollTop = currentTop;
     }, { passive: true });
 
-    function render(items) {
+    function render(items, totals = {}) {
       selectedCount.textContent = String(items.length);
+      totalCount.textContent = String(totals.total ?? items.length);
 
       if (!items.length) {
-        rows.innerHTML = '<div class="muted">該当データがありません</div>';
+        rows.innerHTML = '<div class="muted">該当データがありません</div><div class="dummy-end-card">--- END ---</div>';
         rows.dataset.selected = '{}';
         state.selectedSongId = '';
         collapseExpanded();
@@ -1007,7 +1038,7 @@
             </div>
           </article>
         `;
-      }).join('');
+      }).join('') + '<div class="dummy-end-card">--- END ---</div>';
 
       rows.querySelectorAll('.song-card').forEach((el, idx) => {
         const item = items[idx] || {};
@@ -1172,7 +1203,7 @@
 
       if (cached?.payload?.items) {
         const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
-        render(cachedItems);
+        render(cachedItems, { total: cached?.payload?.total ?? cachedItems.length });
         setStatus(`キャ${cachedItems.length}`);
       }
 
@@ -1221,7 +1252,7 @@
 
         if (res.status === 304 && cached?.payload) {
           const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
-          render(cachedItems);
+          render(cachedItems, { total: cached?.payload?.total ?? cachedItems.length });
           setStatus(`更無${cachedItems.length}`);
           return;
         }
@@ -1244,7 +1275,7 @@
         }
         const etag = res.headers.get('etag');
         const filteredItems = filterItems(Array.isArray(payload.items) ? payload.items : []);
-        render(filteredItems);
+        render(filteredItems, { total: payload.total ?? filteredItems.length });
         setStatus(`表示${filteredItems.length}`);
 
         if (etag) saveCache({ etag, payload });
@@ -1353,7 +1384,12 @@
         const text = buildMyDanmaku(byId('myEmoji').value);
         saveMyDanmakuCache(text);
         byId('danmakuType').value = 'my';
-        setStatus('保存');
+        const select = byId('danmakuType');
+        select.classList.remove('roll-highlight');
+        void select.offsetWidth;
+        select.classList.add('roll-highlight');
+        setSwipeCard(0);
+        setStatus('作成');
       });
 
       byId('collapseToggle').addEventListener('click', () => {
