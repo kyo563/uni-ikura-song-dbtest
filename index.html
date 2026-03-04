@@ -930,17 +930,46 @@
       return Array.from(new Set(matches.map((url) => url.trim()).filter(Boolean)));
     }
 
+    function hrefUrlsFromHtml(text) {
+      if (!text) return [];
+      const source = String(text);
+      const urls = [];
+      const hrefPattern = /<a\b[^>]*\bhref\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/ig;
+      let match;
+      while ((match = hrefPattern.exec(source)) !== null) {
+        const candidate = normalizeExternalUrl(match[1] || match[2] || match[3]);
+        if (candidate) urls.push(candidate);
+      }
+      return Array.from(new Set(urls));
+    }
+
     function normalizeExternalUrl(value) {
       const url = String(value || '').trim();
       return /^https?:\/\//i.test(url) ? url : '';
     }
 
+    function bestExternalUrl(value) {
+      const direct = normalizeExternalUrl(value);
+      if (direct) return direct;
+
+      const hrefUrl = hrefUrlsFromHtml(value)[0];
+      if (hrefUrl) return hrefUrl;
+
+      return urlsFromText(value)[0] || '';
+    }
+
     function linksForExpanded(item) {
       const singingTagLabel = String(item.singingTag || item.memo || '').trim();
-      const directVideoUrl = normalizeExternalUrl(item.singingTagLink || item.liveLink || item.url);
-      const relatedVideoUrl = normalizeExternalUrl(item.otherLink);
+      const directVideoUrl =
+        bestExternalUrl(item.singingTagLink) ||
+        bestExternalUrl(item.liveLink) ||
+        bestExternalUrl(item.url) ||
+        bestExternalUrl(item.memo);
+      const relatedVideoUrl =
+        bestExternalUrl(item.otherLink) ||
+        bestExternalUrl(item.memo);
       const videoUrl = directVideoUrl || relatedVideoUrl;
-      const detailUrl = videoUrl || normalizeExternalUrl(item.url);
+      const detailUrl = videoUrl || bestExternalUrl(item.url) || bestExternalUrl(item.memo);
 
       return {
         singingTagLabel,
