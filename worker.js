@@ -137,6 +137,7 @@ async function handleSongs(request, url, env) {
 }
 
 function isChecked(song) {
+  if (!song || typeof song !== 'object') return true;
   const keys = ['checked', 'enabled', 'publish', 'active', 'isPublic', 'include', '掲載チェック'];
   const presentValues = keys
     .filter((key) => key in song)
@@ -147,29 +148,30 @@ function isChecked(song) {
 }
 
 function normalizeSong(song) {
-  const artist = firstText(song, ['artist', 'artistName', 'アーティスト名']);
-  const title = firstText(song, ['title', 'song', 'songName', '曲名', '楽曲名']);
-  const memo = firstText(song, ['memo', 'note', 'remarks', '備考']);
+  const base = song && typeof song === 'object' ? song : {};
+  const artist = firstText(base, ['artist', 'artistName', 'アーティスト名']);
+  const title = firstText(base, ['title', 'song', 'songName', '曲名', '楽曲名']);
+  const memo = firstText(base, ['memo', 'note', 'remarks', '備考']);
 
-  const liveLinkTitle = firstText(song, ['liveLinkTitle', 'liveTitle', '歌枠タイトル', '歌枠直リンクタイトル']);
-  const liveLinkRaw = firstText(song, ['liveLink', 'liveUrl', 'latestLiveLink', '歌枠直リンク']);
-  const liveLink = extractUrlFromUnknown(song.liveLink) || extractUrlFromUnknown(liveLinkRaw);
-  const otherLink = extractUrlFromUnknown(firstText(song, ['otherLink', 'coverLink', 'shortLink'])) || extractUrlFromUnknown(memo);
-  const url = liveLink || otherLink || extractUrlFromUnknown(firstText(song, ['url']));
+  const liveLinkTitle = firstText(base, ['liveLinkTitle', 'liveTitle', '歌枠タイトル', '歌枠直リンクタイトル']);
+  const liveLinkRaw = firstText(base, ['liveLink', 'liveUrl', 'latestLiveLink', '歌枠直リンク']);
+  const liveLink = extractUrlFromUnknown(base.liveLink) || extractUrlFromUnknown(liveLinkRaw);
+  const otherLink = extractUrlFromUnknown(firstText(base, ['otherLink', 'coverLink', 'shortLink'])) || extractUrlFromUnknown(memo);
+  const url = liveLink || otherLink || extractUrlFromUnknown(firstText(base, ['url']));
 
-  const kindRaw = firstText(song, ['kind', 'type', 'category']);
+  const kindRaw = firstText(base, ['kind', 'type', 'category']);
   const kindFromField = normalizeKind(kindRaw);
   const kind = kindFromField === 'other' ? normalizeKind(memo) : kindFromField;
 
   const ymd =
-    firstYmd(firstText(song, ['publishedAt', 'date', 'lastSungDate', 'otherPublishedAt'])) ||
+    firstYmd(firstText(base, ['publishedAt', 'date', 'lastSungDate', 'otherPublishedAt'])) ||
     firstYmd(liveLinkTitle) ||
     firstYmd(liveLinkRaw);
 
-  const publishedAt = ymd ? toIsoDate(ymd) : firstText(song, ['publishedAt', 'date', 'lastSungDate', 'otherPublishedAt']);
+  const publishedAt = ymd ? toIsoDate(ymd) : firstText(base, ['publishedAt', 'date', 'lastSungDate', 'otherPublishedAt']);
 
   return {
-    ...song,
+    ...base,
     artist,
     title,
     memo,
@@ -215,6 +217,7 @@ function extractUrlFromUnknown(value) {
 }
 
 function firstText(source, keys) {
+  if (!source || typeof source !== 'object') return '';
   for (const key of keys) {
     if (!(key in source)) continue;
     const value = source[key];
