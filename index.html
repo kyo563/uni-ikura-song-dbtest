@@ -969,10 +969,11 @@
     }
 
     function linksForExpanded(item) {
-      const singingTagLabel = String(item.singingTag || item.memo || '').trim();
+      const singingTagLabel = String(item.singingTag || item.memo || item.liveTitle || item.liveLink || '').trim();
       const directVideoUrl =
         bestExternalUrl(item.singingTagLink) ||
         bestExternalUrl(item.liveLink) ||
+        bestExternalUrl(item.liveTitle) ||
         bestExternalUrl(item.url) ||
         bestExternalUrl(item.memo);
       const relatedVideoUrl =
