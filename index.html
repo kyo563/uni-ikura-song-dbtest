@@ -423,12 +423,6 @@
       .top-form.collapsed { max-height: 170px; }
     }
 
-    @media (max-width: 640px) {
-      .song-card-main {
-        grid-template-columns: minmax(0, 1fr) 92px;
-      }
-    }
-
     .song-cards {
       display: grid;
       gap: var(--space-1);
@@ -449,41 +443,20 @@
       background: color-mix(in srgb, var(--surface-2) 88%, black 12%);
       padding: var(--space-2);
       width: 100%;
-      transition: margin 0.2s ease, border-color 0.2s ease, opacity 0.25s ease;
-      cursor: pointer;
+      transition: border-color 0.2s ease, opacity 0.25s ease;
       scroll-snap-align: start;
     }
 
     .song-card-main {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 108px;
-      align-items: stretch;
       gap: var(--space-2);
     }
 
-    .song-expand-hitarea {
-      border: 0;
-      border-radius: var(--radius-sm);
-      background: transparent;
-      color: transparent;
-      font-size: 0;
-      font-weight: 400;
-      display: inline-flex;
+    .song-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--space-2);
       align-items: center;
-      justify-content: center;
-      min-height: 100%;
-      width: 100%;
-      padding: 0;
-      white-space: nowrap;
-    }
-
-    .song-card.expanded {
-      margin: var(--space-1) 0;
-      border-color: var(--accent);
-    }
-
-    .song-card.collapsing {
-      border-color: color-mix(in srgb, var(--line) 75%, var(--accent) 25%);
     }
 
     .song-summary { display: grid; gap: 2px; font-size: 13px; min-width: 0; }
@@ -491,37 +464,14 @@
     .song-artist { color: var(--muted); font-size: 13px; }
 
     .song-details {
-      display: none;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
       margin-top: var(--space-2);
       padding-top: var(--space-2);
       border-top: 1px solid var(--line);
       gap: var(--space-2);
       font-size: 13px;
-      transform-origin: top;
-    }
-
-    .song-card.expanded .song-details {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto;
-      align-items: center;
-      animation: details-open 0.2s ease-out;
-    }
-
-    .song-card.collapsing .song-details {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto;
-      align-items: center;
-      animation: details-close 0.36s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
-    }
-
-    @keyframes details-open {
-      from { opacity: 0; transform: translateY(-4px) scaleY(0.96); }
-      to { opacity: 1; transform: translateY(0) scaleY(1); }
-    }
-
-    @keyframes details-close {
-      from { opacity: 1; transform: translateY(0) scaleY(1); }
-      to { opacity: 0; transform: translateY(-2px) scaleY(0.92); }
     }
 
     .song-meta { display: grid; gap: var(--space-1); min-width: 0; }
@@ -543,7 +493,6 @@
       min-width: 74px;
     }
 
-    html.snap-active { scroll-snap-type: y proximity; }
 
     .tag {
       display: inline-block;
@@ -735,7 +684,6 @@
       sortField: 'date',
       sortOrder: 'desc',
       selectedSongId: '',
-      expandedSongId: '',
       myDanmaku: '',
     };
 
@@ -749,7 +697,6 @@
     const MAX_ERROR_BODY_CHARS = 4000;
     const ENABLE_ERROR_LOG_UI = true;
     let latestErrorLogText = '';
-    let lastRowsScrollTop = 0;
 
     const statusShell = byId('statusShell');
 
@@ -1074,33 +1021,6 @@
       }
     }
 
-    function collapseExpanded(withSlowAnimation = false) {
-      const expandedId = state.expandedSongId;
-      state.expandedSongId = '';
-      document.documentElement.classList.remove('snap-active');
-      const expandedCards = rows.querySelectorAll('.song-card.expanded');
-      expandedCards.forEach((card) => {
-        if (!withSlowAnimation || card.dataset.id !== expandedId) {
-          card.classList.remove('expanded', 'collapsing');
-          card.setAttribute('aria-expanded', 'false');
-          return;
-        }
-        card.classList.add('collapsing');
-        card.setAttribute('aria-expanded', 'false');
-        window.setTimeout(() => {
-          card.classList.remove('expanded', 'collapsing');
-        }, 340);
-      });
-    }
-
-    rows?.addEventListener('scroll', () => {
-      const currentTop = rows.scrollTop;
-      if (Math.abs(currentTop - lastRowsScrollTop) > 2 && state.expandedSongId) {
-        collapseExpanded(true);
-      }
-      lastRowsScrollTop = currentTop;
-    }, { passive: true });
-
     function render(items, totals = {}) {
       selectedCount.textContent = String(items.length);
       totalCount.textContent = String(totals.total ?? items.length);
@@ -1109,13 +1029,11 @@
         rows.innerHTML = '<div class="muted">該当データがありません</div><div class="dummy-end-card">--- END ---</div>';
         rows.dataset.selected = '{}';
         state.selectedSongId = '';
-        collapseExpanded();
         return;
       }
 
       rows.innerHTML = items.map((item) => {
         const id = stableSongId(item);
-        const expanded = state.expandedSongId === id;
         const detailLinks = linksForExpanded(item);
         const singingTagHtml = detailLinks.singingTagLabel
           ? (detailLinks.singingTagUrl
@@ -1131,22 +1049,22 @@
           ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}">${fallbackLinkLabel}</a>`
           : '<span class="muted">リンクなし</span>';
         return `
-          <article class="song-card ${expanded ? 'expanded' : ''}" data-id="${id}" tabindex="0" aria-expanded="${expanded ? 'true' : 'false'}">
+          <article class="song-card" data-id="${id}" tabindex="0">
             <div class="song-card-main">
-              <div class="song-summary">
-                <div class="song-title">${escapeHtml(item.title || '-')}</div>
-                <div class="song-artist">${escapeHtml(item.artist || '-')}</div>
+              <div class="song-head">
+                <div class="song-summary">
+                  <div class="song-title">${escapeHtml(item.title || '-')}</div>
+                  <div class="song-artist">${escapeHtml(item.artist || '-')}</div>
+                </div>
+                <button class="icon-btn copy-text-btn" type="button" data-copy-kind="song-artist" title="楽曲名 / アーティスト名をコピー" aria-label="楽曲名 / アーティスト名をコピー">コピー</button>
               </div>
-              <button class="song-expand-hitarea" type="button" aria-label="詳細を表示">詳細を開く</button>
-            </div>
-            <div class="song-details">
-              <div class="song-meta">
-                <div>${singingTagHtml}</div>
-                <div>最終歌唱日: ${latestDateContent}</div>
-                <div>リンク: ${fallbackLinkHtml}</div>
+              <div class="song-details">
+                <div class="song-meta">
+                  <div>${singingTagHtml}</div>
+                  <div>最終歌唱日: ${latestDateContent}</div>
+                  <div>歌唱リンク: ${fallbackLinkHtml}</div>
+                </div>
               </div>
-              <button class="icon-btn copy-text-btn" type="button" data-copy-kind="song-artist" title="楽曲名 / アーティスト名をコピー" aria-label="楽曲名 / アーティスト名をコピー">コピー</button>
-            </div>
           </article>
         `;
       }).join('') + '<div class="dummy-end-card">--- END ---</div>';
@@ -1158,21 +1076,6 @@
         const select = () => {
           state.selectedSongId = id;
           rows.dataset.selected = JSON.stringify(item);
-        };
-
-        const toggle = () => {
-          select();
-          if (state.expandedSongId === id) {
-            return;
-          }
-          state.expandedSongId = id;
-          document.documentElement.classList.add('snap-active');
-          rows.querySelectorAll('.song-card.expanded').forEach((card) => {
-            card.classList.remove('expanded');
-            card.setAttribute('aria-expanded', 'false');
-          });
-          el.classList.add('expanded');
-          el.setAttribute('aria-expanded', 'true');
         };
 
         el.addEventListener('click', (evt) => {
@@ -1196,10 +1099,6 @@
           }
 
           select();
-          const expandZone = targetEl?.closest?.('.song-expand-hitarea');
-          if (!expandZone) return;
-          if (state.expandedSongId === id) return;
-          toggle();
         });
 
         el.addEventListener('keydown', (evt) => {
@@ -1207,8 +1106,6 @@
           if (evt.key !== 'Enter' && evt.key !== ' ') return;
           evt.preventDefault();
           select();
-          if (state.expandedSongId === id) return;
-          toggle();
         });
       });
 
@@ -1517,11 +1414,6 @@
         byId('scrollTop').classList.toggle('show', window.scrollY > 280);
       });
 
-      window.addEventListener('wheel', (evt) => {
-        if (!state.expandedSongId) return;
-        if (Math.abs(evt.deltaY) < 140) return;
-        collapseExpanded();
-      }, { passive: true });
     }
 
     byId('sortField').value = state.sortField;
