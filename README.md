@@ -105,6 +105,12 @@ bash scripts/verify_r2_upload_and_read.sh
   - 複数候補を持たせる場合は `meta[name="songs-r2-fallbacks"]` にカンマ区切りでURLを設定できます。
   - CORSで失敗する場合は、R2側の公開/CORS設定を見直してください。
 
+- エラーログに `{ "errorName": "Error", "statusCode": "404", "statusDescription": "通信エラー" }` が出る
+  - フロントは候補URLを順に試し、**すべて404のとき**この表示になります（`songs-r2-json-url` → `/api/songs` の順）。
+  - まずブラウザで `https://pub-...r2.dev/songs.json` を直接開き、404にならないか確認してください。
+  - 404の場合は、`R2_BUCKET` / `R2_OBJECT_KEY`（通常 `songs.json`）にアップロードされているか、Actionsの最新実行が成功しているかを確認してください。
+  - GitHub Pagesで配信している場合、`/api/songs` はWorkerが同一オリジンにいない限り通常404です。`meta[name="songs-r2-json-url"]` に有効なR2公開URLを設定してください。
+
 ---
 
 ## 3. R2に保存するJSONスキーマ
