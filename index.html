@@ -990,14 +990,15 @@
 
     function linksForExpanded(item) {
       const memoTag = resolveSingingTag(item.memo);
-      const cLinkUrl = normalizeExternalUrl(item.otherLink);
-      const dLinkUrl = normalizeExternalUrl(item.liveLink || item.url);
-      const detailUrl = dLinkUrl || cLinkUrl || normalizeExternalUrl(item.url);
+      const directVideoUrl = normalizeExternalUrl(item.liveLink || item.url);
+      const relatedVideoUrl = normalizeExternalUrl(item.otherLink);
+      const videoUrl = directVideoUrl || relatedVideoUrl;
+      const detailUrl = videoUrl || normalizeExternalUrl(item.url);
 
       return {
         singingTagLabel: memoTag.label,
-        singingTagUrl: memoTag.kind === 'cover' || memoTag.kind === 'short' ? cLinkUrl : '',
-        latestDateUrl: dLinkUrl,
+        singingTagUrl: videoUrl,
+        latestDateUrl: videoUrl,
         detailUrl,
       };
     }
