@@ -1186,7 +1186,6 @@
       || '';
 
     const SONGS_JSON_FALLBACK_URLS = Array.from(new Set([
-      '/api/songs',
       ...META_FALLBACK_JSON_URLS,
     ]));
 
@@ -1213,7 +1212,7 @@
           statusDescription: 'songs-r2-json-url が未設定',
         };
         setErrorLog(detail);
-        rows.innerHTML = '<div class="error">データ取得先が未設定です。meta[name="songs-r2-json-url"] か localStorage("songs_r2_json_url") を設定するか、同一オリジンの /api/songs が利用できる構成にしてください。</div>';
+        rows.innerHTML = '<div class="error">データ取得先が未設定です。meta[name="songs-r2-json-url"] か localStorage("songs_r2_json_url") を設定してください。</div>';
         setStatus('失敗', true);
         return;
       }
