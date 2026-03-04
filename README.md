@@ -2,7 +2,7 @@
 
 公開ページ: https://kyo563.github.io/uni-ikura-song-dbtest/
 
-`kasane-3kHz-songs-dbTEST` を参考にした、**Cloudflare Worker + R2 + Static Assets** 構成です。  
+`kasane-3kHz-songs-dbTEST` を参考にした、**Cloudflare R2 + Static Assets** 構成です。  
 このリポジトリでは、`Performance Record` シートをGASでJSON化し、GitHub ActionsでR2へ定期同期する運用を想定しています。
 
 ## 構成
@@ -10,7 +10,7 @@
 - `gas/Code.gs`: スプレッドシートを `songs.json` 形式で返すGASコード
 - `.github/workflows/sync-songs-to-r2.yml`: GAS -> R2 定期同期
 - `scripts/sync_songs_to_r2.sh`: 同期用スクリプト
-- `worker.js`: `/api/songs` を提供（R2の`songs.json`を配信）
+- `worker.js`: 補助API（`/api/songs`, `/api/health`）。フロント表示はWorkerを経由せずR2公開URLを直接参照。
 - `index.html`: 楽曲検索UI
 
 ---
@@ -100,13 +100,10 @@ bash scripts/verify_r2_upload_and_read.sh
   - 追加で、`scripts/sync_songs_to_r2.sh` は `Content-Type` も検証します。`text/html` が返る場合はGAS公開設定（アクセス権）またはURL誤りを疑ってください。
 
 - フロントで `サーバー: エラー:HTTP 404` が出る
-  - **開いているURLがWorkerドメインか**を最初に確認。GitHub Pagesで開くと `api/songs` が404になりやすいです。
-  - Workerドメイン例: `https://uni-ikura-song-dbtest.<account>.workers.dev/`
-  - フロントは GitHub Pages (`<owner>.github.io/<repo>/`) で開いた場合、`https://<repo>.<owner>.workers.dev/api/songs` も自動で試行します。
-  - Cloudflareアカウント名がGitHubユーザー名と異なる場合、`localStorage.setItem("songs_workers_account", "<account>")` を実行すると `https://<repo>.<account>.workers.dev/api/songs` を自動推定するようになります。
-  - 自動推定で接続できない場合は `localStorage.setItem("songs_api_base", "https://uni-ikura-song-dbtest.<account>.workers.dev/")` を実行してAPIベースを固定し、再読込してください。
-  - 恒久対応として、`index.html` の `meta[name="songs-api-base"]` に Worker URL を設定するとブラウザごとの再設定が不要になります。
-  - `GET /api/health` の `r2.exists` が `true` か確認。`false` なら `SONG_DB` / `SONGS_JSON_KEY` / R2オブジェクトキーを見直してください。
+  - `index.html` の `meta[name="songs-r2-json-url"]` に、R2公開URL（例: `https://pub-xxxx.r2.dev/songs.json`）を設定してください。
+  - もしくはブラウザで `localStorage.setItem("songs_r2_json_url", "https://pub-xxxx.r2.dev/songs.json")` を実行して再読込してください。
+  - 複数候補を持たせる場合は `meta[name="songs-r2-fallbacks"]` にカンマ区切りでURLを設定できます。
+  - CORSで失敗する場合は、R2側の公開/CORS設定を見直してください。
 
 ---
 
@@ -145,13 +142,13 @@ bash scripts/verify_r2_upload_and_read.sh
 
 ---
 
-## 4. Worker / フロント確認
+## 4. 動作確認
 
 ```bash
 npx wrangler dev
 ```
 
-- `GET /api/health`: ヘルスチェック
-- `GET /api/songs`: R2上の `songs.json` を返却
+- フロント: `index.html` からR2公開URLの `songs.json` を直接取得
+- （任意）Worker: `GET /api/health`, `GET /api/songs` で補助確認
 
-Workerは `songs.json` が「配列形式」「{ items: [] } 形式」の両方を受け取れるようにしています。
+フロントは `songs.json` が「配列形式」「{ items: [] } 形式」の両方を受け取れます。

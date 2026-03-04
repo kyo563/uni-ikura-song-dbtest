@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="songs-api-base" content="https://uni-ikura-song-dbtest.kyomtea.workers.dev/">
+  <meta name="songs-r2-json-url" content="">
   <title>雲丹ゐくら Songs DB TEST</title>
   <style>
     :root {
@@ -1172,64 +1172,22 @@
       );
     }
 
-    function getWorkersAccountHint() {
-      return (
-        window.__SONGS_WORKERS_ACCOUNT__
-        || document.querySelector('meta[name="songs-workers-account"]')?.content
-        || localStorage.getItem('songs_workers_account')
-        || ''
-      ).trim();
-    }
-
-    function guessWorkersApiEndpoints() {
-      const host = window.location.hostname || '';
-      if (!host.endsWith('.github.io')) return [];
-
-      const owner = host.split('.')[0] || '';
-      const account = getWorkersAccountHint() || owner;
-      const pathSegments = window.location.pathname.split('/').filter(Boolean);
-      const repo = pathSegments[0] || '';
-      if (!repo) return [];
-
-      return Array.from(new Set([
-        `https://${repo}.workers.dev/api/songs`,
-        ...(account ? [`https://${repo}.${account}.workers.dev/api/songs`] : []),
-      ]));
-    }
-
-    const META_FALLBACK_ENDPOINTS =
-      document.querySelector('meta[name="songs-api-fallbacks"]')?.content
+    const META_FALLBACK_JSON_URLS =
+      document.querySelector('meta[name="songs-r2-fallbacks"]')?.content
         ?.split(',')
         .map((v) => v.trim())
         .filter(Boolean)
       || [];
 
-    const guessedWorkersApis = guessWorkersApiEndpoints();
-    const API_FALLBACK_ENDPOINTS = Array.from(new Set([
-      ...META_FALLBACK_ENDPOINTS,
-      ...guessedWorkersApis,
-    ]));
-
-    const API_BASE_OVERRIDE =
-      window.__SONGS_API_BASE__
-      || document.querySelector('meta[name="songs-api-base"]')?.content
-      || localStorage.getItem('songs_api_base')
+    const SONGS_JSON_URL_OVERRIDE =
+      window.__SONGS_JSON_URL__
+      || document.querySelector('meta[name="songs-r2-json-url"]')?.content
+      || localStorage.getItem('songs_r2_json_url')
       || '';
 
-    function apiUrl(path, params) {
-      const baseRoot = API_BASE_OVERRIDE || window.location.href;
-      const base = new URL(path.replace(/^\/+/, ''), baseRoot);
-      if (params) base.search = params.toString();
-      return base.toString();
-    }
-
-    function withQuery(url, params) {
-      const base = new URL(url, window.location.href);
-      params.forEach((value, key) => {
-        if (!base.searchParams.has(key)) base.searchParams.set(key, value);
-      });
-      return base.toString();
-    }
+    const SONGS_JSON_FALLBACK_URLS = Array.from(new Set([
+      ...META_FALLBACK_JSON_URLS,
+    ]));
 
     function clearApiCache() {
       try {
@@ -1241,12 +1199,23 @@
       setStatus('読込');
       clearErrorLog();
 
-      const params = new URLSearchParams({ q: state.q, kind: 'all', sort: 'latest' });
       const cached = loadCache();
       const requestCandidates = [
-        apiUrl('api/songs', params),
-        ...API_FALLBACK_ENDPOINTS.map((endpoint) => withQuery(endpoint, params)),
-      ];
+        SONGS_JSON_URL_OVERRIDE,
+        ...SONGS_JSON_FALLBACK_URLS,
+      ].filter(Boolean);
+
+      if (requestCandidates.length === 0) {
+        const detail = {
+          timestamp: new Date().toISOString(),
+          errorName: 'MissingSongsJsonUrl',
+          statusDescription: 'songs-r2-json-url が未設定',
+        };
+        setErrorLog(detail);
+        rows.innerHTML = '<div class="error">データ取得先が未設定です。meta[name="songs-r2-json-url"] または localStorage("songs_r2_json_url") を設定してください。</div>';
+        setStatus('失敗', true);
+        return;
+      }
 
       let requestUrl = requestCandidates[0];
 
@@ -1323,8 +1292,11 @@
           throw parseError;
         }
         const etag = res.headers.get('etag');
-        const filteredItems = filterItems(Array.isArray(payload.items) ? payload.items : []);
-        render(filteredItems, { total: payload.total ?? filteredItems.length });
+        const sourceItems = Array.isArray(payload)
+          ? payload
+          : (Array.isArray(payload?.items) ? payload.items : []);
+        const filteredItems = filterItems(sourceItems);
+        render(filteredItems, { total: payload?.total ?? sourceItems.length });
         setStatus(`表示${filteredItems.length}`);
 
         if (etag) saveCache({ etag, payload });
@@ -1341,7 +1313,7 @@
         };
         setErrorLog(detail);
         if (!cached?.payload) {
-          rows.innerHTML = '<div class="error">データ取得に失敗しました。Worker / R2 の設定を確認してください。</div>';
+          rows.innerHTML = '<div class="error">データ取得に失敗しました。R2の公開URL設定を確認してください。</div>';
         }
         setStatus('失敗', true);
       }
