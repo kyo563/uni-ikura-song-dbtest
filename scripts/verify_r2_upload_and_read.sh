@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEFAULT_GAS_SONGS_API_URL="https://script.google.com/macros/s/AKfycbza8pqTD2NNtzFRSTon2_yS2Ayqj3h1sWoK6AiSyjiSLEYCazT6YRWHOB09d1LFIrRe/exec?api=songs"
+DEFAULT_GAS_SONGS_API_URL="https://script.google.com/macros/s/AKfycbzU9lD1qRGocSkZvZJmh6FTw75XBnLMXgRIAyEDBuwqIG_whykcxbjjrhuk6K789ciS/exec?api=songs"
 GAS_SONGS_API_URL="${GAS_SONGS_API_URL:-$DEFAULT_GAS_SONGS_API_URL}"
 GAS_SONGS_API_URL="${GAS_SONGS_API_URL//$'\r'/}"
 GAS_SONGS_API_URL="${GAS_SONGS_API_URL//$'\n'/}"
