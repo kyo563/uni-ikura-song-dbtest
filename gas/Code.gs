@@ -52,9 +52,9 @@ function buildSongsPayload_() {
     const formulaRow = formulas[i + 1] || [];
     const artist = clean_(row[0]); // A
     const title = clean_(row[1]); // B
-    const memo = clean_(row[2]); // C
+    const tag = clean_(row[2]); // C
     const liveField = clean_(row[3]); // D
-    const memoRich = richRow[2] || null; // C rich text
+    const tagRich = richRow[2] || null; // C rich text
     const liveRich = richRow[3] || null; // D rich text
     const source = clean_(row[4]); // E
     const checked = clean_(row[5]); // F
@@ -62,18 +62,16 @@ function buildSongsPayload_() {
     if (!isChecked_(checked) || !artist || !title) continue;
 
     const liveFormula = clean_(formulaRow[3]); // D formula
-    const memoFormula = clean_(formulaRow[2]); // C formula
+    const tagFormula = clean_(formulaRow[2]); // C formula
     const liveUrl = extractCellUrl_(liveField, liveRich, liveFormula);
     const liveTitle = extractLiveTitle_(liveField);
-    const liveYmd = extractYmd_(liveField);
+    const liveYmd = extractLeadingYmd_(liveField);
 
-    const memoUrl = extractCellUrl_(memo, memoRich, memoFormula);
-    const memoYmd = extractYmd_(memo);
-    const memoKind = inferKindFromText_(memo);
+    const tagUrl = extractCellUrl_(tag, tagRich, tagFormula);
+    const memoKind = inferKindFromText_(tag);
 
     const hasLive = !!liveUrl || !!liveYmd;
     const normalizedLiveDate = liveYmd ? formatYmd_(liveYmd) : '';
-    const normalizedMemoDate = memoYmd ? formatYmd_(memoYmd) : '';
     const kind = hasLive ? 'live' : (memoKind || 'other');
 
     items.push({
@@ -81,17 +79,19 @@ function buildSongsPayload_() {
       title,
       artist,
       kind,
-      memo,
+      memo: tag,
+      singingTag: tag,
       source,
       checked: true,
       liveLink: liveUrl || '',
       liveTitle: liveTitle || '',
+      singingTagLink: liveUrl || '',
       lastSungDate: normalizedLiveDate,
-      otherLink: memoUrl || '',
-      otherPublishedAt: hasLive ? '' : normalizedMemoDate,
+      otherLink: tagUrl || '',
+      otherPublishedAt: '',
       // 互換フィールド（既存UI/Worker向け）
-      url: liveUrl || memoUrl || '',
-      publishedAt: normalizedLiveDate || (hasLive ? '' : normalizedMemoDate),
+      url: liveUrl || tagUrl || '',
+      publishedAt: normalizedLiveDate,
     });
   }
 
@@ -174,6 +174,11 @@ function extractYmd_(text) {
   if (!text) return '';
   const m = String(text).match(/(^|\D)(\d{8})(\D|$)/);
   return m ? m[2] : '';
+}
+
+function extractLeadingYmd_(text) {
+  const raw = String(text || '').trim();
+  return /^\d{8}/.test(raw) ? raw.slice(0, 8) : '';
 }
 
 function formatYmd_(ymd) {
