@@ -989,15 +989,15 @@
     }
 
     function linksForExpanded(item) {
-      const memoTag = resolveSingingTag(item.memo);
-      const directVideoUrl = normalizeExternalUrl(item.liveLink || item.url);
+      const singingTagLabel = String(item.singingTag || item.memo || '').trim();
+      const directVideoUrl = normalizeExternalUrl(item.singingTagLink || item.liveLink || item.url);
       const relatedVideoUrl = normalizeExternalUrl(item.otherLink);
       const videoUrl = directVideoUrl || relatedVideoUrl;
       const detailUrl = videoUrl || normalizeExternalUrl(item.url);
 
       return {
-        singingTagLabel: memoTag.label,
-        singingTagUrl: videoUrl,
+        singingTagLabel,
+        singingTagUrl: directVideoUrl || videoUrl,
         latestDateUrl: videoUrl,
         detailUrl,
       };
@@ -1122,7 +1122,7 @@
             ? `<a class="tag tag-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.singingTagUrl))}" target="_blank" rel="noopener noreferrer">${escapeHtml(detailLinks.singingTagLabel)}</a>`
             : `<span class="tag">${escapeHtml(detailLinks.singingTagLabel)}</span>`)
           : '<span class="muted">-</span>';
-        const latestDate = escapeHtml(fmtDate(item.publishedAt));
+        const latestDate = escapeHtml(fmtDate(item.lastSungDate || item.publishedAt));
         const latestDateContent = detailLinks.latestDateUrl
           ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.latestDateUrl))}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '歌枠リンクを開く')}">${latestDate}</a>`
           : latestDate;
