@@ -10,7 +10,7 @@
 - `gas/Code.gs`: スプレッドシートを `songs.json` 形式で返すGASコード
 - `.github/workflows/sync-songs-to-r2.yml`: GAS -> R2 定期同期
 - `scripts/sync_songs_to_r2.sh`: 同期用スクリプト
-- `worker.js`: 補助API（`/api/songs`, `/api/health`）。フロント表示はWorkerを経由せずR2公開URLを直接参照。
+- `worker.js`: 補助API（`/api/songs`, `/api/health`）。**通常運用では未使用（任意）**で、フロント表示はR2公開URLを直接参照。
 - `index.html`: 楽曲検索UI
 
 ---
@@ -106,10 +106,10 @@ bash scripts/verify_r2_upload_and_read.sh
   - CORSで失敗する場合は、R2側の公開/CORS設定を見直してください。
 
 - エラーログに `{ "errorName": "Error", "statusCode": "404", "statusDescription": "通信エラー" }` が出る
-  - フロントは候補URLを順に試し、**すべて404のとき**この表示になります（`songs-r2-json-url` → `/api/songs` の順）。
+  - フロントは候補URLを順に試し、**すべて404のとき**この表示になります（`songs-r2-json-url` → `songs-r2-fallbacks` の順）。
   - まずブラウザで `https://pub-...r2.dev/songs.json` を直接開き、404にならないか確認してください。
   - 404の場合は、`R2_BUCKET` / `R2_OBJECT_KEY`（通常 `songs.json`）にアップロードされているか、Actionsの最新実行が成功しているかを確認してください。
-  - GitHub Pagesで配信している場合、`/api/songs` はWorkerが同一オリジンにいない限り通常404です。`meta[name="songs-r2-json-url"]` に有効なR2公開URLを設定してください。
+  - GitHub Pages運用では、まず `meta[name="songs-r2-json-url"]` に有効なR2公開URLを設定してください。
 
 ---
 
@@ -154,7 +154,7 @@ bash scripts/verify_r2_upload_and_read.sh
 npx wrangler dev
 ```
 
-- フロント: `index.html` からR2公開URLの `songs.json` を直接取得
+- フロント: `index.html` からR2公開URLの `songs.json` を直接取得（Worker非依存）
 - （任意）Worker: `GET /api/health`, `GET /api/songs` で補助確認
 
 フロントは `songs.json` が「配列形式」「{ items: [] } 形式」の両方を受け取れます。
