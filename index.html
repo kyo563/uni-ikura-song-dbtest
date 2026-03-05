@@ -285,7 +285,7 @@
 
     .top-form {
       position: relative;
-      padding-bottom: 46px;
+      padding-bottom: 0;
       overflow: visible;
     }
 
@@ -464,23 +464,6 @@
       max-height: 0;
       opacity: 0;
       pointer-events: none;
-    }
-
-    .toggle-wrap {
-      position: absolute;
-      right: 0;
-      bottom: 0;
-      width: auto;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    #collapseToggle {
-      min-height: 30px;
-      padding: 4px 10px;
-      font-size: 11px;
-      border: none;
-      background: transparent;
     }
 
     .checkbox-row {
@@ -1011,9 +994,6 @@
         </div>
       </div>
 
-      <div class="toggle-wrap">
-        <button id="collapseToggle" type="button">折り畳み</button>
-      </div>
     </section>
 
     <section class="card middle-form">
@@ -1289,7 +1269,6 @@
         memoPanel.addEventListener('click', () => {
           if (!topForm?.classList.contains('collapsed')) return;
           topForm.classList.remove('collapsed');
-          byId('collapseToggle').textContent = '折り畳み';
           topFormCollapsedByScroll = false;
           syncTopPanelSize();
         });
@@ -2098,13 +2077,6 @@
         setStatus('弾幕作成完了');
       });
 
-      byId('collapseToggle').addEventListener('click', () => {
-        const collapsed = byId('topForm').classList.toggle('collapsed');
-        byId('collapseToggle').textContent = collapsed ? '展開' : '折り畳み';
-        topFormCollapsedByScroll = false;
-        syncTopPanelSize();
-      });
-
       const updateTopFormCollapseByScroll = () => {
         const topForm = byId('topForm');
         if (!topForm) return;
@@ -2114,7 +2086,6 @@
         if (shouldCollapse === topFormCollapsedByScroll) return;
 
         topForm.classList.toggle('collapsed', shouldCollapse);
-        byId('collapseToggle').textContent = shouldCollapse ? '展開' : '折り畳み';
         topFormCollapsedByScroll = shouldCollapse;
         syncTopPanelSize();
       };
