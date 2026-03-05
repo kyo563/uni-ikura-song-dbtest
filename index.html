@@ -156,6 +156,10 @@
         animation: none !important;
         transition: none;
       }
+
+      .bottom-swipe-track.hinting {
+        animation: none !important;
+      }
     }
 
     label { display: grid; gap: var(--space-1); font-size: 13px; color: var(--muted); }
@@ -383,6 +387,10 @@
       touch-action: pan-y;
     }
 
+    .bottom-swipe-track.hinting {
+      animation: swipe-hint 2.2s ease-in-out infinite;
+    }
+
     .bottom-swipe-track.dragging {
       transition: none;
       cursor: grabbing;
@@ -394,6 +402,13 @@
       display: grid;
       gap: var(--space-1);
       min-width: 0;
+    }
+
+    @keyframes swipe-hint {
+      0%,
+      68%,
+      100% { transform: translateX(0%); }
+      34% { transform: translateX(-12%); }
     }
 
     @media (max-width: 860px) {
@@ -746,6 +761,7 @@
     const CACHE_PREFIX = 'songs-cache-v3';
     const MY_DANMAKU_CACHE_KEY = 'my-danmaku-cache-v1';
     const MY_DANMAKU_CACHE_MS = 15 * 60 * 1000;
+    const SWIPE_HINT_DISMISSED_KEY = 'bottom-swipe-hint-dismissed-v1';
 
     const state = {
       q: '',
@@ -847,6 +863,24 @@
       let startX = 0;
       let deltaX = 0;
       let pointerId = null;
+      let hintDismissed = false;
+
+      const shouldShowHint = () => {
+        try {
+          return localStorage.getItem(SWIPE_HINT_DISMISSED_KEY) !== '1';
+        } catch (_) {
+          return true;
+        }
+      };
+
+      const stopHint = () => {
+        if (hintDismissed) return;
+        hintDismissed = true;
+        track.classList.remove('hinting');
+        try {
+          localStorage.setItem(SWIPE_HINT_DISMISSED_KEY, '1');
+        } catch (_) {}
+      };
 
       const setCard = (index, withAnimation = true) => {
         current = Math.max(0, Math.min(1, index));
@@ -885,6 +919,7 @@
 
       track.addEventListener('pointerdown', (evt) => {
         if (evt.pointerType === 'mouse' && evt.button !== 0) return;
+        stopHint();
         dragging = true;
         startX = evt.clientX;
         deltaX = 0;
@@ -896,6 +931,8 @@
       track.addEventListener('pointermove', onPointerMove);
       track.addEventListener('pointerup', onPointerUp);
       track.addEventListener('pointercancel', onPointerUp);
+      byId('q').addEventListener('focus', stopHint, { once: true });
+      byId('myEmoji').addEventListener('focus', stopHint, { once: true });
 
       byId('danmakuType').addEventListener('change', (evt) => {
         if (evt.target.value === 'my') setCard(1);
@@ -906,6 +943,10 @@
       });
 
       setSwipeCard = setCard;
+
+      if (shouldShowHint()) {
+        track.classList.add('hinting');
+      }
 
       setCard(0, false);
     }
