@@ -289,6 +289,67 @@
       overflow: visible;
     }
 
+    .top-swipe-wrap {
+      overflow: hidden;
+      width: 100%;
+      min-height: 170px;
+    }
+
+    .top-swipe-track {
+      display: flex;
+      width: 200%;
+      transform: translateX(0%);
+      transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.2, 1);
+      touch-action: pan-y;
+    }
+
+    .top-swipe-track.dragging {
+      transition: none;
+      cursor: grabbing;
+    }
+
+    .top-panel {
+      width: 50%;
+      min-width: 0;
+    }
+
+    .memo-panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      padding: var(--space-2);
+      min-height: 170px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    #memoInput {
+      width: 100%;
+      min-height: 128px;
+      height: 100%;
+      resize: none;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: #e6ffff;
+      color: var(--text);
+      padding: var(--space-2) var(--space-3);
+      font-size: var(--font-control);
+      font-family: inherit;
+      line-height: 1.5;
+    }
+
+    .memo-copy-wrap {
+      margin-top: auto;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    #copyMemo {
+      min-width: 72px;
+      width: auto;
+    }
+
     .top-summary {
       margin-bottom: var(--space-2);
     }
@@ -694,6 +755,7 @@
     }
 
     #copyErrorLog,
+    #copyMemo,
     #copyDanmaku,
     .copy-text-btn {
       background: #1e90ff;
@@ -893,44 +955,59 @@
   <div id="scrollBubbles" class="scroll-bubbles" aria-hidden="true"></div>
   <main class="container" id="songsPage">
     <section class="card top-form" id="topForm">
-      <div class="top-summary">
-        <div class="summary-box">
-          <span class="status-shell" id="statusShell" data-state="loading">
-            <span class="status-dot" aria-hidden="true"></span>
-            <span class="status" id="status">起動</span>
-          </span>
-          <div class="summary-inline count-inline"><span id="selectedCount">0</span>/<span id="totalCount">0</span>曲</div>
-        </div>
-      </div>
+      <div class="top-swipe-wrap" id="topSwipeWrap">
+        <div class="top-swipe-track" id="topSwipeTrack">
+          <section class="top-panel" aria-label="絞り込みカード">
+            <div class="top-summary">
+              <div class="summary-box">
+                <span class="status-shell" id="statusShell" data-state="loading">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <span class="status" id="status">起動</span>
+                </span>
+                <div class="summary-inline count-inline"><span id="selectedCount">0</span>/<span id="totalCount">0</span>曲</div>
+              </div>
+            </div>
 
-      <div id="errorLogWrap" class="error-log-wrap" aria-live="polite">
-        <div class="error-log-head">
-          <strong>エラー情報</strong>
-          <button id="copyErrorLog" type="button">コピー</button>
-        </div>
-        <pre id="errorLog" class="error-log">エラー時に情報を表示します。</pre>
-      </div>
+            <div id="errorLogWrap" class="error-log-wrap" aria-live="polite">
+              <div class="error-log-head">
+                <strong>エラー情報</strong>
+                <button id="copyErrorLog" type="button">コピー</button>
+              </div>
+              <pre id="errorLog" class="error-log">エラー時に情報を表示します。</pre>
+            </div>
 
-      <div class="top-advanced">
-        <div class="checkbox-row" aria-label="絞り込み">
-            <label><input type="checkbox" id="kindLive" checked>歌枠</label>
-            <label><input type="checkbox" id="kindCover" checked>歌ってみた</label>
-            <label><input type="checkbox" id="kindShort" checked>ショート</label>
-        </div>
-        <div class="sort-row" aria-label="表示切替">
-          <label aria-label="並び替え項目">
-            <select id="sortField" aria-label="並び替え項目">
-              <option value="artist">アーティスト名</option>
-              <option value="title">楽曲名</option>
-              <option value="date" selected>投稿日</option>
-            </select>
-          </label>
-          <label aria-label="並び順">
-            <select id="sortOrder" aria-label="並び順">
-              <option value="asc">昇順</option>
-              <option value="desc" selected>降順</option>
-            </select>
-          </label>
+            <div class="top-advanced">
+              <div class="checkbox-row" aria-label="絞り込み">
+                  <label><input type="checkbox" id="kindLive" checked>歌枠</label>
+                  <label><input type="checkbox" id="kindCover" checked>歌ってみた</label>
+                  <label><input type="checkbox" id="kindShort" checked>ショート</label>
+              </div>
+              <div class="sort-row" aria-label="表示切替">
+                <label aria-label="並び替え項目">
+                  <select id="sortField" aria-label="並び替え項目">
+                    <option value="artist">アーティスト名</option>
+                    <option value="title">楽曲名</option>
+                    <option value="date" selected>投稿日</option>
+                  </select>
+                </label>
+                <label aria-label="並び順">
+                  <select id="sortOrder" aria-label="並び順">
+                    <option value="asc">昇順</option>
+                    <option value="desc" selected>降順</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section class="top-panel" aria-label="メモカード">
+            <div class="memo-panel">
+              <textarea id="memoInput" aria-label="メモ帳" placeholder="メモを入力"></textarea>
+              <div class="memo-copy-wrap">
+                <button id="copyMemo" type="button">コピー</button>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
 
@@ -1100,36 +1177,23 @@
     }
 
     let setSwipeCard = () => {};
+    let setTopSwipeCard = () => {};
     let triggerSwipeHint = () => {};
     let swipeHintIntervalId = null;
 
-    function setupBottomSwipe() {
-      const wrap = byId('bottomSwipeWrap');
-      const track = byId('bottomSwipeTrack');
+    function setupSwipeTrack({ wrap, track, panelWidthPercent = 50 }) {
       let current = 0;
       let dragging = false;
       let startX = 0;
       let deltaX = 0;
       let pointerId = null;
-      const stopHint = () => {
-        track.classList.remove('hinting');
-      };
-
-      const startHint = () => {
-        track.classList.remove('hinting');
-        void track.offsetWidth;
-        track.classList.add('hinting');
-        window.setTimeout(() => {
-          track.classList.remove('hinting');
-        }, 6500);
-      };
 
       const setCard = (index, withAnimation = true) => {
         current = Math.max(0, Math.min(1, index));
         track.style.transition = withAnimation
           ? 'transform 0.45s cubic-bezier(0.2, 0.9, 0.2, 1)'
           : 'none';
-        track.style.transform = `translateX(${-current * 50}%)`;
+        track.style.transform = `translateX(${-current * panelWidthPercent}%)`;
       };
 
       const getThreshold = () => Math.max(54, wrap.clientWidth * 0.12);
@@ -1137,9 +1201,9 @@
       const onPointerMove = (evt) => {
         if (!dragging || evt.pointerId !== pointerId) return;
         deltaX = evt.clientX - startX;
-        const base = -current * 50;
-        const ratio = (deltaX / wrap.clientWidth) * 50;
-        const next = Math.max(-50, Math.min(0, base + ratio));
+        const base = -current * panelWidthPercent;
+        const ratio = (deltaX / wrap.clientWidth) * panelWidthPercent;
+        const next = Math.max(-panelWidthPercent, Math.min(0, base + ratio));
         track.style.transform = `translateX(${next}%)`;
       };
 
@@ -1161,7 +1225,6 @@
 
       track.addEventListener('pointerdown', (evt) => {
         if (evt.pointerType === 'mouse' && evt.button !== 0) return;
-        stopHint();
         dragging = true;
         startX = evt.clientX;
         deltaX = 0;
@@ -1173,6 +1236,61 @@
       track.addEventListener('pointermove', onPointerMove);
       track.addEventListener('pointerup', onPointerUp);
       track.addEventListener('pointercancel', onPointerUp);
+
+      setCard(0, false);
+      return setCard;
+    }
+
+
+    function syncTopPanelSize() {
+      const filterPanel = document.querySelector('.top-panel[aria-label="絞り込みカード"]');
+      const memoPanel = document.querySelector('.memo-panel');
+      if (!filterPanel || !memoPanel) return;
+      const panelHeight = Math.ceil(filterPanel.getBoundingClientRect().height);
+      if (panelHeight > 0) {
+        memoPanel.style.height = `${panelHeight}px`;
+      }
+    }
+
+    function setupTopSwipe() {
+      const wrap = byId('topSwipeWrap');
+      const track = byId('topSwipeTrack');
+      const memoInput = byId('memoInput');
+
+      if (!wrap || !track) return;
+      setTopSwipeCard = setupSwipeTrack({ wrap, track, panelWidthPercent: 50 });
+
+      if (memoInput) {
+        memoInput.addEventListener('focus', () => {
+          setTopSwipeCard(1);
+        });
+      }
+
+      syncTopPanelSize();
+      window.addEventListener('resize', syncTopPanelSize);
+    }
+
+    function setupBottomSwipe() {
+      const wrap = byId('bottomSwipeWrap');
+      const track = byId('bottomSwipeTrack');
+      const stopHint = () => {
+        track.classList.remove('hinting');
+      };
+
+      const startHint = () => {
+        track.classList.remove('hinting');
+        void track.offsetWidth;
+        track.classList.add('hinting');
+        window.setTimeout(() => {
+          track.classList.remove('hinting');
+        }, 6500);
+      };
+
+      const setCard = setupSwipeTrack({ wrap, track, panelWidthPercent: 50 });
+
+      track.addEventListener('pointerdown', () => {
+        stopHint();
+      });
       byId('q').addEventListener('focus', stopHint, { once: true });
       byId('myEmoji').addEventListener('focus', stopHint, { once: true });
 
@@ -1187,8 +1305,20 @@
       setSwipeCard = setCard;
       triggerSwipeHint = startHint;
 
-      setCard(0, false);
       startHint();
+    }
+
+    async function copyMemoText() {
+      const memoInput = byId('memoInput');
+      if (!memoInput) return;
+      const text = memoInput.value || '';
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('コピーしました');
+        setStatus('コピー成功');
+      } catch (_) {
+        setStatus('コピー失敗', true);
+      }
     }
 
 
@@ -1920,6 +2050,7 @@
       });
 
       byId('copyDanmaku').addEventListener('click', copyDanmaku);
+      byId('copyMemo').addEventListener('click', copyMemoText);
       if (ENABLE_ERROR_LOG_UI) {
         byId('copyErrorLog').addEventListener('click', copyErrorLog);
       }
@@ -1940,6 +2071,7 @@
       byId('collapseToggle').addEventListener('click', () => {
         const collapsed = byId('topForm').classList.toggle('collapsed');
         byId('collapseToggle').textContent = collapsed ? '展開' : '折り畳み';
+        syncTopPanelSize();
       });
 
       const updateScrollTopOffset = () => {
@@ -1957,6 +2089,7 @@
         document.documentElement.style.setProperty('--scroll-top-offset', `${offset}px`);
         updateMiddleCardsHeight();
         updateDummyEndCardHeight();
+        syncTopPanelSize();
       };
 
       byId('scrollTop').addEventListener('click', () => {
@@ -2015,6 +2148,7 @@
     state.sortMode = `${state.sortField}-${state.sortOrder}`;
 
     bind();
+    setupTopSwipe();
     setupBottomSwipe();
     state.myDanmaku = loadMyDanmakuCache();
     if (!state.myDanmaku) triggerSwipeHint();
