@@ -2082,7 +2082,8 @@
         if (!topForm) return;
         if (getTopSwipeCard() === 1) return;
 
-        const shouldCollapse = window.scrollY > 72;
+        const currentScrollTop = rows?.scrollTop ?? window.scrollY;
+        const shouldCollapse = currentScrollTop > 72;
         if (shouldCollapse === topFormCollapsedByScroll) return;
 
         topForm.classList.toggle('collapsed', shouldCollapse);
@@ -2109,6 +2110,10 @@
       };
 
       byId('scrollTop').addEventListener('click', () => {
+        if (rows && rows.scrollTop > 0) {
+          rows.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
 
@@ -2123,7 +2128,8 @@
 
       window.addEventListener('scroll', () => {
         updateTopFormCollapseByScroll();
-        byId('scrollTop').classList.toggle('show', window.scrollY > 280);
+        const scrollTopValue = Math.max(window.scrollY, rows?.scrollTop ?? 0);
+        byId('scrollTop').classList.toggle('show', scrollTopValue > 280);
         updateScrollTopOffset();
         maybeBubble();
       });
@@ -2143,6 +2149,9 @@
           maybeBubble();
         }
 
+        updateTopFormCollapseByScroll();
+        const scrollTopValue = Math.max(window.scrollY, rows.scrollTop);
+        byId('scrollTop').classList.toggle('show', scrollTopValue > 280);
         collapseExpandedWhenOutOfView();
       });
 
