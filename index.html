@@ -339,17 +339,6 @@
       line-height: 1.5;
     }
 
-    .memo-copy-wrap {
-      margin-top: auto;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    #copyMemo {
-      min-width: 72px;
-      width: auto;
-    }
-
     .top-summary {
       margin-bottom: var(--space-2);
     }
@@ -738,7 +727,6 @@
     }
 
     #copyErrorLog,
-    #copyMemo,
     #copyDanmaku,
     .copy-text-btn {
       background: #1e90ff;
@@ -986,9 +974,6 @@
           <section class="top-panel" aria-label="メモカード">
             <div class="memo-panel">
               <textarea id="memoInput" aria-label="メモ帳" placeholder="メモを入力"></textarea>
-              <div class="memo-copy-wrap">
-                <button id="copyMemo" type="button">コピー</button>
-              </div>
             </div>
           </section>
         </div>
@@ -1315,19 +1300,6 @@
       triggerSwipeHint = startHint;
 
       startHint();
-    }
-
-    async function copyMemoText() {
-      const memoInput = byId('memoInput');
-      if (!memoInput) return;
-      const text = memoInput.value || '';
-      try {
-        await navigator.clipboard.writeText(text);
-        showToast('コピーしました');
-        setStatus('コピー成功');
-      } catch (_) {
-        setStatus('コピー失敗', true);
-      }
     }
 
 
@@ -2059,7 +2031,6 @@
       });
 
       byId('copyDanmaku').addEventListener('click', copyDanmaku);
-      byId('copyMemo').addEventListener('click', copyMemoText);
       if (ENABLE_ERROR_LOG_UI) {
         byId('copyErrorLog').addEventListener('click', copyErrorLog);
       }
