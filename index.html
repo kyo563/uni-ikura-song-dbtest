@@ -1147,6 +1147,7 @@
       startHint();
     }
 
+
     function createScrollBubbles(mode = 'normal') {
       if (!scrollBubbles) return;
       const burst = mode === 'burst';
@@ -1826,21 +1827,6 @@
     }
 
     function bind() {
-      const updateBackgroundByRowsScroll = () => {
-        if (isMobileLayout()) {
-          document.body.style.setProperty('--bg-scroll-darkness', '0');
-          document.body.style.setProperty('--bg-scroll-brightness', '0');
-          return;
-        }
-
-        const maxScrollable = Math.max(0, rows.scrollHeight - rows.clientHeight);
-        const ratio = maxScrollable > 0 ? rows.scrollTop / maxScrollable : 0;
-        const darkness = Math.min(0.06, ratio * 0.06);
-        const brightness = Math.min(0.28, ratio * 0.28);
-        document.body.style.setProperty('--bg-scroll-darkness', darkness.toFixed(3));
-        document.body.style.setProperty('--bg-scroll-brightness', brightness.toFixed(3));
-      };
-
       if (!ENABLE_ERROR_LOG_UI) {
         errorLogWrap.hidden = true;
       }
@@ -1942,7 +1928,6 @@
         }
 
         collapseExpandedWhenOutOfView();
-        updateBackgroundByRowsScroll();
       });
 
 
@@ -1952,11 +1937,9 @@
         if (!isMobileLayout()) {
           rows.querySelectorAll('.song-card').forEach((card) => card.classList.add('expanded'));
         }
-        updateBackgroundByRowsScroll();
         updateScrollTopOffset();
       });
 
-      updateBackgroundByRowsScroll();
       updateScrollTopOffset();
       updateMiddleCardsHeight();
     }
