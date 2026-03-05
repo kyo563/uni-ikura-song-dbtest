@@ -285,10 +285,10 @@
 
     .top-form {
       position: relative;
-      padding-bottom: 0;
+      padding-bottom: 20px;
       overflow: visible;
       --top-expanded-height: 170px;
-      --top-collapsed-height: 124px;
+      --top-collapsed-height: 0px;
     }
 
     .top-swipe-wrap {
@@ -301,6 +301,14 @@
 
     .top-form.collapsed .top-swipe-wrap {
       height: var(--top-collapsed-height);
+    }
+
+    .top-form.collapsed {
+      padding: 0;
+      border-color: transparent;
+      background: transparent;
+      box-shadow: none;
+      min-height: 24px;
     }
 
     .top-swipe-track {
@@ -449,11 +457,28 @@
 
     .top-fold-btn,
     .top-expand-btn {
-      min-width: 74px;
+      position: absolute;
+      left: var(--space-2);
+      bottom: var(--space-1);
+      border: 0 !important;
+      background: transparent !important;
+      font-size: 11px !important;
+      min-height: auto !important;
+      min-width: 0;
+      padding: 0;
       white-space: nowrap;
+      color: var(--muted);
     }
 
     .top-expand-btn {
+      display: none;
+    }
+
+    .top-form:not(.collapsed) .top-expand-btn {
+      display: none;
+    }
+
+    .top-form.collapsed .top-fold-btn {
       display: none;
     }
 
@@ -1004,7 +1029,6 @@
                   <label><input type="checkbox" id="kindLive" checked>歌枠</label>
                   <label><input type="checkbox" id="kindCover" checked>歌ってみた</label>
                   <label><input type="checkbox" id="kindShort" checked>ショート</label>
-                  <button id="expandTopMenu" class="top-expand-btn" type="button" aria-label="絞り込みメニューを展開">展開</button>
               </div>
               <div class="sort-row" aria-label="表示切替">
                 <label aria-label="並び替え項目">
@@ -1020,7 +1044,6 @@
                     <option value="desc" selected>降順</option>
                   </select>
                 </label>
-                <button id="collapseTopMenu" class="top-fold-btn" type="button" aria-label="絞り込みメニューを折りたたむ">折りたたみ</button>
               </div>
             </div>
           </section>
@@ -1036,6 +1059,8 @@
           </section>
         </div>
       </div>
+      <button id="collapseTopMenu" class="top-fold-btn" type="button" aria-label="絞り込みメニューを折りたたむ">折りたたみ</button>
+      <button id="expandTopMenu" class="top-expand-btn" type="button" aria-label="絞り込みメニューを展開">展開</button>
 
     </section>
 
