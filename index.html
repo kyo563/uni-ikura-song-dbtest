@@ -36,6 +36,8 @@
     }
 
     body {
+      position: relative;
+      isolation: isolate;
       margin: 0;
       padding: var(--space-4);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
@@ -53,7 +55,47 @@
       background-size: 100% 100vh, 100% 100vh;
     }
 
-    .container { width: min(100%, 1080px); margin: 0 auto; display: grid; gap: var(--space-3); }
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-repeat: repeat;
+      opacity: 0.32;
+      will-change: background-position;
+    }
+
+    body::before {
+      background-image:
+        radial-gradient(circle at 20% 90%, rgb(255 255 255 / 45%) 0 3px, transparent 4px),
+        radial-gradient(circle at 60% 95%, rgb(255 255 255 / 35%) 0 2px, transparent 3px),
+        radial-gradient(circle at 85% 88%, rgb(255 255 255 / 40%) 0 2.5px, transparent 3.5px);
+      background-size: 220px 320px;
+      animation: bubble-rise 13s linear infinite;
+    }
+
+    body::after {
+      background-image:
+        radial-gradient(circle at 10% 96%, rgb(255 255 255 / 30%) 0 1.5px, transparent 2.5px),
+        radial-gradient(circle at 42% 92%, rgb(255 255 255 / 38%) 0 2px, transparent 3px),
+        radial-gradient(circle at 76% 94%, rgb(255 255 255 / 28%) 0 1.8px, transparent 2.8px);
+      background-size: 180px 280px;
+      opacity: 0.24;
+      animation: bubble-rise 18s linear infinite reverse;
+    }
+
+    @keyframes bubble-rise {
+      from {
+        background-position: 0 120vh, 90px 125vh, 160px 130vh;
+      }
+      to {
+        background-position: 0 -20vh, 90px -15vh, 160px -10vh;
+      }
+    }
+
+    .container { position: relative; z-index: 1; width: min(100%, 1080px); margin: 0 auto; display: grid; gap: var(--space-3); }
     .card {
       background: #e6ffff;
       border: 1px solid var(--line);
@@ -163,7 +205,9 @@
     @media (prefers-reduced-motion: reduce) {
       .status-shell,
       .status-shell::before,
-      .status-dot {
+      .status-dot,
+      body::before,
+      body::after {
         animation: none !important;
         transition: none;
       }
