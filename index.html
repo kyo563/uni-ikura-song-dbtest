@@ -1178,10 +1178,12 @@
 
     let setSwipeCard = () => {};
     let setTopSwipeCard = () => {};
+    let getTopSwipeCard = () => 0;
     let triggerSwipeHint = () => {};
     let swipeHintIntervalId = null;
+    let topFormCollapsedByScroll = false;
 
-    function setupSwipeTrack({ wrap, track, panelWidthPercent = 50 }) {
+    function setupSwipeTrack({ wrap, track, panelWidthPercent = 50, onCardChange = null }) {
       let current = 0;
       let dragging = false;
       let startX = 0;
@@ -1194,6 +1196,9 @@
           ? 'transform 0.45s cubic-bezier(0.2, 0.9, 0.2, 1)'
           : 'none';
         track.style.transform = `translateX(${-current * panelWidthPercent}%)`;
+        if (typeof onCardChange === 'function') {
+          onCardChange(current);
+        }
       };
 
       const getThreshold = () => Math.max(54, wrap.clientWidth * 0.12);
@@ -1238,7 +1243,10 @@
       track.addEventListener('pointercancel', onPointerUp);
 
       setCard(0, false);
-      return setCard;
+      return {
+        setCard,
+        getCurrent: () => current,
+      };
     }
 
 
@@ -1256,13 +1264,34 @@
       const wrap = byId('topSwipeWrap');
       const track = byId('topSwipeTrack');
       const memoInput = byId('memoInput');
+      const memoPanel = document.querySelector('.memo-panel');
+      const topForm = byId('topForm');
 
       if (!wrap || !track) return;
-      setTopSwipeCard = setupSwipeTrack({ wrap, track, panelWidthPercent: 50 });
+      const topSwipe = setupSwipeTrack({
+        wrap,
+        track,
+        panelWidthPercent: 50,
+        onCardChange: (index) => {
+          topForm?.classList.toggle('memo-active', index === 1);
+        },
+      });
+      setTopSwipeCard = topSwipe.setCard;
+      getTopSwipeCard = topSwipe.getCurrent;
 
       if (memoInput) {
         memoInput.addEventListener('focus', () => {
           setTopSwipeCard(1);
+        });
+      }
+
+      if (memoPanel) {
+        memoPanel.addEventListener('click', () => {
+          if (!topForm?.classList.contains('collapsed')) return;
+          topForm.classList.remove('collapsed');
+          byId('collapseToggle').textContent = '折り畳み';
+          topFormCollapsedByScroll = false;
+          syncTopPanelSize();
         });
       }
 
@@ -1286,7 +1315,8 @@
         }, 6500);
       };
 
-      const setCard = setupSwipeTrack({ wrap, track, panelWidthPercent: 50 });
+      const bottomSwipe = setupSwipeTrack({ wrap, track, panelWidthPercent: 50 });
+      const setCard = bottomSwipe.setCard;
 
       track.addEventListener('pointerdown', () => {
         stopHint();
@@ -2071,8 +2101,23 @@
       byId('collapseToggle').addEventListener('click', () => {
         const collapsed = byId('topForm').classList.toggle('collapsed');
         byId('collapseToggle').textContent = collapsed ? '展開' : '折り畳み';
+        topFormCollapsedByScroll = false;
         syncTopPanelSize();
       });
+
+      const updateTopFormCollapseByScroll = () => {
+        const topForm = byId('topForm');
+        if (!topForm) return;
+        if (getTopSwipeCard() === 1) return;
+
+        const shouldCollapse = window.scrollY > 72;
+        if (shouldCollapse === topFormCollapsedByScroll) return;
+
+        topForm.classList.toggle('collapsed', shouldCollapse);
+        byId('collapseToggle').textContent = shouldCollapse ? '展開' : '折り畳み';
+        topFormCollapsedByScroll = shouldCollapse;
+        syncTopPanelSize();
+      };
 
       const updateScrollTopOffset = () => {
         const container = byId('songsPage');
@@ -2106,6 +2151,7 @@
       };
 
       window.addEventListener('scroll', () => {
+        updateTopFormCollapseByScroll();
         byId('scrollTop').classList.toggle('show', window.scrollY > 280);
         updateScrollTopOffset();
         maybeBubble();
@@ -2141,6 +2187,7 @@
 
       updateScrollTopOffset();
       updateMiddleCardsHeight();
+      updateTopFormCollapseByScroll();
     }
 
     byId('sortField').value = state.sortField;
