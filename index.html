@@ -579,6 +579,45 @@
       color: #ffffff;
     }
 
+    .song-link-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+
+    .song-preview-card {
+      display: block;
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      width: min(100%, 420px);
+      aspect-ratio: 16 / 9;
+      background: #0f172a;
+    }
+
+    .song-preview-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+    }
+
+    .song-preview-label {
+      position: absolute;
+      left: var(--space-2);
+      bottom: var(--space-2);
+      margin: 0;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgb(15 23 42 / 70%);
+      color: #e2e8f0;
+      backdrop-filter: blur(2px);
+    }
+
     .tag-link:hover { filter: brightness(1.1); }
 
     @media (max-width: 768px) {
@@ -1122,6 +1161,54 @@
       };
     }
 
+    function extractVideoPreview(url) {
+      const raw = String(url || '').trim();
+      if (!raw) return null;
+
+      let parsed;
+      try {
+        parsed = new URL(raw);
+      } catch (_) {
+        return null;
+      }
+
+      const host = parsed.hostname.toLowerCase();
+      const path = parsed.pathname;
+
+      if (host.includes('youtube.com') || host.includes('youtu.be')) {
+        let videoId = '';
+        if (host.includes('youtu.be')) {
+          videoId = path.split('/').filter(Boolean)[0] || '';
+        } else {
+          videoId = parsed.searchParams.get('v') || '';
+          if (!videoId && path.startsWith('/shorts/')) {
+            videoId = path.split('/')[2] || '';
+          }
+          if (!videoId && path.startsWith('/embed/')) {
+            videoId = path.split('/')[2] || '';
+          }
+        }
+
+        if (!videoId) return null;
+        return {
+          type: 'YouTube',
+          thumbnailUrl: `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`,
+        };
+      }
+
+      if (host.includes('nicovideo.jp') || host.includes('nico.ms')) {
+        const idMatch = `${parsed.pathname}${parsed.search}${parsed.hash}`.match(/(?:sm|nm|so)(\d+)/i);
+        if (!idMatch) return null;
+        const numericId = idMatch[1];
+        return {
+          type: 'ニコニコ動画',
+          thumbnailUrl: `https://tn.smilevideo.jp/smile?i=${encodeURIComponent(numericId)}`,
+        };
+      }
+
+      return null;
+    }
+
     function resolveSingingTag(text) {
       const raw = String(text || '').trim();
       if (!raw) return { kind: 'other', label: '' };
@@ -1231,8 +1318,15 @@
         const latestDate = escapeHtml(fmtDate(item.lastSungDate || item.publishedAt));
         const fallbackLinkLabel = escapeHtml(item.liveTitle || item.linkLabel || item.lastSungDate || 'リンクなし');
         const fallbackLinkHtml = detailLinks.detailUrl
-          ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}">${fallbackLinkLabel}</a>`
+          ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}">▶リンクを開く</a>`
           : '<span class="muted">リンクなし</span>';
+        const preview = extractVideoPreview(detailLinks.detailUrl);
+        const previewHtml = preview
+          ? `<a class="song-preview-card song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}">
+              <img class="song-preview-image" src="${escapeHtml(preview.thumbnailUrl)}" alt="${escapeHtml(preview.type)}のサムネイル" loading="lazy" referrerpolicy="no-referrer" />
+              <p class="song-preview-label">${escapeHtml(preview.type)}</p>
+            </a>`
+          : '';
         return `
           <article class="song-card" data-id="${id}" tabindex="0">
             <div class="song-card-main">
@@ -1249,7 +1343,8 @@
                     <div>${singingTagHtml}</div>
                     <div class="song-meta-latest">Latest: ${latestDate}</div>
                   </div>
-                  <div>歌唱リンク: ${fallbackLinkHtml}</div>
+                  <div class="song-link-row">歌唱リンク: ${fallbackLinkHtml}</div>
+                  ${previewHtml}
                 </div>
               </div>
             </div>
