@@ -54,7 +54,6 @@ function buildSongsPayload_() {
     const title = clean_(row[1]); // B
     const tag = clean_(row[2]); // C
     const liveField = clean_(row[3]); // D
-    const tagRich = richRow[2] || null; // C rich text
     const liveRich = richRow[3] || null; // D rich text
     const source = clean_(row[4]); // E
     const checked = clean_(row[5]); // F
@@ -62,12 +61,10 @@ function buildSongsPayload_() {
     if (!isChecked_(checked) || !artist || !title) continue;
 
     const liveFormula = clean_(formulaRow[3]); // D formula
-    const tagFormula = clean_(formulaRow[2]); // C formula
     const liveUrl = extractCellUrl_(liveField, liveRich, liveFormula);
     const liveTitle = extractLiveTitle_(liveField);
     const liveYmd = extractLeadingYmd_(liveField);
 
-    const tagUrl = extractCellUrl_(tag, tagRich, tagFormula);
     const memoKind = inferKindFromText_(tag);
 
     const hasLive = !!liveUrl || !!liveYmd;
@@ -87,10 +84,10 @@ function buildSongsPayload_() {
       liveTitle: liveTitle || '',
       singingTagLink: liveUrl || '',
       lastSungDate: normalizedLiveDate,
-      otherLink: tagUrl || '',
+      otherLink: '',
       otherPublishedAt: '',
       // 互換フィールド（既存UI/Worker向け）
-      url: liveUrl || tagUrl || '',
+      url: liveUrl || '',
       publishedAt: normalizedLiveDate,
     });
   }
