@@ -592,6 +592,14 @@
       text-underline-offset: 2px;
     }
 
+    button.song-date-link {
+      border: 0;
+      background: transparent;
+      padding: 0;
+      font: inherit;
+      cursor: pointer;
+    }
+
     .icon-btn {
       min-width: 36px;
       min-height: 32px;
@@ -673,6 +681,15 @@
       background: rgb(15 23 42 / 70%);
       color: #e2e8f0;
       backdrop-filter: blur(2px);
+    }
+
+    .song-preview-wrap {
+      display: none;
+      margin-top: var(--space-1);
+    }
+
+    .song-card.preview-visible .song-preview-wrap {
+      display: block;
     }
 
     .tag-link:hover { filter: brightness(1.1); }
@@ -1375,14 +1392,16 @@
         const latestDate = escapeHtml(fmtDate(item.lastSungDate || item.publishedAt));
         const fallbackLinkLabel = escapeHtml(item.liveTitle || item.linkLabel || item.lastSungDate || 'リンクなし');
         const fallbackLinkHtml = detailLinks.detailUrl
-          ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}">▶リンクを開く</a>`
+          ? `<button class="song-date-link toggle-preview-btn" type="button" data-preview-toggle aria-expanded="false">▶リンクを開く</button>`
           : '<span class="muted">リンクなし</span>';
         const preview = extractVideoPreview(detailLinks.detailUrl);
         const previewHtml = preview
-          ? `<a class="song-preview-card song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}">
-              <img class="song-preview-image" src="${escapeHtml(preview.thumbnailUrl)}" alt="${escapeHtml(preview.type)}のサムネイル" loading="lazy" referrerpolicy="no-referrer" />
-              <p class="song-preview-label">${escapeHtml(preview.type)}</p>
-            </a>`
+          ? `<div class="song-preview-wrap">
+              <a class="song-preview-card song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}">
+                <img class="song-preview-image" src="${escapeHtml(preview.thumbnailUrl)}" alt="${escapeHtml(preview.type)}のサムネイル" loading="lazy" referrerpolicy="no-referrer" />
+                <p class="song-preview-label">${escapeHtml(preview.type)}</p>
+              </a>
+            </div>`
           : '';
         return `
           <article class="song-card" data-id="${id}" tabindex="0">
@@ -1420,6 +1439,15 @@
 
         el.addEventListener('click', (evt) => {
           const targetEl = eventTargetElement(evt.target);
+          const previewToggleButton = targetEl?.closest?.('button[data-preview-toggle]');
+          if (previewToggleButton) {
+            const willShowPreview = !el.classList.contains('preview-visible');
+            el.classList.toggle('preview-visible', willShowPreview);
+            previewToggleButton.textContent = willShowPreview ? '▼リンクを閉じる' : '▶リンクを開く';
+            previewToggleButton.setAttribute('aria-expanded', String(willShowPreview));
+            evt.stopPropagation();
+            return;
+          }
           const detailLink = targetEl?.closest?.('a.song-detail-link, a.song-date-link');
           if (detailLink) {
             evt.stopPropagation();
