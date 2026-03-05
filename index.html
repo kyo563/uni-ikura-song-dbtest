@@ -705,13 +705,16 @@
       align-items: center;
       gap: var(--space-2);
       flex-wrap: wrap;
+      min-width: 0;
     }
 
     .song-link-title {
+      display: inline-block;
       max-width: min(100%, 52ch);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      min-width: 0;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
     .song-preview-card {
@@ -762,6 +765,15 @@
     @media (max-width: 768px) {
       .song-card {
         cursor: pointer;
+      }
+
+      .song-link-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .song-link-title {
+        max-width: 100%;
       }
 
       .my-danmaku-row {
@@ -1203,12 +1215,10 @@
       if (!isMobileLayout()) return;
       const activeCards = rows.querySelectorAll('.song-card.expanded, .song-card.preview-visible');
       if (!activeCards.length) return;
-      const viewTop = rows.scrollTop;
-      const viewBottom = viewTop + rows.clientHeight;
+      const rowsRect = rows.getBoundingClientRect();
       activeCards.forEach((card) => {
-        const cardTop = card.offsetTop;
-        const cardBottom = cardTop + card.offsetHeight;
-        const isOutOfView = cardBottom <= viewTop || cardTop >= viewBottom;
+        const cardRect = card.getBoundingClientRect();
+        const isOutOfView = cardRect.bottom <= rowsRect.top || cardRect.top >= rowsRect.bottom;
         if (!isOutOfView) return;
         card.classList.remove('expanded');
         if (card.classList.contains('preview-visible')) {
@@ -1969,7 +1979,6 @@
       window.addEventListener('resize', updateScrollTopOffset);
 
       rows.addEventListener('scroll', () => {
-        updateScrollTopOffset();
         const cardSample = rows.querySelector('.song-card');
         const rowGap = Number.parseFloat(window.getComputedStyle(rows).rowGap || '0') || 0;
         const cardHeight = cardSample ? (cardSample.offsetHeight + rowGap) : 44;
