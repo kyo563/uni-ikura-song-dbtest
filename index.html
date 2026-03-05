@@ -27,6 +27,7 @@
       --bg-scroll-darkness: 0;
       --bg-scroll-brightness: 0;
       --scroll-top-offset: 0px;
+      --dummy-end-card-height: 72px;
     }
 
     * { box-sizing: border-box; }
@@ -452,6 +453,13 @@
       margin-top: var(--space-2);
     }
 
+    .bottom-form {
+      position: fixed;
+      bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+      z-index: 60;
+      box-shadow: 0 12px 22px rgb(15 23 42 / 24%);
+    }
+
     .ratio-8-2 {
       display: grid;
       gap: var(--space-2);
@@ -527,6 +535,9 @@
       .middle-form,
       .bottom-form { width: 100%; }
       .card { padding: var(--space-2); }
+      .bottom-form {
+        bottom: calc(var(--space-2) + env(safe-area-inset-bottom));
+      }
       .top-summary { grid-template-columns: 1fr; }
       .top-advanced { grid-template-columns: 1fr; gap: var(--space-2); }
       .sort-row { grid-template-columns: auto auto; }
@@ -809,9 +820,12 @@
       border: 1px dashed var(--line);
       border-radius: var(--radius-sm);
       padding: var(--space-2);
+      min-height: var(--dummy-end-card-height);
       text-align: center;
       color: var(--muted);
       font-size: 12px;
+      display: grid;
+      place-items: center;
     }
 
     .toast {
@@ -1166,8 +1180,9 @@
 
     function createScrollBubbles(mode = 'normal') {
       if (!scrollBubbles) return;
+      if (scrollBubbles.childElementCount > 0) return;
       const burst = mode === 'burst';
-      const bubbleCount = burst ? 12 : 3;
+      const bubbleCount = burst ? 6 : 2;
       for (let i = 0; i < bubbleCount; i += 1) {
         const bubble = document.createElement('span');
         bubble.className = 'scroll-bubble';
@@ -1186,16 +1201,25 @@
 
     function collapseExpandedWhenOutOfView() {
       if (!isMobileLayout()) return;
-      const expanded = rows.querySelector('.song-card.expanded');
-      if (!expanded) return;
+      const activeCards = rows.querySelectorAll('.song-card.expanded, .song-card.preview-visible');
+      if (!activeCards.length) return;
       const viewTop = rows.scrollTop;
       const viewBottom = viewTop + rows.clientHeight;
-      const cardTop = expanded.offsetTop;
-      const cardBottom = cardTop + expanded.offsetHeight;
-      const isFullyVisible = cardTop >= viewTop && cardBottom <= viewBottom;
-      if (!isFullyVisible) {
-        expanded.classList.remove('expanded');
-      }
+      activeCards.forEach((card) => {
+        const cardTop = card.offsetTop;
+        const cardBottom = cardTop + card.offsetHeight;
+        const isOutOfView = cardBottom <= viewTop || cardTop >= viewBottom;
+        if (!isOutOfView) return;
+        card.classList.remove('expanded');
+        if (card.classList.contains('preview-visible')) {
+          card.classList.remove('preview-visible');
+          const toggleBtn = card.querySelector('button[data-preview-toggle]');
+          if (toggleBtn) {
+            toggleBtn.textContent = '▶リンクを開く';
+            toggleBtn.setAttribute('aria-expanded', 'false');
+          }
+        }
+      });
     }
 
     function updateMiddleCardsHeight() {
@@ -1209,9 +1233,18 @@
 
       const rowsRect = rows.getBoundingClientRect();
       const bottomRect = bottomForm.getBoundingClientRect();
-      const available = Math.floor(bottomRect.top - rowsRect.top - 4);
+      const available = Math.floor(bottomRect.bottom - rowsRect.top - 4);
       if (available > 120) {
         rows.style.maxHeight = `${available}px`;
+      }
+    }
+
+    function updateDummyEndCardHeight() {
+      const searchPanel = document.querySelector('.bottom-panel[aria-label="検索フォームカード"]');
+      if (!searchPanel) return;
+      const height = Math.ceil(searchPanel.getBoundingClientRect().height);
+      if (height > 0) {
+        document.documentElement.style.setProperty('--dummy-end-card-height', `${height}px`);
       }
     }
 
@@ -1898,14 +1931,20 @@
       });
 
       const updateScrollTopOffset = () => {
+        const container = byId('songsPage');
         const bottomForm = document.querySelector('.bottom-form');
-        if (!bottomForm) return;
+        if (!bottomForm || !container) return;
+
+        const containerRect = container.getBoundingClientRect();
+        bottomForm.style.left = `${Math.round(containerRect.left)}px`;
+        bottomForm.style.width = `${Math.round(containerRect.width)}px`;
 
         const rect = bottomForm.getBoundingClientRect();
         const overlap = Math.max(0, window.innerHeight - rect.top);
         const offset = overlap > 0 ? overlap + 8 : 0;
         document.documentElement.style.setProperty('--scroll-top-offset', `${offset}px`);
         updateMiddleCardsHeight();
+        updateDummyEndCardHeight();
       };
 
       byId('scrollTop').addEventListener('click', () => {
