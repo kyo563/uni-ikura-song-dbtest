@@ -1169,6 +1169,48 @@
       rows.scrollTo({ top: nextTop, behavior: 'smooth' });
     }
 
+    function scrollCardToTopBeforeExpand(card) {
+      if (!card || !isMobileLayout()) return Promise.resolve();
+
+      const topPadding = 4;
+      const targetTop = Math.max(0, card.offsetTop - topPadding);
+      const delta = Math.abs(rows.scrollTop - targetTop);
+      if (delta < 2) return Promise.resolve();
+
+      rows.scrollTo({ top: targetTop, behavior: 'smooth' });
+      return new Promise((resolve) => {
+        const startedAt = Date.now();
+        let sameCount = 0;
+        let lastTop = rows.scrollTop;
+
+        const tick = () => {
+          const currentTop = rows.scrollTop;
+          const closeEnough = Math.abs(currentTop - targetTop) < 2;
+          if (closeEnough) {
+            resolve();
+            return;
+          }
+
+          if (Math.abs(currentTop - lastTop) < 0.5) {
+            sameCount += 1;
+          } else {
+            sameCount = 0;
+          }
+          lastTop = currentTop;
+
+          const timeout = Date.now() - startedAt > 520;
+          const stalled = sameCount >= 7;
+          if (timeout || stalled) {
+            resolve();
+            return;
+          }
+          window.requestAnimationFrame(tick);
+        };
+
+        window.requestAnimationFrame(tick);
+      });
+    }
+
     function collapseExpandedWhenOutOfView() {
       if (!isMobileLayout()) return;
       const expanded = rows.querySelector('.song-card.expanded');
@@ -1180,6 +1222,23 @@
       const isFullyVisible = cardTop >= viewTop && cardBottom <= viewBottom;
       if (!isFullyVisible) {
         expanded.classList.remove('expanded');
+      }
+    }
+
+    function updateMiddleCardsHeight() {
+      if (!rows || !isMobileLayout()) {
+        rows?.style.removeProperty('max-height');
+        return;
+      }
+
+      const bottomForm = document.querySelector('.bottom-form');
+      if (!bottomForm) return;
+
+      const rowsRect = rows.getBoundingClientRect();
+      const bottomRect = bottomForm.getBoundingClientRect();
+      const available = Math.floor(bottomRect.top - rowsRect.top - 4);
+      if (available > 120) {
+        rows.style.maxHeight = `${available}px`;
       }
     }
 
@@ -1538,7 +1597,7 @@
           rows.dataset.selected = JSON.stringify(item);
         };
 
-        el.addEventListener('click', (evt) => {
+        el.addEventListener('click', async (evt) => {
           const targetEl = eventTargetElement(evt.target);
           const previewToggleButton = targetEl?.closest?.('button[data-preview-toggle]');
           if (previewToggleButton) {
@@ -1578,6 +1637,7 @@
           const willExpand = !el.classList.contains('expanded');
           collapseExpandedCards();
           if (willExpand) {
+            await scrollCardToTopBeforeExpand(el);
             el.classList.add('expanded');
             keepExpandedCardVisible(el);
           }
@@ -1889,6 +1949,7 @@
         const overlap = Math.max(0, window.innerHeight - rect.top);
         const offset = overlap > 0 ? overlap + 8 : 0;
         document.documentElement.style.setProperty('--scroll-top-offset', `${offset}px`);
+        updateMiddleCardsHeight();
       };
 
       byId('scrollTop').addEventListener('click', () => {
@@ -1943,6 +2004,7 @@
 
       updateBackgroundByRowsScroll();
       updateScrollTopOffset();
+      updateMiddleCardsHeight();
     }
 
     byId('sortField').value = state.sortField;
