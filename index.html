@@ -731,6 +731,10 @@
         cursor: pointer;
       }
 
+      .my-danmaku-row {
+        grid-template-columns: 6fr 4fr;
+      }
+
       .song-card .song-details {
         display: none;
       }
@@ -814,7 +818,7 @@
       position: fixed;
       inset: 0;
       pointer-events: none;
-      z-index: 2;
+      z-index: 40;
       overflow: hidden;
     }
 
@@ -1137,20 +1141,44 @@
       startHint();
     }
 
-    function createScrollBubbles() {
+    function createScrollBubbles(mode = 'normal') {
       if (!scrollBubbles) return;
-      const bubbleCount = 3;
+      const burst = mode === 'burst';
+      const bubbleCount = burst ? 12 : 3;
       for (let i = 0; i < bubbleCount; i += 1) {
         const bubble = document.createElement('span');
         bubble.className = 'scroll-bubble';
-        const size = 8 + Math.random() * 18;
+        const size = burst ? 12 + Math.random() * 24 : 8 + Math.random() * 18;
         bubble.style.left = `${6 + Math.random() * 88}%`;
         bubble.style.width = `${size}px`;
         bubble.style.height = `${size}px`;
         bubble.style.animationDelay = `${i * 0.08}s`;
-        bubble.style.animationDuration = `${1.4 + Math.random() * 1.3}s`;
+        bubble.style.animationDuration = burst
+          ? `${1.2 + Math.random() * 0.9}s`
+          : `${1.4 + Math.random() * 1.3}s`;
         scrollBubbles.appendChild(bubble);
         window.setTimeout(() => bubble.remove(), 4000);
+      }
+    }
+
+    function keepExpandedCardVisible(card) {
+      if (!card || !isMobileLayout()) return;
+      const topPadding = 4;
+      const nextTop = Math.max(0, card.offsetTop - topPadding);
+      rows.scrollTo({ top: nextTop, behavior: 'smooth' });
+    }
+
+    function collapseExpandedWhenOutOfView() {
+      if (!isMobileLayout()) return;
+      const expanded = rows.querySelector('.song-card.expanded');
+      if (!expanded) return;
+      const viewTop = rows.scrollTop;
+      const viewBottom = viewTop + rows.clientHeight;
+      const cardTop = expanded.offsetTop;
+      const cardBottom = cardTop + expanded.offsetHeight;
+      const isFullyVisible = cardTop >= viewTop && cardBottom <= viewBottom;
+      if (!isFullyVisible) {
+        expanded.classList.remove('expanded');
       }
     }
 
@@ -1548,7 +1576,10 @@
 
           const willExpand = !el.classList.contains('expanded');
           collapseExpandedCards();
-          if (willExpand) el.classList.add('expanded');
+          if (willExpand) {
+            el.classList.add('expanded');
+            keepExpandedCardVisible(el);
+          }
         });
 
         el.addEventListener('keydown', (evt) => {
@@ -1854,6 +1885,7 @@
       });
 
       let lastBubbleAt = 0;
+      let previousRowsScrollTop = 0;
       const maybeBubble = () => {
         const now = Date.now();
         if (now - lastBubbleAt < 120) return;
@@ -1863,14 +1895,24 @@
 
       window.addEventListener('scroll', () => {
         byId('scrollTop').classList.toggle('show', window.scrollY > 280);
-        if (isMobileLayout()) collapseExpandedCards();
         maybeBubble();
       });
 
       rows.addEventListener('scroll', () => {
-        if (isMobileLayout()) collapseExpandedCards();
+        const cardSample = rows.querySelector('.song-card');
+        const rowGap = Number.parseFloat(window.getComputedStyle(rows).rowGap || '0') || 0;
+        const cardHeight = cardSample ? (cardSample.offsetHeight + rowGap) : 44;
+        const deltaRows = Math.abs(rows.scrollTop - previousRowsScrollTop) / Math.max(1, cardHeight);
+        previousRowsScrollTop = rows.scrollTop;
+
+        if (deltaRows >= 10) {
+          createScrollBubbles('burst');
+        } else {
+          maybeBubble();
+        }
+
+        collapseExpandedWhenOutOfView();
         updateBackgroundByRowsScroll();
-        maybeBubble();
       });
 
 
