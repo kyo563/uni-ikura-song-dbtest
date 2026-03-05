@@ -443,8 +443,13 @@
       background: color-mix(in srgb, var(--surface-2) 88%, black 12%);
       padding: var(--space-2);
       width: 100%;
-      transition: border-color 0.2s ease, opacity 0.25s ease;
+      transition: border-color 0.2s ease, opacity 0.25s ease, box-shadow 0.2s ease;
       scroll-snap-align: start;
+    }
+
+    .song-card.expanded {
+      border-color: color-mix(in srgb, var(--line) 65%, var(--accent) 35%);
+      box-shadow: 0 8px 18px rgb(2 132 199 / 22%);
     }
 
     .song-card-main {
@@ -511,15 +516,29 @@
 
     .song-detail-link,
     .song-detail-link:visited {
-      color: #ef4444;
+      color: var(--accent);
     }
 
     .song-detail-link:hover,
     .song-detail-link:focus-visible {
-      color: #dc2626;
+      color: #67e8f9;
     }
 
     .tag-link:hover { filter: brightness(1.1); }
+
+    @media (max-width: 768px) {
+      .song-card {
+        cursor: pointer;
+      }
+
+      .song-card .song-details {
+        display: none;
+      }
+
+      .song-card.expanded .song-details {
+        display: grid;
+      }
+    }
 
     #scrollTop {
       position: fixed;
@@ -1014,6 +1033,16 @@
       return [videoId, title, artist].map((part) => encodeURIComponent(part)).join('|');
     }
 
+    function isMobileLayout() {
+      return window.matchMedia('(max-width: 768px)').matches;
+    }
+
+    function collapseExpandedCards() {
+      rows.querySelectorAll('.song-card.expanded').forEach((card) => {
+        card.classList.remove('expanded');
+      });
+    }
+
     async function copyTextToClipboard(text) {
       const normalized = String(text || '').trim();
       if (!normalized) return false;
@@ -1073,15 +1102,13 @@
         const id = stableSongId(item);
         const detailLinks = linksForExpanded(item);
         const singingTagHtml = detailLinks.singingTagLabel
-          ? (detailLinks.singingTagUrl
-            ? `<a class="tag tag-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.singingTagUrl))}" target="_blank" rel="noopener noreferrer">${escapeHtml(detailLinks.singingTagLabel)}</a>`
-            : `<span class="tag">${escapeHtml(detailLinks.singingTagLabel)}</span>`)
+          ? `<span class="tag">${escapeHtml(detailLinks.singingTagLabel)}</span>`
           : '<span class="muted">-</span>';
         const latestDate = escapeHtml(fmtDate(item.lastSungDate || item.publishedAt));
         const latestDateContent = detailLinks.latestDateUrl
           ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.latestDateUrl))}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '歌枠リンクを開く')}">${latestDate}</a>`
           : latestDate;
-        const fallbackLinkLabel = escapeHtml(item.linkLabel || '関連リンクを開く');
+        const fallbackLinkLabel = escapeHtml(item.liveTitle || item.linkLabel || item.lastSungDate || 'リンクなし');
         const fallbackLinkHtml = detailLinks.detailUrl
           ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}">${fallbackLinkLabel}</a>`
           : '<span class="muted">リンクなし</span>';
@@ -1102,6 +1129,7 @@
                   <div>歌唱リンク: ${fallbackLinkHtml}</div>
                 </div>
               </div>
+            </div>
           </article>
         `;
       }).join('') + '<div class="dummy-end-card">--- END ---</div>';
@@ -1136,6 +1164,11 @@
           }
 
           select();
+          if (!isMobileLayout()) return;
+
+          const willExpand = !el.classList.contains('expanded');
+          collapseExpandedCards();
+          if (willExpand) el.classList.add('expanded');
         });
 
         el.addEventListener('keydown', (evt) => {
@@ -1152,6 +1185,10 @@
           state.selectedSongId = first.dataset.id || '';
           rows.dataset.selected = JSON.stringify(items[0] || {});
         }
+      }
+
+      if (!isMobileLayout()) {
+        rows.querySelectorAll('.song-card').forEach((card) => card.classList.add('expanded'));
       }
     }
 
@@ -1421,6 +1458,19 @@
 
       window.addEventListener('scroll', () => {
         byId('scrollTop').classList.toggle('show', window.scrollY > 280);
+        if (isMobileLayout()) collapseExpandedCards();
+      });
+
+      rows.addEventListener('scroll', () => {
+        if (isMobileLayout()) collapseExpandedCards();
+      });
+
+      const media = window.matchMedia('(max-width: 768px)');
+      media.addEventListener('change', () => {
+        collapseExpandedCards();
+        if (!isMobileLayout()) {
+          rows.querySelectorAll('.song-card').forEach((card) => card.classList.add('expanded'));
+        }
       });
 
     }
