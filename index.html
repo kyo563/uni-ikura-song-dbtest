@@ -326,7 +326,7 @@
 
     #memoInput {
       width: 100%;
-      min-height: 128px;
+      min-height: 108px;
       height: 100%;
       resize: none;
       border: 1px solid var(--line);
@@ -1116,6 +1116,7 @@
       if (ENABLE_ERROR_LOG_UI) {
         errorLog.textContent = latestErrorLogText;
         errorLogWrap.classList.add('show');
+        syncTopPanelSize();
       }
       console.error('songs-db-detailed-error', logObject);
     }
@@ -1126,6 +1127,7 @@
         errorLog.textContent = 'エラー時に情報を表示します。';
       }
       errorLogWrap.classList.remove('show');
+      syncTopPanelSize();
     }
 
     async function copyErrorLog() {
@@ -1217,10 +1219,14 @@
 
     function syncTopPanelSize() {
       const filterPanel = document.querySelector('.top-panel[aria-label="絞り込みカード"]');
+      const memoCard = document.querySelector('.top-panel[aria-label="メモカード"]');
       const memoPanel = document.querySelector('.memo-panel');
-      if (!filterPanel || !memoPanel) return;
+      const topSwipeWrap = byId('topSwipeWrap');
+      if (!filterPanel || !memoPanel || !memoCard || !topSwipeWrap) return;
       const panelHeight = Math.ceil(filterPanel.getBoundingClientRect().height);
       if (panelHeight > 0) {
+        topSwipeWrap.style.height = `${panelHeight}px`;
+        memoCard.style.height = `${panelHeight}px`;
         memoPanel.style.height = `${panelHeight}px`;
       }
     }
