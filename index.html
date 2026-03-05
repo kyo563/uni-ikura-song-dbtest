@@ -1040,6 +1040,14 @@
       return { kind: 'other', label: '' };
     }
 
+    function kindForFilter(item) {
+      const tagText = String(item?.singingTag || item?.memo || '').trim();
+      if (tagText) {
+        return resolveSingingTag(tagText).kind;
+      }
+      return normalizeKind(item?.kind);
+    }
+
     function stableSongId(item) {
       const videoId = String(item?.videoId || item?.videoid || item?.video_id || '').trim();
       const title = String(item?.title || '').trim();
@@ -1210,7 +1218,7 @@
       const kinds = new Set(state.kinds);
       return sortItems(
         items
-          .filter((item) => kinds.has(normalizeKind(item.kind)))
+          .filter((item) => kinds.has(kindForFilter(item)))
           .filter((item) => {
             if (!q) return true;
             const target = [item.title, item.artist, item.memo].filter(Boolean).join(' ').toLowerCase();
