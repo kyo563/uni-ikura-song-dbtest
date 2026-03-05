@@ -15,7 +15,7 @@
       --radius-md: 12px;
       --control-height: 36px;
       --font-control: 13px;
-      --surface: #a0d8ef;
+      --surface: #e6ffff;
       --surface-2: #c6e9f7;
       --text: #0f172a;
       --muted: #334155;
@@ -23,7 +23,7 @@
       --primary: #38bdf8;
       --accent: #22d3ee;
       --danger: #f87171;
-      --focus: #74c69d;
+      --focus: #3dff3d;
       --bg-scroll-darkness: 0;
     }
 
@@ -45,7 +45,7 @@
           rgb(0 0 0 / var(--bg-scroll-darkness)) 0%,
           rgb(0 0 0 / calc(var(--bg-scroll-darkness) * 0.8)) 100%
         ),
-        linear-gradient(180deg, #F9CDA0 0%, #FDD27A 100%);
+        linear-gradient(180deg, #F9CDA0 0%, #fcb44e 100%);
       color: var(--text);
       transition: background 0.25s ease;
       background-attachment: fixed, fixed;
@@ -55,7 +55,7 @@
 
     .container { width: min(100%, 1080px); margin: 0 auto; display: grid; gap: var(--space-3); }
     .card {
-      background: var(--surface);
+      background: #e6ffff;
       border: 1px solid var(--line);
       border-radius: var(--radius-md);
       padding: var(--space-3);
@@ -347,7 +347,7 @@
     .checkbox-row input {
       width: auto;
       min-height: auto;
-      accent-color: #74c69d;
+      accent-color: #3dff3d;
     }
 
     .bottom-grid {
@@ -459,7 +459,7 @@
     .song-card {
       border: 1px solid var(--line);
       border-radius: var(--radius-sm);
-      background: color-mix(in srgb, var(--surface-2) 96%, white 4%);
+      background: #e6ffff;
       padding: var(--space-2);
       width: 100%;
       transition: border-color 0.2s ease, opacity 0.25s ease, box-shadow 0.2s ease;
@@ -515,7 +515,7 @@
     }
 
     .song-date-link {
-      color: var(--accent);
+      color: #ff8c00;
       text-decoration: underline;
       text-underline-offset: 2px;
     }
@@ -538,8 +538,8 @@
       border-radius: 999px;
       padding: 2px var(--space-2);
       font-size: 12px;
-      background: #0b2232;
-      color: var(--accent);
+      background: #1e90ff;
+      color: #ffffff;
     }
 
     .tag-link {
@@ -549,12 +549,19 @@
 
     .song-detail-link,
     .song-detail-link:visited {
-      color: var(--accent);
+      color: #ff8c00;
     }
 
     .song-detail-link:hover,
     .song-detail-link:focus-visible {
-      color: #67e8f9;
+      color: #ffad33;
+    }
+
+    #copyErrorLog,
+    #copyDanmaku,
+    .copy-text-btn {
+      background: #1e90ff;
+      color: #ffffff;
     }
 
     .tag-link:hover { filter: brightness(1.1); }
@@ -1483,7 +1490,7 @@
       const updateBackgroundByRowsScroll = () => {
         const maxScrollable = Math.max(0, rows.scrollHeight - rows.clientHeight);
         const ratio = maxScrollable > 0 ? rows.scrollTop / maxScrollable : 0;
-        const darkness = Math.min(0.32, ratio * 0.32);
+        const darkness = Math.min(0.18, ratio * 0.18);
         document.body.style.setProperty('--bg-scroll-darkness', darkness.toFixed(3));
       };
 
