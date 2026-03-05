@@ -33,8 +33,10 @@
     html,
     body {
       width: 100%;
+      height: 100dvh;
       max-width: 100%;
       overflow-x: hidden;
+      overflow-y: hidden;
     }
 
     html {
@@ -44,6 +46,7 @@
     body {
       position: relative;
       isolation: isolate;
+      display: flex;
       margin: 0;
       min-height: 100dvh;
       padding: calc(var(--space-4) + env(safe-area-inset-top)) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
@@ -107,7 +110,17 @@
       }
     }
 
-    .container { position: relative; z-index: 1; width: min(100%, 1080px); margin: 0 auto; display: grid; gap: var(--space-3); }
+    .container {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 1080px);
+      margin: 0 auto;
+      display: grid;
+      gap: var(--space-3);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-height: 0;
+      flex: 1;
+    }
     .card {
       background: #e6ffff;
       border: 1px solid var(--line);
@@ -546,12 +559,15 @@
     .song-cards {
       display: grid;
       gap: var(--space-1);
-      max-height: 54vh;
       overflow-y: auto;
+      min-height: 0;
+      height: 100%;
       padding-right: 0;
     }
 
     .middle-form {
+      display: flex;
+      min-height: 0;
       padding: 0;
       background: transparent;
       border: 0;
