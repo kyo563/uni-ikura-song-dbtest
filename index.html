@@ -23,7 +23,7 @@
       --primary: #38bdf8;
       --accent: #22d3ee;
       --danger: #f87171;
-      --focus: #3dff3d;
+      --focus: #2fd12f;
       --bg-scroll-darkness: 0;
     }
 
@@ -45,7 +45,7 @@
           rgb(0 0 0 / var(--bg-scroll-darkness)) 0%,
           rgb(0 0 0 / calc(var(--bg-scroll-darkness) * 0.8)) 100%
         ),
-        linear-gradient(180deg, #F9CDA0 0%, #fcb44e 100%);
+        linear-gradient(180deg, #f9cda0 0%, #f4a645 100%);
       color: var(--text);
       transition: background 0.25s ease;
       background-attachment: fixed, fixed;
@@ -320,10 +320,17 @@
     }
 
     .top-form.collapsed {
-      max-height: 182px;
+      max-height: 222px;
     }
 
-    .top-form.collapsed .top-advanced { display: none; }
+    .top-form.collapsed .top-advanced {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+
+    .top-form.collapsed .sort-row {
+      display: none;
+    }
 
     .toggle-wrap {
       position: absolute;
@@ -332,6 +339,12 @@
       width: auto;
       display: flex;
       justify-content: flex-end;
+    }
+
+    #collapseToggle {
+      min-height: 30px;
+      padding: 4px 10px;
+      font-size: 12px;
     }
 
     .checkbox-row {
@@ -454,7 +467,7 @@
       .search-inline { grid-template-columns: minmax(0, 1fr) auto; }
       .summary-box { font-size: 11px; }
       .song-cards { max-height: 34vh; }
-      .top-form.collapsed { max-height: 170px; }
+      .top-form.collapsed { max-height: 206px; }
     }
 
     .song-cards {
@@ -1626,7 +1639,7 @@
       const updateBackgroundByRowsScroll = () => {
         const maxScrollable = Math.max(0, rows.scrollHeight - rows.clientHeight);
         const ratio = maxScrollable > 0 ? rows.scrollTop / maxScrollable : 0;
-        const darkness = Math.min(0.18, ratio * 0.18);
+        const darkness = Math.min(0.1, ratio * 0.1);
         document.body.style.setProperty('--bg-scroll-darkness', darkness.toFixed(3));
       };
 
