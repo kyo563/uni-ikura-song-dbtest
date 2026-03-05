@@ -969,23 +969,20 @@
     }
 
     function linksForExpanded(item) {
-      const singingTagLabel = String(item.singingTag || item.memo || item.liveTitle || item.liveLink || '').trim();
-      const directVideoUrl =
-        bestExternalUrl(item.singingTagLink) ||
+      const rawTagText = String(item.singingTag || item.memo || '').trim();
+      const resolvedTag = resolveSingingTag(rawTagText);
+      const singingTagLabel = resolvedTag.label || rawTagText;
+
+      const liveUrl =
         bestExternalUrl(item.liveLink) ||
-        bestExternalUrl(item.liveTitle) ||
-        bestExternalUrl(item.url) ||
-        bestExternalUrl(item.memo);
-      const relatedVideoUrl =
-        bestExternalUrl(item.otherLink) ||
-        bestExternalUrl(item.memo);
-      const videoUrl = directVideoUrl || relatedVideoUrl;
-      const detailUrl = videoUrl || bestExternalUrl(item.url) || bestExternalUrl(item.memo);
+        bestExternalUrl(item.singingTagLink);
+
+      const detailUrl = liveUrl || bestExternalUrl(item.url);
 
       return {
         singingTagLabel,
-        singingTagUrl: directVideoUrl || videoUrl,
-        latestDateUrl: videoUrl,
+        singingTagUrl: liveUrl,
+        latestDateUrl: liveUrl,
         detailUrl,
       };
     }
