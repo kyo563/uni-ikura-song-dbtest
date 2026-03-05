@@ -25,6 +25,7 @@
       --danger: #f87171;
       --focus: #2fd12f;
       --bg-scroll-darkness: 0;
+      --bg-scroll-brightness: 0;
     }
 
     * { box-sizing: border-box; }
@@ -44,15 +45,20 @@
       background:
         linear-gradient(
           180deg,
+          rgb(255 255 255 / calc(var(--bg-scroll-brightness) * 0.6)) 0%,
+          rgb(255 255 255 / var(--bg-scroll-brightness)) 100%
+        ),
+        linear-gradient(
+          180deg,
           rgb(0 0 0 / var(--bg-scroll-darkness)) 0%,
           rgb(0 0 0 / calc(var(--bg-scroll-darkness) * 0.8)) 100%
         ),
         linear-gradient(180deg, #f9cda0 0%, #f4a645 100%);
       color: var(--text);
       transition: background 0.25s ease;
-      background-attachment: fixed, fixed;
-      background-repeat: no-repeat, no-repeat;
-      background-size: 100% 100vh, 100% 100vh;
+      background-attachment: fixed, fixed, fixed;
+      background-repeat: no-repeat, no-repeat, no-repeat;
+      background-size: 100% 100vh, 100% 100vh, 100% 100vh;
     }
 
     body::before,
@@ -260,9 +266,7 @@
     .top-form {
       position: relative;
       padding-bottom: 46px;
-      overflow: hidden;
-      transition: max-height 0.2s ease;
-      max-height: 900px;
+      overflow: visible;
     }
 
     .top-summary {
@@ -363,17 +367,22 @@
       min-width: 112px;
     }
 
-    .top-form.collapsed {
-      max-height: 222px;
-    }
-
     .top-form.collapsed .top-advanced {
       grid-template-columns: 1fr;
       align-items: start;
     }
 
+    .sort-row {
+      max-height: 120px;
+      opacity: 1;
+      overflow: hidden;
+      transition: max-height 0.2s ease, opacity 0.2s ease;
+    }
+
     .top-form.collapsed .sort-row {
-      display: none;
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
     }
 
     .toggle-wrap {
@@ -388,7 +397,9 @@
     #collapseToggle {
       min-height: 30px;
       padding: 4px 10px;
-      font-size: 12px;
+      font-size: 11px;
+      border: none;
+      background: transparent;
     }
 
     .checkbox-row {
@@ -511,7 +522,6 @@
       .search-inline { grid-template-columns: minmax(0, 1fr) auto; }
       .summary-box { font-size: 11px; }
       .song-cards { max-height: 34vh; }
-      .top-form.collapsed { max-height: 206px; }
     }
 
     .song-cards {
@@ -651,6 +661,13 @@
       flex-wrap: wrap;
     }
 
+    .song-link-title {
+      max-width: min(100%, 52ch);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .song-preview-card {
       display: block;
       position: relative;
@@ -686,10 +703,12 @@
     .song-preview-wrap {
       display: none;
       margin-top: var(--space-1);
+      width: 100%;
+      justify-content: center;
     }
 
     .song-card.preview-visible .song-preview-wrap {
-      display: block;
+      display: flex;
     }
 
     .tag-link:hover { filter: brightness(1.1); }
@@ -778,9 +797,33 @@
       transform: translateX(-50%) translateY(0);
     }
 
+    .scroll-bubbles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      overflow: hidden;
+    }
+
+    .scroll-bubble {
+      position: absolute;
+      bottom: -24px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgb(255 255 255 / 85%), rgb(255 255 255 / 20%));
+      animation: pop-bubble 1.8s ease-out forwards;
+      opacity: 0;
+    }
+
+    @keyframes pop-bubble {
+      0% { transform: translateY(0) scale(0.7); opacity: 0.1; }
+      16% { opacity: 0.65; }
+      100% { transform: translateY(-180px) scale(1.18); opacity: 0; }
+    }
+
   </style>
 </head>
 <body>
+  <div id="scrollBubbles" class="scroll-bubbles" aria-hidden="true"></div>
   <main class="container" id="songsPage">
     <section class="card top-form" id="topForm">
       <div class="top-summary">
@@ -896,7 +939,7 @@
     const CACHE_PREFIX = 'songs-cache-v3';
     const MY_DANMAKU_CACHE_KEY = 'my-danmaku-cache-v1';
     const MY_DANMAKU_CACHE_MS = 15 * 60 * 1000;
-    const SWIPE_HINT_DISMISSED_KEY = 'bottom-swipe-hint-dismissed-v1';
+    const SWIPE_HINT_INTERVAL_MS = 3 * 60 * 1000;
 
     const state = {
       q: '',
@@ -916,6 +959,7 @@
     const toast = byId('toast');
     const errorLogWrap = byId('errorLogWrap');
     const errorLog = byId('errorLog');
+    const scrollBubbles = byId('scrollBubbles');
     const MAX_ERROR_BODY_CHARS = 4000;
     const ENABLE_ERROR_LOG_UI = true;
     let latestErrorLogText = '';
@@ -989,6 +1033,8 @@
     }
 
     let setSwipeCard = () => {};
+    let triggerSwipeHint = () => {};
+    let swipeHintIntervalId = null;
 
     function setupBottomSwipe() {
       const wrap = byId('bottomSwipeWrap');
@@ -998,23 +1044,17 @@
       let startX = 0;
       let deltaX = 0;
       let pointerId = null;
-      let hintDismissed = false;
-
-      const shouldShowHint = () => {
-        try {
-          return localStorage.getItem(SWIPE_HINT_DISMISSED_KEY) !== '1';
-        } catch (_) {
-          return true;
-        }
+      const stopHint = () => {
+        track.classList.remove('hinting');
       };
 
-      const stopHint = () => {
-        if (hintDismissed) return;
-        hintDismissed = true;
+      const startHint = () => {
         track.classList.remove('hinting');
-        try {
-          localStorage.setItem(SWIPE_HINT_DISMISSED_KEY, '1');
-        } catch (_) {}
+        void track.offsetWidth;
+        track.classList.add('hinting');
+        window.setTimeout(() => {
+          track.classList.remove('hinting');
+        }, 6500);
       };
 
       const setCard = (index, withAnimation = true) => {
@@ -1078,12 +1118,27 @@
       });
 
       setSwipeCard = setCard;
-
-      if (shouldShowHint()) {
-        track.classList.add('hinting');
-      }
+      triggerSwipeHint = startHint;
 
       setCard(0, false);
+      startHint();
+    }
+
+    function createScrollBubbles() {
+      if (!scrollBubbles) return;
+      const bubbleCount = 3;
+      for (let i = 0; i < bubbleCount; i += 1) {
+        const bubble = document.createElement('span');
+        bubble.className = 'scroll-bubble';
+        const size = 8 + Math.random() * 18;
+        bubble.style.left = `${6 + Math.random() * 88}%`;
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.animationDelay = `${i * 0.08}s`;
+        bubble.style.animationDuration = `${1.4 + Math.random() * 1.3}s`;
+        scrollBubbles.appendChild(bubble);
+        window.setTimeout(() => bubble.remove(), 2000);
+      }
     }
 
     function buildMyDanmaku(emoji) {
@@ -1390,9 +1445,13 @@
           ? `<span class="tag">${escapeHtml(detailLinks.singingTagLabel)}</span>`
           : '<span class="muted">-</span>';
         const latestDate = escapeHtml(fmtDate(item.lastSungDate || item.publishedAt));
-        const fallbackLinkLabel = escapeHtml(item.liveTitle || item.linkLabel || item.lastSungDate || 'リンクなし');
+        const rawLinkTitle = String(item.liveTitle || item.linkLabel || item.lastSungDate || '').trim();
+        const fallbackLinkLabel = escapeHtml(rawLinkTitle || 'リンクなし');
+        const fallbackLinkTitle = rawLinkTitle
+          ? `<a class="song-date-link song-link-title" href="${escapeHtml(encodeURI(detailLinks.detailUrl || ''))}" target="_blank" rel="noopener noreferrer">${escapeHtml(rawLinkTitle)}</a>`
+          : '';
         const fallbackLinkHtml = detailLinks.detailUrl
-          ? `<button class="song-date-link toggle-preview-btn" type="button" data-preview-toggle aria-expanded="false">▶リンクを開く</button>`
+          ? `<button class="song-date-link toggle-preview-btn" type="button" data-preview-toggle aria-expanded="false">▶リンクを開く</button>${fallbackLinkTitle}`
           : '<span class="muted">リンクなし</span>';
         const preview = extractVideoPreview(detailLinks.detailUrl);
         const previewHtml = preview
@@ -1711,8 +1770,10 @@
       const updateBackgroundByRowsScroll = () => {
         const maxScrollable = Math.max(0, rows.scrollHeight - rows.clientHeight);
         const ratio = maxScrollable > 0 ? rows.scrollTop / maxScrollable : 0;
-        const darkness = Math.min(0.1, ratio * 0.1);
+        const darkness = Math.min(0.06, ratio * 0.06);
+        const brightness = Math.min(0.28, ratio * 0.28);
         document.body.style.setProperty('--bg-scroll-darkness', darkness.toFixed(3));
+        document.body.style.setProperty('--bg-scroll-brightness', brightness.toFixed(3));
       };
 
       if (!ENABLE_ERROR_LOG_UI) {
@@ -1773,15 +1834,26 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
 
+      let lastBubbleAt = 0;
+      const maybeBubble = () => {
+        const now = Date.now();
+        if (now - lastBubbleAt < 120) return;
+        lastBubbleAt = now;
+        createScrollBubbles();
+      };
+
       window.addEventListener('scroll', () => {
         byId('scrollTop').classList.toggle('show', window.scrollY > 280);
         if (isMobileLayout()) collapseExpandedCards();
+        maybeBubble();
       });
 
       rows.addEventListener('scroll', () => {
         if (isMobileLayout()) collapseExpandedCards();
         updateBackgroundByRowsScroll();
+        maybeBubble();
       });
+
 
       const media = window.matchMedia('(max-width: 768px)');
       media.addEventListener('change', () => {
@@ -1801,6 +1873,12 @@
     bind();
     setupBottomSwipe();
     state.myDanmaku = loadMyDanmakuCache();
+    if (!state.myDanmaku) triggerSwipeHint();
+    if (!swipeHintIntervalId) {
+      swipeHintIntervalId = window.setInterval(() => {
+        if (!loadMyDanmakuCache()) triggerSwipeHint();
+      }, SWIPE_HINT_INTERVAL_MS);
+    }
     load();
   </script>
 </body>
