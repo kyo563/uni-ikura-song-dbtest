@@ -287,12 +287,20 @@
       position: relative;
       padding-bottom: 0;
       overflow: visible;
+      --top-expanded-height: 170px;
+      --top-collapsed-height: 124px;
     }
 
     .top-swipe-wrap {
       overflow: hidden;
       width: 100%;
       min-height: 170px;
+      height: var(--top-expanded-height);
+      transition: height 0.25s ease;
+    }
+
+    .top-form.collapsed .top-swipe-wrap {
+      height: var(--top-collapsed-height);
     }
 
     .top-swipe-track {
@@ -318,7 +326,8 @@
       border-radius: var(--radius-sm);
       background: var(--surface-2);
       padding: var(--space-2);
-      min-height: 170px;
+      min-height: 0;
+      height: 100%;
       display: flex;
       flex-direction: column;
       gap: var(--space-2);
@@ -326,8 +335,9 @@
 
     #memoInput {
       width: 100%;
-      min-height: 108px;
-      height: 100%;
+      min-height: 0;
+      height: auto;
+      flex: 1;
       resize: none;
       border: 1px solid var(--line);
       border-radius: var(--radius-sm);
@@ -437,6 +447,16 @@
       min-width: 112px;
     }
 
+    .top-fold-btn,
+    .top-expand-btn {
+      min-width: 74px;
+      white-space: nowrap;
+    }
+
+    .top-expand-btn {
+      display: none;
+    }
+
     .top-form.collapsed .top-advanced {
       grid-template-columns: 1fr;
       align-items: start;
@@ -455,11 +475,18 @@
       pointer-events: none;
     }
 
+    .top-form.collapsed .top-expand-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .checkbox-row {
       display: flex;
       flex-wrap: wrap;
       gap: var(--space-3);
       padding-top: 2px;
+      align-items: center;
     }
 
     .checkbox-row label {
@@ -576,6 +603,8 @@
       .sort-row { grid-template-columns: auto auto; }
       .sort-row select,
       .sort-row button { min-width: 96px; }
+      .memo-actions { grid-template-columns: auto; }
+      .memo-actions .memo-spacer { display: none; }
       .ratio-8-2 { grid-template-columns: 1fr; }
       .bottom-static-controls .ratio-8-2 {
         grid-template-columns: minmax(0, 1fr) auto;
@@ -597,6 +626,17 @@
         flex: 1;
         height: 100%;
         max-height: none;
+      }
+    }
+
+    @media (min-width: 861px) {
+      .top-fold-btn,
+      .top-expand-btn {
+        display: none !important;
+      }
+
+      .top-swipe-wrap {
+        height: var(--top-expanded-height);
       }
     }
 
@@ -727,10 +767,22 @@
     }
 
     #copyErrorLog,
+    #copyMemo,
     #copyDanmaku,
     .copy-text-btn {
       background: #1e90ff;
       color: #ffffff;
+    }
+
+    .memo-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--space-2);
+      align-items: end;
+    }
+
+    .memo-actions .memo-spacer {
+      min-height: var(--control-height);
     }
 
     .song-link-row {
@@ -952,6 +1004,7 @@
                   <label><input type="checkbox" id="kindLive" checked>歌枠</label>
                   <label><input type="checkbox" id="kindCover" checked>歌ってみた</label>
                   <label><input type="checkbox" id="kindShort" checked>ショート</label>
+                  <button id="expandTopMenu" class="top-expand-btn" type="button" aria-label="絞り込みメニューを展開">展開</button>
               </div>
               <div class="sort-row" aria-label="表示切替">
                 <label aria-label="並び替え項目">
@@ -967,6 +1020,7 @@
                     <option value="desc" selected>降順</option>
                   </select>
                 </label>
+                <button id="collapseTopMenu" class="top-fold-btn" type="button" aria-label="絞り込みメニューを折りたたむ">折りたたみ</button>
               </div>
             </div>
           </section>
@@ -974,6 +1028,10 @@
           <section class="top-panel" aria-label="メモカード">
             <div class="memo-panel">
               <textarea id="memoInput" aria-label="メモ帳" placeholder="メモを入力"></textarea>
+              <div class="memo-actions">
+                <span class="memo-spacer" aria-hidden="true"></span>
+                <button id="copyMemo" type="button">コピー</button>
+              </div>
             </div>
           </section>
         </div>
@@ -1219,15 +1277,24 @@
 
     function syncTopPanelSize() {
       const filterPanel = document.querySelector('.top-panel[aria-label="絞り込みカード"]');
-      const memoCard = document.querySelector('.top-panel[aria-label="メモカード"]');
-      const memoPanel = document.querySelector('.memo-panel');
-      const topSwipeWrap = byId('topSwipeWrap');
-      if (!filterPanel || !memoPanel || !memoCard || !topSwipeWrap) return;
-      const panelHeight = Math.ceil(filterPanel.getBoundingClientRect().height);
-      if (panelHeight > 0) {
-        topSwipeWrap.style.height = `${panelHeight}px`;
-        memoCard.style.height = `${panelHeight}px`;
-        memoPanel.style.height = `${panelHeight}px`;
+      const topForm = byId('topForm');
+      if (!filterPanel || !topForm) return;
+
+      const hasCollapsed = topForm.classList.contains('collapsed');
+
+      topForm.classList.remove('collapsed');
+      const expandedHeight = Math.ceil(filterPanel.getBoundingClientRect().height);
+
+      topForm.classList.add('collapsed');
+      const collapsedHeight = Math.ceil(filterPanel.getBoundingClientRect().height);
+
+      if (!hasCollapsed) topForm.classList.remove('collapsed');
+
+      if (expandedHeight > 0) {
+        topForm.style.setProperty('--top-expanded-height', `${expandedHeight}px`);
+      }
+      if (collapsedHeight > 0) {
+        topForm.style.setProperty('--top-collapsed-height', `${collapsedHeight}px`);
       }
     }
 
@@ -1237,6 +1304,8 @@
       const memoInput = byId('memoInput');
       const memoPanel = document.querySelector('.memo-panel');
       const topForm = byId('topForm');
+      const collapseButton = byId('collapseTopMenu');
+      const expandButton = byId('expandTopMenu');
 
       if (!wrap || !track) return;
       const topSwipe = setupSwipeTrack({
@@ -1244,7 +1313,13 @@
         track,
         panelWidthPercent: 50,
         onCardChange: (index) => {
-          topForm?.classList.toggle('memo-active', index === 1);
+          const isMemo = index === 1;
+          topForm?.classList.toggle('memo-active', isMemo);
+          if (isMemo && topForm?.classList.contains('collapsed')) {
+            topForm.classList.remove('collapsed');
+            topFormCollapsedByScroll = false;
+          }
+          syncTopPanelSize();
         },
       });
       setTopSwipeCard = topSwipe.setCard;
@@ -1264,6 +1339,20 @@
           syncTopPanelSize();
         });
       }
+
+      collapseButton?.addEventListener('click', () => {
+        if (!isMobileLayout() || !topForm) return;
+        topForm.classList.add('collapsed');
+        topFormCollapsedByScroll = true;
+        syncTopPanelSize();
+      });
+
+      expandButton?.addEventListener('click', () => {
+        if (!topForm) return;
+        topForm.classList.remove('collapsed');
+        topFormCollapsedByScroll = false;
+        syncTopPanelSize();
+      });
 
       syncTopPanelSize();
       window.addEventListener('resize', syncTopPanelSize);
@@ -1958,6 +2047,18 @@
       }
     }
 
+    async function copyMemo() {
+      const memoInput = byId('memoInput');
+      if (!memoInput) return;
+      const copied = await copyTextToClipboard(memoInput.value || '');
+      if (!copied) {
+        setStatus('コピー失敗', true);
+        return;
+      }
+      showToast('コピーしました');
+      setStatus('コピー成功');
+    }
+
     async function copyDanmaku() {
       const type = byId('danmakuType').value;
       const isCustomDanmaku = type.startsWith('custom:');
@@ -2037,6 +2138,7 @@
       });
 
       byId('copyDanmaku').addEventListener('click', copyDanmaku);
+      byId('copyMemo')?.addEventListener('click', copyMemo);
       if (ENABLE_ERROR_LOG_UI) {
         byId('copyErrorLog').addEventListener('click', copyErrorLog);
       }
@@ -2056,7 +2158,7 @@
 
       const updateTopFormCollapseByScroll = () => {
         const topForm = byId('topForm');
-        if (!topForm) return;
+        if (!topForm || !isMobileLayout()) return;
         if (getTopSwipeCard() === 1) return;
 
         const currentScrollTop = rows?.scrollTop ?? window.scrollY;
