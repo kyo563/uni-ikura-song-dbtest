@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="songs-r2-json-url" content="https://pub-e333d72512c24eb290119f7f2e0e4bdf.r2.dev/songs.json">
   <title>雲丹ゐくら Songs DB TEST</title>
   <style>
@@ -37,11 +37,16 @@
       overflow-x: hidden;
     }
 
+    html {
+      background: linear-gradient(180deg, #f9cda0 0%, #f4a645 100%);
+    }
+
     body {
       position: relative;
       isolation: isolate;
       margin: 0;
-      padding: var(--space-4);
+      min-height: 100dvh;
+      padding: calc(var(--space-4) + env(safe-area-inset-top)) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
       background:
         linear-gradient(
@@ -1162,55 +1167,6 @@
       }
     }
 
-    function keepExpandedCardVisible(card) {
-      if (!card || !isMobileLayout()) return;
-      const topPadding = 4;
-      const nextTop = Math.max(0, card.offsetTop - topPadding);
-      rows.scrollTo({ top: nextTop, behavior: 'smooth' });
-    }
-
-    function scrollCardToTopBeforeExpand(card) {
-      if (!card || !isMobileLayout()) return Promise.resolve();
-
-      const topPadding = 4;
-      const targetTop = Math.max(0, card.offsetTop - topPadding);
-      const delta = Math.abs(rows.scrollTop - targetTop);
-      if (delta < 2) return Promise.resolve();
-
-      rows.scrollTo({ top: targetTop, behavior: 'smooth' });
-      return new Promise((resolve) => {
-        const startedAt = Date.now();
-        let sameCount = 0;
-        let lastTop = rows.scrollTop;
-
-        const tick = () => {
-          const currentTop = rows.scrollTop;
-          const closeEnough = Math.abs(currentTop - targetTop) < 2;
-          if (closeEnough) {
-            resolve();
-            return;
-          }
-
-          if (Math.abs(currentTop - lastTop) < 0.5) {
-            sameCount += 1;
-          } else {
-            sameCount = 0;
-          }
-          lastTop = currentTop;
-
-          const timeout = Date.now() - startedAt > 520;
-          const stalled = sameCount >= 7;
-          if (timeout || stalled) {
-            resolve();
-            return;
-          }
-          window.requestAnimationFrame(tick);
-        };
-
-        window.requestAnimationFrame(tick);
-      });
-    }
-
     function collapseExpandedWhenOutOfView() {
       if (!isMobileLayout()) return;
       const expanded = rows.querySelector('.song-card.expanded');
@@ -1637,9 +1593,7 @@
           const willExpand = !el.classList.contains('expanded');
           collapseExpandedCards();
           if (willExpand) {
-            await scrollCardToTopBeforeExpand(el);
             el.classList.add('expanded');
-            keepExpandedCardVisible(el);
           }
         });
 
