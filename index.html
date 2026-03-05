@@ -1254,7 +1254,7 @@
     function updateDummyEndCardHeight() {
       const searchPanel = document.querySelector('.bottom-panel[aria-label="検索フォームカード"]');
       if (!searchPanel) return;
-      const height = Math.ceil(searchPanel.getBoundingClientRect().height);
+      const height = Math.ceil(searchPanel.getBoundingClientRect().height * 2);
       if (height > 0) {
         document.documentElement.style.setProperty('--dummy-end-card-height', `${height}px`);
       }
