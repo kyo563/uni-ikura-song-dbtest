@@ -26,6 +26,7 @@
       --focus: #2fd12f;
       --bg-scroll-darkness: 0;
       --bg-scroll-brightness: 0;
+      --scroll-top-offset: 0px;
     }
 
     * { box-sizing: border-box; }
@@ -747,7 +748,7 @@
     #scrollTop {
       position: fixed;
       right: var(--space-4);
-      bottom: var(--space-4);
+      bottom: calc(var(--space-4) + var(--scroll-top-offset));
       z-index: 20;
       display: none;
     }
@@ -1880,6 +1881,16 @@
         byId('collapseToggle').textContent = collapsed ? '展開' : '折り畳み';
       });
 
+      const updateScrollTopOffset = () => {
+        const bottomForm = document.querySelector('.bottom-form');
+        if (!bottomForm) return;
+
+        const rect = bottomForm.getBoundingClientRect();
+        const overlap = Math.max(0, window.innerHeight - rect.top);
+        const offset = overlap > 0 ? overlap + 8 : 0;
+        document.documentElement.style.setProperty('--scroll-top-offset', `${offset}px`);
+      };
+
       byId('scrollTop').addEventListener('click', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
@@ -1895,10 +1906,14 @@
 
       window.addEventListener('scroll', () => {
         byId('scrollTop').classList.toggle('show', window.scrollY > 280);
+        updateScrollTopOffset();
         maybeBubble();
       });
 
+      window.addEventListener('resize', updateScrollTopOffset);
+
       rows.addEventListener('scroll', () => {
+        updateScrollTopOffset();
         const cardSample = rows.querySelector('.song-card');
         const rowGap = Number.parseFloat(window.getComputedStyle(rows).rowGap || '0') || 0;
         const cardHeight = cardSample ? (cardSample.offsetHeight + rowGap) : 44;
@@ -1923,9 +1938,11 @@
           rows.querySelectorAll('.song-card').forEach((card) => card.classList.add('expanded'));
         }
         updateBackgroundByRowsScroll();
+        updateScrollTopOffset();
       });
 
       updateBackgroundByRowsScroll();
+      updateScrollTopOffset();
     }
 
     byId('sortField').value = state.sortField;
