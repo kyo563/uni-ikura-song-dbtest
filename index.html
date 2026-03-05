@@ -232,6 +232,10 @@
       flex-wrap: wrap;
     }
 
+    .summary-inline.count-inline {
+      display: none;
+    }
+
     .count-inline {
       font-variant-numeric: tabular-nums;
       letter-spacing: 0.02em;
@@ -602,6 +606,28 @@
       font-size: 12px;
     }
 
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%) translateY(6px);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: color-mix(in srgb, var(--surface-2) 94%, black 6%);
+      color: var(--text);
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.12s ease, transform 0.12s ease;
+      z-index: 30;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
   </style>
 </head>
 <body>
@@ -701,6 +727,7 @@
   </main>
 
   <button id="scrollTop" class="primary" type="button">↑ 上へ</button>
+  <div id="toast" class="toast" aria-live="polite" role="status"></div>
 
   <script>
     const DEFAULT_KINDS = ['cover', 'short', 'live'];
@@ -735,6 +762,7 @@
     const rows = byId('rows');
     const selectedCount = byId('selectedCount');
     const totalCount = byId('totalCount');
+    const toast = byId('toast');
     const errorLogWrap = byId('errorLogWrap');
     const errorLog = byId('errorLog');
     const MAX_ERROR_BODY_CHARS = 4000;
@@ -742,6 +770,7 @@
     let latestErrorLogText = '';
 
     const statusShell = byId('statusShell');
+    let toastTimer = null;
 
     function setStatus(text, isError = false) {
       status.textContent = text;
@@ -750,6 +779,16 @@
         return;
       }
       statusShell.dataset.state = text.includes('読込') ? 'loading' : 'ok';
+    }
+
+    function showToast(text, durationMs = 300) {
+      if (!toast || !text) return;
+      toast.textContent = text;
+      toast.classList.add('show');
+      if (toastTimer) window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => {
+        toast.classList.remove('show');
+      }, durationMs);
     }
 
     function clipText(value, max = MAX_ERROR_BODY_CHARS) {
@@ -1179,7 +1218,12 @@
             const artist = String(item.artist || '').trim();
             const text = [title, artist].filter(Boolean).join(' / ');
             copyTextToClipboard(text).then((copied) => {
-              setStatus(copied ? 'コピー完了' : 'コピー失敗', !copied);
+              if (copied) {
+                showToast('コピーしました');
+                setStatus('コピー成功');
+                return;
+              }
+              setStatus('コピー失敗', true);
             });
             return;
           }
@@ -1326,7 +1370,7 @@
         if (res.status === 304 && cached?.payload) {
           const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
           render(cachedItems, { total: cached?.payload?.total ?? cachedItems.length });
-          setStatus(`更無${cachedItems.length}`);
+          setStatus(`通信成功（表示${cachedItems.length}曲）`);
           return;
         }
 
@@ -1352,7 +1396,7 @@
           : (Array.isArray(payload?.items) ? payload.items : []);
         const filteredItems = filterItems(sourceItems);
         render(filteredItems, { total: payload?.total ?? sourceItems.length });
-        setStatus(`表示${filteredItems.length}`);
+        setStatus(`通信成功（表示${filteredItems.length}曲）`);
 
         if (etag) saveCache({ etag, payload });
       } catch (err) {
@@ -1398,7 +1442,8 @@
 
       try {
         await navigator.clipboard.writeText(text.trim());
-        setStatus('弾幕コピ');
+        showToast('弾幕を作成しました');
+        setStatus('コピー成功');
       } catch (_) {
         setStatus('コピー失敗', true);
       }
@@ -1465,7 +1510,8 @@
         void select.offsetWidth;
         select.classList.add('roll-highlight');
         setSwipeCard(0);
-        setStatus('作成');
+        showToast('弾幕を作成しました');
+        setStatus('弾幕作成完了');
       });
 
       byId('collapseToggle').addEventListener('click', () => {
