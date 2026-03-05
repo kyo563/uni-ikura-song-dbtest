@@ -481,6 +481,20 @@
 
     .song-meta { display: grid; gap: var(--space-1); min-width: 0; }
 
+    .song-meta-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-2);
+      min-width: 0;
+    }
+
+    .song-meta-latest {
+      margin-left: auto;
+      text-align: right;
+      white-space: nowrap;
+    }
+
     .song-date-link {
       color: var(--accent);
       text-decoration: underline;
@@ -1105,9 +1119,6 @@
           ? `<span class="tag">${escapeHtml(detailLinks.singingTagLabel)}</span>`
           : '<span class="muted">-</span>';
         const latestDate = escapeHtml(fmtDate(item.lastSungDate || item.publishedAt));
-        const latestDateContent = detailLinks.latestDateUrl
-          ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.latestDateUrl))}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(item.linkLabel || '歌枠リンクを開く')}">${latestDate}</a>`
-          : latestDate;
         const fallbackLinkLabel = escapeHtml(item.liveTitle || item.linkLabel || item.lastSungDate || 'リンクなし');
         const fallbackLinkHtml = detailLinks.detailUrl
           ? `<a class="song-date-link song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}">${fallbackLinkLabel}</a>`
@@ -1124,8 +1135,10 @@
               </div>
               <div class="song-details">
                 <div class="song-meta">
-                  <div>${singingTagHtml}</div>
-                  <div>最終歌唱日: ${latestDateContent}</div>
+                  <div class="song-meta-top">
+                    <div>${singingTagHtml}</div>
+                    <div class="song-meta-latest">Latest: ${latestDate}</div>
+                  </div>
                   <div>歌唱リンク: ${fallbackLinkHtml}</div>
                 </div>
               </div>
