@@ -701,18 +701,14 @@
     }
 
     .song-link-row {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
-      align-items: start;
-      gap: var(--space-2);
       min-width: 0;
       text-align: left;
     }
 
     .song-link-inline {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
-      align-items: start;
+      display: inline-flex;
+      align-items: baseline;
+      flex-wrap: wrap;
       gap: var(--space-2);
       min-width: 0;
       text-align: left;
@@ -1601,7 +1597,7 @@
                     <div>${singingTagHtml}</div>
                     <div class="song-meta-latest">Latest: ${latestDate}</div>
                   </div>
-                  <div class="song-link-row">歌唱リンク: ${fallbackLinkHtml}</div>
+                  <div class="song-link-row">${fallbackLinkHtml}</div>
                   ${previewHtml}
                 </div>
               </div>
