@@ -1278,7 +1278,8 @@
     let getTopSwipeCard = () => 0;
     let triggerSwipeHint = () => {};
     let swipeHintIntervalId = null;
-    let topFormCollapsedByScroll = false;
+    let topMenuCollapsed = false;
+    let topSwipeCardIndex = 0;
 
     function setupSwipeTrack({ wrap, track, panelWidthPercent = 50, onCardChange = null }) {
       let current = 0;
@@ -1359,6 +1360,19 @@
       return collapsedHeight;
     }
 
+    function applyTopFormCollapsedState() {
+      const topForm = byId('topForm');
+      if (!topForm) return;
+      const shouldCollapse = topSwipeCardIndex === 0 && topMenuCollapsed;
+      topForm.classList.toggle('collapsed', shouldCollapse);
+    }
+
+    function setTopMenuCollapsed(nextCollapsed) {
+      topMenuCollapsed = Boolean(nextCollapsed);
+      applyTopFormCollapsedState();
+      syncTopPanelSize();
+    }
+
     function syncTopPanelSize() {
       const filterPanel = document.querySelector('.top-panel[aria-label="絞り込みカード"]');
       const topForm = byId('topForm');
@@ -1387,7 +1401,6 @@
       const wrap = byId('topSwipeWrap');
       const track = byId('topSwipeTrack');
       const memoInput = byId('memoInput');
-      const memoPanel = document.querySelector('.memo-panel');
       const topForm = byId('topForm');
       const collapseButton = byId('collapseTopMenu');
       const expandButton = byId('expandTopMenu');
@@ -1398,12 +1411,14 @@
         track,
         panelWidthPercent: 50,
         onCardChange: (index) => {
+          topSwipeCardIndex = index;
           const isMemo = index === 1;
           topForm?.classList.toggle('memo-active', isMemo);
-          if (isMemo && topForm?.classList.contains('collapsed')) {
-            topForm.classList.remove('collapsed');
-            topFormCollapsedByScroll = false;
+          if (isMemo) {
+            setTopMenuCollapsed(false);
+            return;
           }
+          applyTopFormCollapsedState();
           syncTopPanelSize();
         },
       });
@@ -1416,27 +1431,14 @@
         });
       }
 
-      if (memoPanel) {
-        memoPanel.addEventListener('click', () => {
-          if (!topForm?.classList.contains('collapsed')) return;
-          topForm.classList.remove('collapsed');
-          topFormCollapsedByScroll = false;
-          syncTopPanelSize();
-        });
-      }
-
       collapseButton?.addEventListener('click', () => {
-        if (!topForm) return;
-        topForm.classList.add('collapsed');
-        topFormCollapsedByScroll = true;
-        syncTopPanelSize();
+        if (!topForm || topSwipeCardIndex !== 0) return;
+        setTopMenuCollapsed(true);
       });
 
       expandButton?.addEventListener('click', () => {
         if (!topForm) return;
-        topForm.classList.remove('collapsed');
-        topFormCollapsedByScroll = false;
-        syncTopPanelSize();
+        setTopMenuCollapsed(false);
       });
 
       syncTopPanelSize();
@@ -2294,11 +2296,8 @@
         const collapseThreshold = cardHeight * 2;
         const currentScrollTop = rows?.scrollTop ?? window.scrollY;
         const shouldCollapse = currentScrollTop > collapseThreshold;
-        if (shouldCollapse === topFormCollapsedByScroll) return;
-
-        topForm.classList.toggle('collapsed', shouldCollapse);
-        topFormCollapsedByScroll = shouldCollapse;
-        syncTopPanelSize();
+        if (shouldCollapse === topMenuCollapsed) return;
+        setTopMenuCollapsed(shouldCollapse);
       };
 
       const updateScrollTopOffset = () => {
