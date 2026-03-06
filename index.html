@@ -309,7 +309,7 @@
     }
 
     .top-form.collapsed {
-      padding-top: 0;
+      padding-top: var(--space-2);
       padding-bottom: 0;
       min-height: 0;
     }
@@ -1353,7 +1353,8 @@
       const wasCollapsed = topForm.classList.contains('collapsed');
       topForm.classList.add('collapsed');
       const statusSummary = filterPanel.querySelector('.top-summary .summary-box');
-      const collapsedHeight = Math.ceil((statusSummary || filterPanel).getBoundingClientRect().height);
+      const collapsedHeightBase = Math.ceil((statusSummary || filterPanel).getBoundingClientRect().height);
+      const collapsedHeight = collapsedHeightBase + 2;
       if (!wasCollapsed) {
         topForm.classList.remove('collapsed');
       }
