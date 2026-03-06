@@ -91,7 +91,7 @@
         radial-gradient(circle at 60% 95%, rgb(255 255 255 / 35%) 0 2px, transparent 3px),
         radial-gradient(circle at 85% 88%, rgb(255 255 255 / 40%) 0 2.5px, transparent 3.5px);
       background-size: 220px 320px;
-      animation: bubble-rise 13s linear infinite;
+      animation: bubble-rise 17s linear infinite;
     }
 
     body::after {
@@ -101,15 +101,15 @@
         radial-gradient(circle at 76% 94%, rgb(255 255 255 / 28%) 0 1.8px, transparent 2.8px);
       background-size: 180px 280px;
       opacity: 0.24;
-      animation: bubble-rise 18s linear infinite reverse;
+      animation: bubble-rise 24s linear infinite reverse;
     }
 
     @keyframes bubble-rise {
       from {
-        background-position: 0 120vh, 90px 125vh, 160px 130vh;
+        background-position: 0 106vh, 90px 110vh, 160px 114vh;
       }
       to {
-        background-position: 0 -20vh, 90px -15vh, 160px -10vh;
+        background-position: 0 30vh, 90px 34vh, 160px 38vh;
       }
     }
 
@@ -1031,14 +1031,14 @@
       bottom: -24px;
       border-radius: 50%;
       background: radial-gradient(circle at 35% 35%, rgb(255 255 255 / 85%), rgb(255 255 255 / 20%));
-      animation: pop-bubble 1.8s ease-out forwards;
+      animation: pop-bubble 2.8s ease-out forwards;
       opacity: 0;
     }
 
     @keyframes pop-bubble {
       0% { transform: translateY(0) scale(0.7); opacity: 0.1; }
       16% { opacity: 0.65; }
-      100% { transform: translateY(-180px) scale(1.18); opacity: 0; }
+      100% { transform: translateY(-70dvh) scale(1.18); opacity: 0; }
     }
 
   </style>
@@ -1499,10 +1499,10 @@
         bubble.style.height = `${size}px`;
         bubble.style.animationDelay = `${i * 0.08}s`;
         bubble.style.animationDuration = burst
-          ? `${1.2 + Math.random() * 0.9}s`
-          : `${1.4 + Math.random() * 1.3}s`;
+          ? `${2.2 + Math.random() * 0.9}s`
+          : `${2.6 + Math.random() * 1.4}s`;
         scrollBubbles.appendChild(bubble);
-        window.setTimeout(() => bubble.remove(), 4000);
+        window.setTimeout(() => bubble.remove(), 5200);
       }
     }
 
