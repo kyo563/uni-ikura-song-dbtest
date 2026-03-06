@@ -383,6 +383,14 @@
       color: var(--text);
     }
 
+    .summary-actions {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: var(--space-2);
+      margin-left: auto;
+    }
+
     .summary-inline {
       display: inline-flex;
       align-items: center;
@@ -464,9 +472,6 @@
 
     .top-fold-btn,
     .top-expand-btn {
-      position: absolute;
-      right: var(--space-2);
-      top: var(--space-2);
       border: 0 !important;
       background: transparent !important;
       font-size: 11px !important;
@@ -490,8 +495,11 @@
     }
 
     .top-form.collapsed .top-advanced {
-      grid-template-columns: 1fr;
-      align-items: start;
+      display: none;
+    }
+
+    .top-form.collapsed .top-summary {
+      margin-bottom: 0;
     }
 
     .sort-row {
@@ -505,6 +513,10 @@
       max-height: 0;
       opacity: 0;
       pointer-events: none;
+    }
+
+    .top-form.collapsed .checkbox-row {
+      display: none;
     }
 
     .top-form.collapsed .top-expand-btn {
@@ -965,7 +977,7 @@
     }
 
     .dummy-end-card {
-      border: 1px dashed var(--line);
+      border: 0;
       border-radius: var(--radius-sm);
       padding: var(--space-2);
       min-height: var(--dummy-end-card-height);
@@ -977,7 +989,7 @@
     }
 
     .dummy-top-card {
-      border: 1px dashed var(--line);
+      border: 0;
       border-radius: var(--radius-sm);
       padding: var(--space-2);
       min-height: var(--dummy-top-card-height);
@@ -1048,7 +1060,11 @@
                   <span class="status-dot" aria-hidden="true"></span>
                   <span class="status" id="status">起動</span>
                 </span>
-                <div class="summary-inline count-inline"><span id="selectedCount">0</span>/<span id="totalCount">0</span>曲</div>
+                <div class="summary-actions">
+                  <div class="summary-inline count-inline"><span id="selectedCount">0</span>/<span id="totalCount">0</span>曲</div>
+                  <button id="collapseTopMenu" class="top-fold-btn" type="button" aria-label="絞り込みメニューを折りたたむ">折りたたみ</button>
+                  <button id="expandTopMenu" class="top-expand-btn" type="button" aria-label="絞り込みメニューを展開">展開</button>
+                </div>
               </div>
             </div>
 
@@ -1095,9 +1111,6 @@
           </section>
         </div>
       </div>
-      <button id="collapseTopMenu" class="top-fold-btn" type="button" aria-label="絞り込みメニューを折りたたむ">折りたたみ</button>
-      <button id="expandTopMenu" class="top-expand-btn" type="button" aria-label="絞り込みメニューを展開">展開</button>
-
     </section>
 
     <section class="card middle-form">
@@ -2246,8 +2259,12 @@
         if (!topForm || !isMobileLayout()) return;
         if (getTopSwipeCard() === 1) return;
 
+        const cardSample = rows?.querySelector('.song-card');
+        const rowGap = Number.parseFloat(window.getComputedStyle(rows).rowGap || '0') || 0;
+        const cardHeight = cardSample ? (cardSample.offsetHeight + rowGap) : 44;
+        const collapseThreshold = cardHeight * 2;
         const currentScrollTop = rows?.scrollTop ?? window.scrollY;
-        const shouldCollapse = currentScrollTop > 72;
+        const shouldCollapse = currentScrollTop > collapseThreshold;
         if (shouldCollapse === topFormCollapsedByScroll) return;
 
         topForm.classList.toggle('collapsed', shouldCollapse);
