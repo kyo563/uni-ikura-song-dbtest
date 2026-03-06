@@ -299,6 +299,7 @@
     }
 
     .top-swipe-wrap {
+      position: relative;
       overflow: hidden;
       width: 100%;
       min-height: 0;
@@ -333,11 +334,6 @@
       position: relative;
       width: 50%;
       min-width: 0;
-    }
-
-    .top-panel .page-indicator {
-      right: var(--space-2);
-      bottom: var(--space-1);
     }
 
     .top-panel[aria-label="メモカード"] {
@@ -594,6 +590,7 @@
     }
 
     .bottom-swipe-wrap {
+      position: relative;
       overflow: hidden;
       border: 1px solid var(--line);
       border-radius: var(--radius-md);
@@ -626,11 +623,6 @@
       min-width: 0;
     }
 
-    .bottom-panel .page-indicator {
-      left: var(--space-2);
-      top: var(--space-1);
-    }
-
     .page-indicator {
       position: absolute;
       display: inline-flex;
@@ -638,19 +630,33 @@
       gap: 4px;
       pointer-events: none;
       z-index: 1;
+      opacity: 0.96;
+    }
+
+    .page-indicator.top-indicator {
+      right: var(--space-2);
+      bottom: var(--space-2);
+    }
+
+    .page-indicator.bottom-indicator {
+      left: var(--space-2);
+      top: var(--space-2);
     }
 
     .page-indicator .dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: color-mix(in srgb, var(--line) 85%, white 15%);
-      opacity: 0.85;
+      background: #111;
+      opacity: 0.92;
+      transform: scale(0.92);
+      transition: background-color 0.28s ease, opacity 0.28s ease, transform 0.28s ease;
     }
 
     .page-indicator .dot.active {
       background: #3dff3d;
       opacity: 1;
+      transform: scale(1);
     }
 
     @keyframes swipe-hint {
@@ -1074,6 +1080,7 @@
   <main class="container" id="songsPage">
     <section class="card top-form" id="topForm">
       <div class="top-swipe-wrap" id="topSwipeWrap">
+        <div class="page-indicator top-indicator" id="topPageIndicator" aria-hidden="true"><span class="dot active"></span><span class="dot"></span></div>
         <div class="top-swipe-track" id="topSwipeTrack">
           <section class="top-panel" aria-label="絞り込みカード">
             <div class="top-summary">
@@ -1122,7 +1129,6 @@
                 </div>
               </div>
             </div>
-            <div class="page-indicator" aria-hidden="true"><span class="dot active"></span><span class="dot"></span></div>
           </section>
 
           <section class="top-panel" aria-label="メモカード">
@@ -1133,7 +1139,6 @@
                 <button id="pasteMemo" type="button">ペースト</button>
               </div>
             </div>
-            <div class="page-indicator" aria-hidden="true"><span class="dot"></span><span class="dot active"></span></div>
           </section>
         </div>
       </div>
@@ -1145,9 +1150,9 @@
 
     <section class="card bottom-form">
       <div class="bottom-swipe-wrap" id="bottomSwipeWrap">
+        <div class="page-indicator bottom-indicator" id="bottomPageIndicator" aria-hidden="true"><span class="dot active"></span><span class="dot"></span></div>
         <div class="bottom-swipe-track" id="bottomSwipeTrack">
           <section class="bottom-panel" aria-label="検索フォームカード">
-            <div class="page-indicator" aria-hidden="true"><span class="dot active"></span><span class="dot"></span></div>
             <div class="ratio-8-2 search-inline">
               <label aria-label="検索">
                 <input id="q" type="search" aria-label="検索" placeholder="曲名 / アーティスト">
@@ -1157,7 +1162,6 @@
           </section>
 
           <section class="bottom-panel my-danmaku-form" aria-label="マイ弾幕カード">
-            <div class="page-indicator" aria-hidden="true"><span class="dot"></span><span class="dot active"></span></div>
             <div class="my-danmaku-row">
               <input id="myEmoji" type="text" placeholder="🎨" maxlength="6" aria-label="絵文字入力">
               <button class="primary" id="saveMyDanmaku" type="button">弾幕を作成する</button>
@@ -1374,6 +1378,14 @@
       };
     }
 
+    function updatePageIndicator(indicator, activeIndex) {
+      if (!indicator) return;
+      const dots = indicator.querySelectorAll('.dot');
+      dots.forEach((dot, index) => {
+        dot.classList.toggle('active', index === activeIndex);
+      });
+    }
+
 
     function getCollapsedTopHeight(topForm, filterPanel) {
       if (!topForm || !filterPanel) return 0;
@@ -1434,6 +1446,7 @@
       const track = byId('topSwipeTrack');
       const memoInput = byId('memoInput');
       const topForm = byId('topForm');
+      const topPageIndicator = byId('topPageIndicator');
       const collapseButton = byId('collapseTopMenu');
       const expandButton = byId('expandTopMenu');
 
@@ -1444,6 +1457,7 @@
         panelWidthPercent: 50,
         onCardChange: (index) => {
           topSwipeCardIndex = index;
+          updatePageIndicator(topPageIndicator, index);
           const isMemo = index === 1;
           topForm?.classList.toggle('memo-active', isMemo);
           if (isMemo) {
@@ -1481,6 +1495,7 @@
     function setupBottomSwipe() {
       const wrap = byId('bottomSwipeWrap');
       const track = byId('bottomSwipeTrack');
+      const bottomPageIndicator = byId('bottomPageIndicator');
       const stopHint = () => {
         track.classList.remove('hinting');
       };
@@ -1494,7 +1509,14 @@
         }, 6500);
       };
 
-      const bottomSwipe = setupSwipeTrack({ wrap, track, panelWidthPercent: 50 });
+      const bottomSwipe = setupSwipeTrack({
+        wrap,
+        track,
+        panelWidthPercent: 50,
+        onCardChange: (index) => {
+          updatePageIndicator(bottomPageIndicator, index);
+        },
+      });
       const setCard = bottomSwipe.setCard;
 
       track.addEventListener('pointerdown', () => {
