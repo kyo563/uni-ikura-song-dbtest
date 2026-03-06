@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEFAULT_GAS_SONGS_API_URL="https://script.google.com/macros/s/AKfycbwC2euOfZGLnct2oeOgnK-9tfrxI1Bm5H7Witkr_rhZs0dJSpNHBAcKTDjb8MBrbnDg/exec?api=songs"
+DEFAULT_GAS_SONGS_API_URL="https://script.google.com/macros/s/AKfycbzU9lD1qRGocSkZvZJmh6FTw75XBnLMXgRIAyEDBuwqIG_whykcxbjjrhuk6K789ciS/exec?api=songs"
 GAS_SONGS_API_URL="${GAS_SONGS_API_URL:-$DEFAULT_GAS_SONGS_API_URL}"
 # GitHub Secrets経由で末尾改行やCRが混入するケースを吸収する
 GAS_SONGS_API_URL="${GAS_SONGS_API_URL//$'\r'/}"

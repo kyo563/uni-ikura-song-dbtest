@@ -42,7 +42,7 @@
 例:
 
 ```text
-https://script.google.com/macros/s/AKfycbwC2euOfZGLnct2oeOgnK-9tfrxI1Bm5H7Witkr_rhZs0dJSpNHBAcKTDjb8MBrbnDg/exec?api=songs
+https://script.google.com/macros/s/AKfycbzU9lD1qRGocSkZvZJmh6FTw75XBnLMXgRIAyEDBuwqIG_whykcxbjjrhuk6K789ciS/exec?api=songs
 ```
 
 ---
@@ -57,7 +57,7 @@ https://script.google.com/macros/s/AKfycbwC2euOfZGLnct2oeOgnK-9tfrxI1Bm5H7Witkr_
 ### 必要な GitHub Secrets
 
 - `GAS_SONGS_API_URL`（未設定時は以下のURLを使用）
-  - `https://script.google.com/macros/s/AKfycbwC2euOfZGLnct2oeOgnK-9tfrxI1Bm5H7Witkr_rhZs0dJSpNHBAcKTDjb8MBrbnDg/exec?api=songs`
+  - `https://script.google.com/macros/s/AKfycbzU9lD1qRGocSkZvZJmh6FTw75XBnLMXgRIAyEDBuwqIG_whykcxbjjrhuk6K789ciS/exec?api=songs`
 - `R2_ACCOUNT_ID`
 - `R2_ACCESS_KEY_ID`
 - `R2_SECRET_ACCESS_KEY`
