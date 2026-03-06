@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="songs-r2-json-url" content="https://pub-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.r2.dev/songs.json">
+  <meta name="songs-gas-api-url" content="https://script.google.com/macros/s/AKfycbzU9lD1qRGocSkZvZJmh6FTw75XBnLMXgRIAyEDBuwqIG_whykcxbjjrhuk6K789ciS/exec?api=songs">
   <title>うにうたDB</title>
   <style>
     :root {
@@ -2023,15 +2024,29 @@
         .filter(Boolean)
       || [];
 
-    const SONGS_JSON_URL_OVERRIDE =
-      window.__SONGS_JSON_URL__
-      || localStorage.getItem('songs_r2_json_url')
-      || document.querySelector('meta[name="songs-r2-json-url"]')?.content
+    const GAS_SONGS_API_URL =
+      document.querySelector('meta[name="songs-gas-api-url"]')?.content
+      || '';
+
+    function isPlaceholderUrl(url) {
+      const text = String(url || '').trim();
+      return text.includes('xxxxxxxx') || text.includes('<') || text.includes('example.com');
+    }
+
+    const SONGS_JSON_URL_OVERRIDE = [
+      window.__SONGS_JSON_URL__,
+      localStorage.getItem('songs_r2_json_url'),
+      document.querySelector('meta[name="songs-r2-json-url"]')?.content,
+    ]
+      .map((value) => String(value || '').trim())
+      .find((value) => value && !isPlaceholderUrl(value))
       || '';
 
     const SONGS_JSON_FALLBACK_URLS = Array.from(new Set([
       ...META_FALLBACK_JSON_URLS,
-    ]));
+    ]
+      .map((value) => String(value || '').trim())
+      .filter((value) => value && !isPlaceholderUrl(value))));
 
     function clearApiCache() {
       try {
@@ -2047,6 +2062,7 @@
       const requestCandidates = [
         SONGS_JSON_URL_OVERRIDE,
         ...SONGS_JSON_FALLBACK_URLS,
+        GAS_SONGS_API_URL,
       ].filter(Boolean);
 
       if (requestCandidates.length === 0) {
