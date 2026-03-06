@@ -1532,7 +1532,7 @@
     function updateDummyCardsHeight() {
       const topForm = byId('topForm');
       if (topForm) {
-        const topHeight = Math.ceil(topForm.getBoundingClientRect().height + 8);
+        const topHeight = Math.ceil(topForm.getBoundingClientRect().height + 4);
         if (topHeight > 0) {
           document.documentElement.style.setProperty('--dummy-top-card-height', `${topHeight}px`);
         }
