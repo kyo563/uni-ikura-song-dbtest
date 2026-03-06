@@ -27,7 +27,7 @@ async function handleHealth(request, env) {
     const head = await env.SONG_DB?.head?.(key);
     return json(request, {
       ok: true,
-      service: 'uni-ikura-song-dbtest-worker',
+      service: 'uni-ikura-songsDB-worker',
       r2: {
         key,
         exists: Boolean(head),
@@ -36,7 +36,7 @@ async function handleHealth(request, env) {
   } catch (error) {
     return json(request, {
       ok: false,
-      service: 'uni-ikura-song-dbtest-worker',
+      service: 'uni-ikura-songsDB-worker',
       error: error?.message || 'Health check failed',
       hint: 'Check SONG_DB binding and R2 configuration.',
     }, 500);

@@ -1,6 +1,6 @@
-# uni-ikura-song-dbtest
+# uni-ikura-songsDB
 
-公開ページ: https://kyo563.github.io/uni-ikura-song-dbtest/
+公開ページ: https://<your-github-user>.github.io/uni-ikura-songsDB/
 
 `kasane-3kHz-songs-dbTEST` を参考にした、**Cloudflare R2 + Static Assets** 構成です。  
 このリポジトリでは、`Performance Record` シートをGASでJSON化し、GitHub ActionsでR2へ定期同期する運用を想定しています。
@@ -77,7 +77,7 @@ R2_OBJECT_KEY="songs.json" \
 AWS_ACCESS_KEY_ID="<access_key>" \
 AWS_SECRET_ACCESS_KEY="<secret_key>" \
 # 任意: Worker経由の読み取りも同時確認
-WORKER_BASE_URL="https://uni-ikura-song-dbtest.<account>.workers.dev" \
+WORKER_BASE_URL="https://uni-ikura-songsDB.<account>.workers.dev" \
 bash scripts/verify_r2_upload_and_read.sh
 ```
 
@@ -99,9 +99,27 @@ bash scripts/verify_r2_upload_and_read.sh
   - まず `GAS_SONGS_API_URL` をブラウザで開き、`{` から始まるJSONが返るかを確認してください（`?api=songs` を必ず付与）。
   - 追加で、`scripts/sync_songs_to_r2.sh` は `Content-Type` も検証します。`text/html` が返る場合はGAS公開設定（アクセス権）またはURL誤りを疑ってください。
 
+---
+
+## リポジトリ譲渡（移設）時のチェックリスト
+
+このアプリは、設定値をSecrets / `wrangler.toml` / `index.html` に分離しているため、譲渡時は次だけ差し替えれば継続開発できます。
+
+1. GitHubでリポジトリを移設/rename
+   - 例: `uni-ikura-songsDB`
+2. GitHub Secretsを新しいリポジトリへ再設定
+   - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_OBJECT_KEY`, `GAS_SONGS_API_URL`
+3. `index.html` の `meta[name="songs-r2-json-url"]` を新しいR2公開URLへ変更
+4. `wrangler.toml` の `name` / `bucket_name` が移設先の命名と一致しているか確認
+5. Actionsの手動実行（`workflow_dispatch`）で `songs.json` 同期を確認
+6. GitHub Pages / Workers URLで表示・検索・コピーの動作確認
+
+> GitHub上の譲渡自体は、対象リポジトリの **Settings > General > Transfer ownership** から実施できます。
+> 移設先アカウントに権限がある状態で、上記チェックリストを順に実施するとスムーズです。
+
 - フロントで `サーバー: エラー:HTTP 404` が出る
-  - `index.html` の `meta[name="songs-r2-json-url"]` に、R2公開URL（例: `https://pub-xxxx.r2.dev/songs.json`）を設定してください。
-  - もしくはブラウザで `localStorage.setItem("songs_r2_json_url", "https://pub-xxxx.r2.dev/songs.json")` を実行して再読込してください。
+  - `index.html` の `meta[name="songs-r2-json-url"]` に、R2公開URL（例: `https://pub-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.r2.dev/songs.json`）を設定してください。
+  - もしくはブラウザで `localStorage.setItem("songs_r2_json_url", "https://pub-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.r2.dev/songs.json")` を実行して再読込してください。
   - 複数候補を持たせる場合は `meta[name="songs-r2-fallbacks"]` にカンマ区切りでURLを設定できます。
   - CORSで失敗する場合は、R2側の公開/CORS設定を見直してください。
 
