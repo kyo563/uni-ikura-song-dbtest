@@ -285,6 +285,7 @@
 
     .top-form {
       position: relative;
+      padding-top: calc(var(--space-3) + 14px);
       padding-bottom: 20px;
       overflow: visible;
       --top-expanded-height: 170px;
@@ -458,8 +459,8 @@
     .top-fold-btn,
     .top-expand-btn {
       position: absolute;
-      left: var(--space-2);
-      bottom: var(--space-1);
+      right: var(--space-2);
+      top: var(--space-2);
       border: 0 !important;
       background: transparent !important;
       font-size: 11px !important;
@@ -629,8 +630,7 @@
       .sort-row { grid-template-columns: auto auto; }
       .sort-row select,
       .sort-row button { min-width: 96px; }
-      .memo-actions { grid-template-columns: auto; }
-      .memo-actions .memo-spacer { display: none; }
+      .memo-actions { grid-template-columns: 1fr 1fr; }
       .ratio-8-2 { grid-template-columns: 1fr; }
       .bottom-static-controls .ratio-8-2 {
         grid-template-columns: minmax(0, 1fr) auto;
@@ -794,6 +794,7 @@
 
     #copyErrorLog,
     #copyMemo,
+    #pasteMemo,
     #copyDanmaku,
     .copy-text-btn {
       background: #1e90ff;
@@ -802,13 +803,14 @@
 
     .memo-actions {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: 1fr 1fr;
       gap: var(--space-2);
       align-items: end;
     }
 
-    .memo-actions .memo-spacer {
-      min-height: var(--control-height);
+    #pasteMemo,
+    #copyMemo {
+      width: 100%;
     }
 
     .song-link-row {
@@ -1053,8 +1055,8 @@
             <div class="memo-panel">
               <textarea id="memoInput" aria-label="メモ帳" placeholder="メモを入力"></textarea>
               <div class="memo-actions">
-                <span class="memo-spacer" aria-hidden="true"></span>
                 <button id="copyMemo" type="button">コピー</button>
+                <button id="pasteMemo" type="button">ペースト</button>
               </div>
             </div>
           </section>
@@ -1322,6 +1324,8 @@
       if (collapsedHeight > 0) {
         topForm.style.setProperty('--top-collapsed-height', `${collapsedHeight}px`);
       }
+
+      window.requestAnimationFrame(updateMiddleCardsHeight);
     }
 
     function setupTopSwipe() {
@@ -2085,6 +2089,19 @@
       setStatus('コピー成功');
     }
 
+    async function pasteMemo() {
+      const memoInput = byId('memoInput');
+      if (!memoInput) return;
+      try {
+        const text = await navigator.clipboard.readText();
+        memoInput.value = text || '';
+        showToast('貼り付けました');
+        setStatus('貼り付け成功');
+      } catch (_) {
+        setStatus('貼り付け失敗', true);
+      }
+    }
+
     async function copyDanmaku() {
       const type = byId('danmakuType').value;
       const isCustomDanmaku = type.startsWith('custom:');
@@ -2165,6 +2182,7 @@
 
       byId('copyDanmaku').addEventListener('click', copyDanmaku);
       byId('copyMemo')?.addEventListener('click', copyMemo);
+      byId('pasteMemo')?.addEventListener('click', pasteMemo);
       if (ENABLE_ERROR_LOG_UI) {
         byId('copyErrorLog').addEventListener('click', copyErrorLog);
       }
