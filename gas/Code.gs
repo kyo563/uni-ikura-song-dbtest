@@ -37,6 +37,14 @@ function buildSongsPayload_() {
     return { items: [], total: 0, generatedAt: new Date().toISOString() };
   }
 
+  const lastColumn = sheet.getLastColumn();
+  if (lastColumn < REQUIRED_COLUMNS) {
+    throw new Error(
+      'Required columns are missing: expected at least ' + REQUIRED_COLUMNS +
+      ' columns (A-F), but got ' + lastColumn + '.'
+    );
+  }
+
   // 現要件は A〜F のみ利用するため、必要列だけ読む
   const range = sheet.getRange(1, 1, lastRow, REQUIRED_COLUMNS);
   const values = range.getDisplayValues();
