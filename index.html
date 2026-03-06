@@ -289,7 +289,7 @@
       width: min(calc(100vw - (var(--layout-side-padding) * 2)), 1080px);
       top: calc(var(--space-4) + env(safe-area-inset-top));
       z-index: 70;
-      padding-top: calc(var(--space-3) + 14px);
+      padding-top: var(--space-2);
       padding-bottom: 0;
       overflow: visible;
       --top-expanded-height: 170px;
@@ -309,9 +309,9 @@
     }
 
     .top-form.collapsed {
-      padding-top: calc(var(--space-3) + 14px);
+      padding-top: var(--space-2);
       padding-bottom: 0;
-      min-height: 24px;
+      min-height: 0;
     }
 
     .top-swipe-track {
@@ -389,6 +389,12 @@
       padding: var(--space-2) var(--space-3);
       font-size: 12px;
       color: var(--text);
+    }
+
+    .top-summary {
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
 
     .summary-actions {
