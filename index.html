@@ -29,7 +29,7 @@
       --bg-scroll-brightness: 0;
       --scroll-top-offset: 0px;
       --dummy-end-card-height: 72px;
-      --dummy-top-card-height: 73px;
+      --dummy-top-card-height: 76px;
       --layout-side-padding: var(--space-4);
     }
 
@@ -1618,15 +1618,18 @@
           : '--top-expanded-height';
         const topCssHeight = getComputedStyle(topForm).getPropertyValue(topVarName).trim();
         const correctionPx = 4;
+        const extraTopDummyPx = 3;
         if (topCssHeight) {
           const correctedHeight = isCollapsed
-            ? `calc(${topCssHeight} + ${correctionPx}px)`
-            : topCssHeight;
+            ? `calc(${topCssHeight} + ${correctionPx + extraTopDummyPx}px)`
+            : `calc(${topCssHeight} + ${extraTopDummyPx}px)`;
           document.documentElement.style.setProperty('--dummy-top-card-height', correctedHeight);
         } else {
           const topHeight = Math.ceil(topForm.getBoundingClientRect().height);
           if (topHeight > 0) {
-            const correctedHeight = isCollapsed ? topHeight + correctionPx : topHeight;
+            const correctedHeight = isCollapsed
+              ? topHeight + correctionPx + extraTopDummyPx
+              : topHeight + extraTopDummyPx;
             document.documentElement.style.setProperty('--dummy-top-card-height', `${correctedHeight}px`);
           }
         }
