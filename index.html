@@ -999,8 +999,8 @@
     .toast {
       position: fixed;
       left: 50%;
-      bottom: 20px;
-      transform: translateX(-50%) translateY(6px);
+      top: 50%;
+      transform: translate(-50%, calc(-50% + 6px));
       border: 1px solid var(--line);
       border-radius: 999px;
       padding: 6px 12px;
@@ -1015,7 +1015,7 @@
 
     .toast.show {
       opacity: 1;
-      transform: translateX(-50%) translateY(0);
+      transform: translate(-50%, -50%);
     }
 
     .scroll-bubbles {
