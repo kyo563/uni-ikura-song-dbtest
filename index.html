@@ -2025,8 +2025,8 @@
 
     const SONGS_JSON_URL_OVERRIDE =
       window.__SONGS_JSON_URL__
-      || document.querySelector('meta[name="songs-r2-json-url"]')?.content
       || localStorage.getItem('songs_r2_json_url')
+      || document.querySelector('meta[name="songs-r2-json-url"]')?.content
       || '';
 
     const SONGS_JSON_FALLBACK_URLS = Array.from(new Set([
@@ -2154,6 +2154,8 @@
           errorName: err?.name || 'Error',
           statusCode,
           statusDescription: '通信エラー',
+          message: String(err?.message || ''),
+          attempts: err?.details?.attempts || null,
         };
         setErrorLog(detail);
         if (!cached?.payload) {
