@@ -309,7 +309,7 @@
     }
 
     .top-form.collapsed {
-      padding-top: var(--space-2);
+      padding-top: 0;
       padding-bottom: 0;
       min-height: 0;
     }
@@ -1347,6 +1347,18 @@
     }
 
 
+    function getCollapsedTopHeight(topForm, filterPanel) {
+      if (!topForm || !filterPanel) return 0;
+      const wasCollapsed = topForm.classList.contains('collapsed');
+      topForm.classList.add('collapsed');
+      const statusSummary = filterPanel.querySelector('.top-summary .summary-box');
+      const collapsedHeight = Math.ceil((statusSummary || filterPanel).getBoundingClientRect().height);
+      if (!wasCollapsed) {
+        topForm.classList.remove('collapsed');
+      }
+      return collapsedHeight;
+    }
+
     function syncTopPanelSize() {
       const filterPanel = document.querySelector('.top-panel[aria-label="絞り込みカード"]');
       const topForm = byId('topForm');
@@ -1357,8 +1369,7 @@
       topForm.classList.remove('collapsed');
       const expandedHeight = Math.ceil(filterPanel.getBoundingClientRect().height);
 
-      topForm.classList.add('collapsed');
-      const collapsedHeight = Math.ceil(filterPanel.getBoundingClientRect().height);
+      const collapsedHeight = getCollapsedTopHeight(topForm, filterPanel);
 
       if (!hasCollapsed) topForm.classList.remove('collapsed');
 
@@ -2141,16 +2152,36 @@
       setStatus('コピー成功');
     }
 
+    function insertTextIntoMemo(memoInput, text) {
+      if (!memoInput) return;
+      const safeText = String(text ?? '');
+      const start = Number.isInteger(memoInput.selectionStart) ? memoInput.selectionStart : memoInput.value.length;
+      const end = Number.isInteger(memoInput.selectionEnd) ? memoInput.selectionEnd : memoInput.value.length;
+      memoInput.setRangeText(safeText, start, end, 'end');
+      memoInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
     async function pasteMemo() {
       const memoInput = byId('memoInput');
       if (!memoInput) return;
+
+      memoInput.focus();
       try {
         const text = await navigator.clipboard.readText();
-        memoInput.value = text || '';
+        insertTextIntoMemo(memoInput, text);
+        memoInput.focus();
         showToast('貼り付けました');
         setStatus('貼り付け成功');
       } catch (_) {
-        setStatus('貼り付け失敗', true);
+        const fallback = window.prompt('クリップボードへのアクセスに失敗しました。貼り付ける文字列を入力してください。', '');
+        if (fallback === null) {
+          setStatus('貼り付け失敗', true);
+          return;
+        }
+        insertTextIntoMemo(memoInput, fallback);
+        memoInput.focus();
+        showToast('貼り付けました');
+        setStatus('貼り付け成功');
       }
     }
 
