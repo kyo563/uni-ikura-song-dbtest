@@ -14,7 +14,7 @@
       --radius-sm: 8px;
       --radius-md: 12px;
       --control-height: 36px;
-      --font-control: 13px;
+      --font-control: 16px;
       --surface: #e6ffff;
       --surface-2: #c6e9f7;
       --text: #0f172a;
@@ -28,6 +28,7 @@
       --bg-scroll-brightness: 0;
       --scroll-top-offset: 0px;
       --dummy-end-card-height: 72px;
+      --dummy-top-card-height: 72px;
       --layout-side-padding: var(--space-4);
     }
 
@@ -117,10 +118,7 @@
       z-index: 1;
       width: min(100%, 1080px);
       margin: 0 auto;
-      display: grid;
-      gap: var(--space-3);
-      grid-template-rows: auto minmax(0, 1fr) auto;
-      min-height: 0;
+      min-height: 100%;
       flex: 1;
     }
     .card {
@@ -285,7 +283,12 @@
     }
 
     .top-form {
-      position: relative;
+      position: fixed;
+      left: 0;
+      transform: none;
+      width: min(calc(100vw - (var(--layout-side-padding) * 2)), 1080px);
+      top: calc(var(--space-4) + env(safe-area-inset-top));
+      z-index: 70;
       padding-top: calc(var(--space-3) + 14px);
       padding-bottom: 20px;
       overflow: visible;
@@ -542,8 +545,8 @@
 
     .bottom-form {
       position: fixed;
-      left: 50%;
-      transform: translateX(-50%);
+      left: 0;
+      transform: none;
       width: min(calc(100vw - (var(--layout-side-padding) * 2)), 1080px);
       bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
       z-index: 60;
@@ -689,6 +692,14 @@
       padding: 0;
       background: transparent;
       border: 0;
+      position: fixed;
+      left: 0;
+      transform: none;
+      width: min(calc(100vw - (var(--layout-side-padding) * 2)), 1080px);
+      top: calc(var(--space-4) + env(safe-area-inset-top));
+      bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+      z-index: 10;
+      overflow: hidden;
     }
 
     .song-card {
@@ -956,6 +967,18 @@
       border-radius: var(--radius-sm);
       padding: var(--space-2);
       min-height: var(--dummy-end-card-height);
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      display: grid;
+      place-items: center;
+    }
+
+    .dummy-top-card {
+      border: 1px dashed var(--line);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2);
+      min-height: var(--dummy-top-card-height);
       text-align: center;
       color: var(--muted);
       font-size: 12px;
@@ -1479,28 +1502,34 @@
     }
 
     function updateMiddleCardsHeight() {
-      if (!rows || !isMobileLayout()) {
-        rows?.style.removeProperty('max-height');
-        return;
-      }
+      if (!rows) return;
 
-      const bottomForm = document.querySelector('.bottom-form');
-      if (!bottomForm) return;
+      const middleForm = document.querySelector('.middle-form');
+      if (!middleForm) return;
 
-      const rowsRect = rows.getBoundingClientRect();
-      const bottomRect = bottomForm.getBoundingClientRect();
-      const available = Math.floor(bottomRect.bottom - rowsRect.top - 4);
+      const middleRect = middleForm.getBoundingClientRect();
+      const available = Math.floor(middleRect.height - 4);
       if (available > 120) {
         rows.style.maxHeight = `${available}px`;
+      } else {
+        rows.style.removeProperty('max-height');
       }
     }
 
-    function updateDummyEndCardHeight() {
+    function updateDummyCardsHeight() {
+      const topForm = byId('topForm');
+      if (topForm) {
+        const topHeight = Math.ceil(topForm.getBoundingClientRect().height + 8);
+        if (topHeight > 0) {
+          document.documentElement.style.setProperty('--dummy-top-card-height', `${topHeight}px`);
+        }
+      }
+
       const searchPanel = document.querySelector('.bottom-panel[aria-label="検索フォームカード"]');
       if (!searchPanel) return;
-      const height = Math.ceil(searchPanel.getBoundingClientRect().height * 2);
-      if (height > 0) {
-        document.documentElement.style.setProperty('--dummy-end-card-height', `${height}px`);
+      const bottomHeight = Math.ceil(searchPanel.getBoundingClientRect().height * 2);
+      if (bottomHeight > 0) {
+        document.documentElement.style.setProperty('--dummy-end-card-height', `${bottomHeight}px`);
       }
     }
 
@@ -1795,13 +1824,13 @@
       totalCount.textContent = String(totals.total ?? items.length);
 
       if (!items.length) {
-        rows.innerHTML = '<div class="muted">該当データがありません</div><div class="dummy-end-card">--- END ---</div>';
+        rows.innerHTML = '<div class="dummy-top-card">--- TOP ---</div><div class="muted">該当データがありません</div><div class="dummy-end-card">--- END ---</div>';
         rows.dataset.selected = '{}';
         state.selectedSongId = '';
         return;
       }
 
-      rows.innerHTML = items.map((item) => {
+      const cardsHtml = items.map((item) => {
         const id = stableSongId(item);
         const detailLinks = linksForExpanded(item);
         const singingTagHtml = detailLinks.singingTagLabel
@@ -1848,7 +1877,9 @@
             </div>
           </article>
         `;
-      }).join('') + '<div class="dummy-end-card">--- END ---</div>';
+      }).join('');
+
+      rows.innerHTML = '<div class="dummy-top-card">--- TOP ---</div>' + cardsHtml + '<div class="dummy-end-card">--- END ---</div>';
 
       rows.querySelectorAll('.song-card').forEach((el, idx) => {
         const item = items[idx] || {};
@@ -2224,19 +2255,32 @@
 
       const updateScrollTopOffset = () => {
         const container = byId('songsPage');
+        const topForm = byId('topForm');
+        const middleForm = document.querySelector('.middle-form');
         const bottomForm = document.querySelector('.bottom-form');
         if (!bottomForm || !container) return;
 
         const containerRect = container.getBoundingClientRect();
-        bottomForm.style.left = `${Math.round(containerRect.left)}px`;
-        bottomForm.style.width = `${Math.round(containerRect.width)}px`;
+        const sharedLeft = `${Math.round(containerRect.left)}px`;
+        const sharedWidth = `${Math.round(containerRect.width)}px`;
+
+        if (topForm) {
+          topForm.style.left = sharedLeft;
+          topForm.style.width = sharedWidth;
+        }
+        if (middleForm) {
+          middleForm.style.left = sharedLeft;
+          middleForm.style.width = sharedWidth;
+        }
+        bottomForm.style.left = sharedLeft;
+        bottomForm.style.width = sharedWidth;
 
         const rect = bottomForm.getBoundingClientRect();
         const overlap = Math.max(0, window.innerHeight - rect.top);
         const offset = overlap > 0 ? overlap + 8 : 0;
         document.documentElement.style.setProperty('--scroll-top-offset', `${offset}px`);
         updateMiddleCardsHeight();
-        updateDummyEndCardHeight();
+        updateDummyCardsHeight();
         syncTopPanelSize();
       };
 
