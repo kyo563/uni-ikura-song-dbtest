@@ -1385,7 +1385,7 @@
 
       const collapsedHeight = getCollapsedTopHeight(topForm, filterPanel);
 
-      if (!hasCollapsed) topForm.classList.remove('collapsed');
+      topForm.classList.toggle('collapsed', hasCollapsed);
 
       if (expandedHeight > 0) {
         topForm.style.setProperty('--top-expanded-height', `${expandedHeight}px`);
