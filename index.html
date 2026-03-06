@@ -1426,7 +1426,7 @@
       }
 
       collapseButton?.addEventListener('click', () => {
-        if (!isMobileLayout() || !topForm) return;
+        if (!topForm) return;
         topForm.classList.add('collapsed');
         topFormCollapsedByScroll = true;
         syncTopPanelSize();
