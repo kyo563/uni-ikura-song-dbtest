@@ -63,7 +63,7 @@ function buildSongsPayload_() {
     const tag = clean_(row[2]); // C
     const liveField = clean_(row[3]); // D
     const liveRich = richRow[3] || null; // D rich text
-    // E列(出典元情報)は現行フロント/Workerとも未使用のため読み捨て
+    const source = clean_(row[4]); // E
     const checked = clean_(row[5]); // F
 
     if (!isChecked_(checked) || !artist || !title) continue;
@@ -80,14 +80,22 @@ function buildSongsPayload_() {
     const kind = hasLive ? 'live' : (memoKind || 'other');
 
     items.push({
+      id: String(i + 2),
       title,
       artist,
       kind,
       memo: tag,
       singingTag: tag,
+      source,
+      checked: true,
       liveLink: liveUrl || '',
       liveTitle: liveTitle || '',
+      singingTagLink: liveUrl || '',
       lastSungDate: normalizedLiveDate,
+      otherLink: '',
+      otherPublishedAt: '',
+      // 互換フィールド（既存UI/Worker向け）
+      url: liveUrl || '',
       publishedAt: normalizedLiveDate,
     });
   }
@@ -165,6 +173,12 @@ function extractUrl_(text) {
   if (!text) return '';
   const m = String(text).match(/https?:\/\/[^\s)]+/i);
   return m ? m[0] : '';
+}
+
+function extractYmd_(text) {
+  if (!text) return '';
+  const m = String(text).match(/(^|\D)(\d{8})(\D|$)/);
+  return m ? m[2] : '';
 }
 
 function extractLeadingYmd_(text) {
