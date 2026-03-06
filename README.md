@@ -11,6 +11,7 @@
 - `.github/workflows/sync-songs-to-r2.yml`: GAS -> R2 定期同期
 - `scripts/sync_songs_to_r2.sh`: 同期用スクリプト
 - `worker.js`: 補助API（`/api/songs`, `/api/health`）。**通常運用では未使用（任意）**で、フロント表示はR2公開URLを直接参照。
+- `wrangler.optional.toml`: Workerを使いたい場合のみ有効化して使う設定ファイル（既定では無効化）
 - `index.html`: 楽曲検索UI
 
 ---
@@ -103,14 +104,14 @@ bash scripts/verify_r2_upload_and_read.sh
 
 ## リポジトリ譲渡（移設）時のチェックリスト
 
-このアプリは、設定値をSecrets / `wrangler.toml` / `index.html` に分離しているため、譲渡時は次だけ差し替えれば継続開発できます。
+このアプリは、設定値をSecrets / （任意で）`wrangler.optional.toml` / `index.html` に分離しているため、譲渡時は次だけ差し替えれば継続開発できます。
 
 1. GitHubでリポジトリを移設/rename
    - 例: `uni-ikura-songsDB`
 2. GitHub Secretsを新しいリポジトリへ再設定
    - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_OBJECT_KEY`, `GAS_SONGS_API_URL`
 3. `index.html` の `meta[name="songs-r2-json-url"]` を新しいR2公開URLへ変更
-4. `wrangler.toml` の `name` / `bucket_name` が移設先の命名と一致しているか確認
+4. （Workerを使う場合のみ）`wrangler.optional.toml` を `wrangler.toml` にリネームし、`name` / `bucket_name` が移設先の命名と一致しているか確認
 5. Actionsの手動実行（`workflow_dispatch`）で `songs.json` 同期を確認
 6. GitHub Pages / Workers URLで表示・検索・コピーの動作確認
 
@@ -163,6 +164,7 @@ bash scripts/verify_r2_upload_and_read.sh
 ## 4. 動作確認
 
 ```bash
+cp wrangler.optional.toml wrangler.toml
 npx wrangler dev
 ```
 
