@@ -29,7 +29,7 @@
       --bg-scroll-brightness: 0;
       --scroll-top-offset: 0px;
       --dummy-end-card-height: 72px;
-      --dummy-top-card-height: 72px;
+      --dummy-top-card-height: 73px;
       --layout-side-padding: var(--space-4);
     }
 
@@ -330,8 +330,14 @@
     }
 
     .top-panel {
+      position: relative;
       width: 50%;
       min-width: 0;
+    }
+
+    .top-panel .page-indicator {
+      right: var(--space-2);
+      bottom: var(--space-1);
     }
 
     .top-panel[aria-label="メモカード"] {
@@ -612,11 +618,39 @@
     }
 
     .bottom-panel {
+      position: relative;
       width: 50%;
       padding: var(--space-1) var(--space-2);
       display: grid;
       gap: var(--space-1);
       min-width: 0;
+    }
+
+    .bottom-panel .page-indicator {
+      left: var(--space-2);
+      top: var(--space-1);
+    }
+
+    .page-indicator {
+      position: absolute;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .page-indicator .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--line) 85%, white 15%);
+      opacity: 0.85;
+    }
+
+    .page-indicator .dot.active {
+      background: #3dff3d;
+      opacity: 1;
     }
 
     @keyframes swipe-hint {
@@ -935,16 +969,6 @@
       }
     }
 
-    #scrollTop {
-      position: fixed;
-      right: var(--space-4);
-      bottom: calc(var(--space-4) + var(--scroll-top-offset));
-      z-index: 20;
-      display: none;
-    }
-
-    #scrollTop.show { display: inline-flex; }
-
     .my-danmaku-form {
       display: grid;
       gap: var(--space-2);
@@ -1098,6 +1122,7 @@
                 </div>
               </div>
             </div>
+            <div class="page-indicator" aria-hidden="true"><span class="dot active"></span><span class="dot"></span></div>
           </section>
 
           <section class="top-panel" aria-label="メモカード">
@@ -1108,6 +1133,7 @@
                 <button id="pasteMemo" type="button">ペースト</button>
               </div>
             </div>
+            <div class="page-indicator" aria-hidden="true"><span class="dot"></span><span class="dot active"></span></div>
           </section>
         </div>
       </div>
@@ -1121,6 +1147,7 @@
       <div class="bottom-swipe-wrap" id="bottomSwipeWrap">
         <div class="bottom-swipe-track" id="bottomSwipeTrack">
           <section class="bottom-panel" aria-label="検索フォームカード">
+            <div class="page-indicator" aria-hidden="true"><span class="dot active"></span><span class="dot"></span></div>
             <div class="ratio-8-2 search-inline">
               <label aria-label="検索">
                 <input id="q" type="search" aria-label="検索" placeholder="曲名 / アーティスト">
@@ -1130,6 +1157,7 @@
           </section>
 
           <section class="bottom-panel my-danmaku-form" aria-label="マイ弾幕カード">
+            <div class="page-indicator" aria-hidden="true"><span class="dot"></span><span class="dot active"></span></div>
             <div class="my-danmaku-row">
               <input id="myEmoji" type="text" placeholder="🎨" maxlength="6" aria-label="絵文字入力">
               <button class="primary" id="saveMyDanmaku" type="button">弾幕を作成する</button>
@@ -1160,7 +1188,6 @@
     </section>
   </main>
 
-  <button id="scrollTop" class="primary" type="button">↑ 上へ</button>
   <div id="toast" class="toast" aria-live="polite" role="status"></div>
 
   <script>
@@ -1558,7 +1585,7 @@
           ? '--top-collapsed-height'
           : '--top-expanded-height';
         const topCssHeight = getComputedStyle(topForm).getPropertyValue(topVarName).trim();
-        const correctionPx = 3;
+        const correctionPx = 4;
         if (topCssHeight) {
           const correctedHeight = isCollapsed
             ? `calc(${topCssHeight} + ${correctionPx}px)`
@@ -2379,14 +2406,6 @@
         syncTopPanelSize();
       };
 
-      byId('scrollTop').addEventListener('click', () => {
-        if (rows && rows.scrollTop > 0) {
-          rows.scrollTo({ top: 0, behavior: 'smooth' });
-          return;
-        }
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-
       let lastBubbleAt = 0;
       let previousRowsScrollTop = 0;
       const maybeBubble = () => {
@@ -2398,8 +2417,6 @@
 
       window.addEventListener('scroll', () => {
         updateTopFormCollapseByScroll();
-        const scrollTopValue = Math.max(window.scrollY, rows?.scrollTop ?? 0);
-        byId('scrollTop').classList.toggle('show', scrollTopValue > 280);
         updateScrollTopOffset();
         maybeBubble();
       });
@@ -2420,8 +2437,6 @@
         }
 
         updateTopFormCollapseByScroll();
-        const scrollTopValue = Math.max(window.scrollY, rows.scrollTop);
-        byId('scrollTop').classList.toggle('show', scrollTopValue > 280);
         collapseExpandedWhenOutOfView();
       });
 
