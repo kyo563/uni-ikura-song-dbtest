@@ -1550,16 +1550,22 @@
     function updateDummyCardsHeight() {
       const topForm = byId('topForm');
       if (topForm) {
-        const topVarName = topForm.classList.contains('collapsed')
+        const isCollapsed = topForm.classList.contains('collapsed');
+        const topVarName = isCollapsed
           ? '--top-collapsed-height'
           : '--top-expanded-height';
         const topCssHeight = getComputedStyle(topForm).getPropertyValue(topVarName).trim();
+        const correctionPx = 3;
         if (topCssHeight) {
-          document.documentElement.style.setProperty('--dummy-top-card-height', topCssHeight);
+          const correctedHeight = isCollapsed
+            ? `calc(${topCssHeight} + ${correctionPx}px)`
+            : topCssHeight;
+          document.documentElement.style.setProperty('--dummy-top-card-height', correctedHeight);
         } else {
           const topHeight = Math.ceil(topForm.getBoundingClientRect().height);
           if (topHeight > 0) {
-            document.documentElement.style.setProperty('--dummy-top-card-height', `${topHeight}px`);
+            const correctedHeight = isCollapsed ? topHeight + correctionPx : topHeight;
+            document.documentElement.style.setProperty('--dummy-top-card-height', `${correctedHeight}px`);
           }
         }
       }
