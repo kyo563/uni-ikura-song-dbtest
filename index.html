@@ -1371,6 +1371,7 @@
       topMenuCollapsed = Boolean(nextCollapsed);
       applyTopFormCollapsedState();
       syncTopPanelSize();
+      updateDummyCardsHeight();
     }
 
     function syncTopPanelSize() {
@@ -1394,7 +1395,10 @@
         topForm.style.setProperty('--top-collapsed-height', `${collapsedHeight}px`);
       }
 
-      window.requestAnimationFrame(updateMiddleCardsHeight);
+      window.requestAnimationFrame(() => {
+        updateMiddleCardsHeight();
+        updateDummyCardsHeight();
+      });
     }
 
     function setupTopSwipe() {
@@ -1420,6 +1424,7 @@
           }
           applyTopFormCollapsedState();
           syncTopPanelSize();
+          updateDummyCardsHeight();
         },
       });
       setTopSwipeCard = topSwipe.setCard;
