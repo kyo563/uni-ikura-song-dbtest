@@ -28,6 +28,7 @@
       --bg-scroll-brightness: 0;
       --scroll-top-offset: 0px;
       --dummy-end-card-height: 72px;
+      --layout-side-padding: var(--space-4);
     }
 
     * { box-sizing: border-box; }
@@ -540,6 +541,9 @@
 
     .bottom-form {
       position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(calc(100vw - (var(--layout-side-padding) * 2)), 1080px);
       bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
       z-index: 60;
       box-shadow: 0 12px 22px rgb(15 23 42 / 24%);
@@ -607,6 +611,10 @@
     }
 
     @media (max-width: 860px) {
+      :root {
+        --layout-side-padding: var(--space-2);
+      }
+
       body { padding: var(--space-2); }
       .card :is(input, select) { font-size: 16px; }
       #memoInput { font-size: 16px; }
