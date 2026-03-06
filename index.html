@@ -30,6 +30,9 @@
       --scroll-top-offset: 0px;
       --dummy-end-card-height: 72px;
       --dummy-top-card-height: 80px;
+      --dummy-top-card-height-fixed: auto;
+      --dummy-top-card-extra-expanded: 3px;
+      --dummy-top-card-extra-collapsed: 7px;
       --layout-side-padding: var(--space-4);
     }
 
@@ -634,13 +637,15 @@
     }
 
     .page-indicator.top-indicator {
-      right: var(--space-2);
-      bottom: calc(var(--space-2) - 5px);
+      right: calc(var(--space-2) + 2px);
+      bottom: 0;
+      transform: translateY(50%);
     }
 
     .page-indicator.bottom-indicator {
-      left: var(--space-2);
-      top: calc(var(--space-2) - 7px);
+      left: calc(var(--space-2) + 2px);
+      top: 0;
+      transform: translateY(-50%);
     }
 
     .page-indicator .dot {
@@ -1079,8 +1084,8 @@
   <div id="scrollBubbles" class="scroll-bubbles" aria-hidden="true"></div>
   <main class="container" id="songsPage">
     <section class="card top-form" id="topForm">
+      <div class="page-indicator top-indicator" id="topPageIndicator" aria-hidden="true"><span class="dot active"></span><span class="dot"></span></div>
       <div class="top-swipe-wrap" id="topSwipeWrap">
-        <div class="page-indicator top-indicator" id="topPageIndicator" aria-hidden="true"><span class="dot active"></span><span class="dot"></span></div>
         <div class="top-swipe-track" id="topSwipeTrack">
           <section class="top-panel" aria-label="絞り込みカード">
             <div class="top-summary">
@@ -1149,8 +1154,8 @@
     </section>
 
     <section class="card bottom-form">
+      <div class="page-indicator bottom-indicator" id="bottomPageIndicator" aria-hidden="true"><span class="dot active"></span><span class="dot"></span></div>
       <div class="bottom-swipe-wrap" id="bottomSwipeWrap">
-        <div class="page-indicator bottom-indicator" id="bottomPageIndicator" aria-hidden="true"><span class="dot active"></span><span class="dot"></span></div>
         <div class="bottom-swipe-track" id="bottomSwipeTrack">
           <section class="bottom-panel" aria-label="検索フォームカード">
             <div class="ratio-8-2 search-inline">
@@ -1612,25 +1617,26 @@
     function updateDummyCardsHeight() {
       const topForm = byId('topForm');
       if (topForm) {
-        const isCollapsed = topForm.classList.contains('collapsed');
-        const topVarName = isCollapsed
-          ? '--top-collapsed-height'
-          : '--top-expanded-height';
-        const topCssHeight = getComputedStyle(topForm).getPropertyValue(topVarName).trim();
-        const correctionPx = 4;
-        const extraTopDummyPx = 3;
-        if (topCssHeight) {
-          const correctedHeight = isCollapsed
-            ? `calc(${topCssHeight} + ${correctionPx + extraTopDummyPx}px)`
-            : `calc(${topCssHeight} + ${extraTopDummyPx}px)`;
-          document.documentElement.style.setProperty('--dummy-top-card-height', correctedHeight);
+        const rootStyle = getComputedStyle(document.documentElement);
+        const fixedTopDummyHeight = rootStyle.getPropertyValue('--dummy-top-card-height-fixed').trim();
+        if (fixedTopDummyHeight && fixedTopDummyHeight !== 'auto') {
+          document.documentElement.style.setProperty('--dummy-top-card-height', fixedTopDummyHeight);
         } else {
-          const topHeight = Math.ceil(topForm.getBoundingClientRect().height);
-          if (topHeight > 0) {
-            const correctedHeight = isCollapsed
-              ? topHeight + correctionPx + extraTopDummyPx
-              : topHeight + extraTopDummyPx;
-            document.documentElement.style.setProperty('--dummy-top-card-height', `${correctedHeight}px`);
+          const isCollapsed = topForm.classList.contains('collapsed');
+          const topVarName = isCollapsed
+            ? '--top-collapsed-height'
+            : '--top-expanded-height';
+          const topCssHeight = getComputedStyle(topForm).getPropertyValue(topVarName).trim();
+          const extraExpanded = rootStyle.getPropertyValue('--dummy-top-card-extra-expanded').trim() || '3px';
+          const extraCollapsed = rootStyle.getPropertyValue('--dummy-top-card-extra-collapsed').trim() || '7px';
+          const extraTopDummy = isCollapsed ? extraCollapsed : extraExpanded;
+          if (topCssHeight) {
+            document.documentElement.style.setProperty('--dummy-top-card-height', `calc(${topCssHeight} + ${extraTopDummy})`);
+          } else {
+            const topHeight = Math.ceil(topForm.getBoundingClientRect().height);
+            if (topHeight > 0) {
+              document.documentElement.style.setProperty('--dummy-top-card-height', `calc(${topHeight}px + ${extraTopDummy})`);
+            }
           }
         }
       }
