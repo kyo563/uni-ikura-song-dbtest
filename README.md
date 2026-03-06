@@ -137,14 +137,19 @@ bash scripts/verify_r2_upload_and_read.sh
 {
   "items": [
     {
+      "id": "2",
       "title": "曲名",
       "artist": "アーティスト名",
       "kind": "live",
       "memo": "備考",
-      "singingTag": "備考",
+      "source": "出典元情報",
+      "checked": true,
       "liveLink": "https://...",
       "liveTitle": "配信タイトル",
       "lastSungDate": "2025-01-20",
+      "otherLink": "https://...",
+      "otherPublishedAt": "",
+      "url": "https://...",
       "publishedAt": "2025-01-20"
     }
   ],
@@ -156,7 +161,8 @@ bash scripts/verify_r2_upload_and_read.sh
 
 補足:
 - `lastSungDate`: 歌枠直リンクの先頭8桁 (`yyyymmdd`) から生成
-- `publishedAt`: ソート・表示の基準日（`lastSungDate` と同じ日付を格納）
+- `otherPublishedAt`: 歌枠実績がなく、歌ってみた/ショートのみの場合に利用
+- `url/publishedAt`: 既存UI互換のために同梱
 
 ---
 
