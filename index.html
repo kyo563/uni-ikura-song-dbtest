@@ -290,7 +290,7 @@
       top: calc(var(--space-4) + env(safe-area-inset-top));
       z-index: 70;
       padding-top: calc(var(--space-3) + 14px);
-      padding-bottom: 20px;
+      padding-bottom: 0;
       overflow: visible;
       --top-expanded-height: 170px;
       --top-collapsed-height: 0px;
@@ -299,7 +299,7 @@
     .top-swipe-wrap {
       overflow: hidden;
       width: 100%;
-      min-height: 170px;
+      min-height: 0;
       height: var(--top-expanded-height);
       transition: height 0.25s ease;
     }
@@ -309,10 +309,8 @@
     }
 
     .top-form.collapsed {
-      padding: 0;
-      border-color: transparent;
-      background: transparent;
-      box-shadow: none;
+      padding-top: calc(var(--space-3) + 14px);
+      padding-bottom: 0;
       min-height: 24px;
     }
 
