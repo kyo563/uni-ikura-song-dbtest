@@ -2054,6 +2054,14 @@
       } catch (_) {}
     }
 
+    function isSameOriginRequest(url) {
+      try {
+        return new URL(url, location.href).origin === location.origin;
+      } catch (_) {
+        return false;
+      }
+    }
+
     async function load() {
       setStatus('読込');
       clearErrorLog();
@@ -2094,8 +2102,9 @@
         for (const candidateUrl of requestCandidates) {
           requestUrl = candidateUrl;
           try {
+            const shouldSendIfNoneMatch = cached?.etag && isSameOriginRequest(candidateUrl);
             res = await fetch(candidateUrl, {
-              headers: cached?.etag ? { 'If-None-Match': cached.etag } : {},
+              headers: shouldSendIfNoneMatch ? { 'If-None-Match': cached.etag } : {},
             });
           } catch (fetchErr) {
             lastError = fetchErr;
