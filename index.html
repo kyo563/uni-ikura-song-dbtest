@@ -627,6 +627,7 @@
     }
 
     .page-indicator {
+      --indicator-dot-size: 6px;
       position: absolute;
       display: inline-flex;
       align-items: center;
@@ -639,18 +640,18 @@
     .page-indicator.top-indicator {
       right: calc(var(--space-2) + 3px);
       bottom: 0;
-      transform: translateY(50%);
+      transform: translateY(calc(50% - var(--indicator-dot-size)));
     }
 
     .page-indicator.bottom-indicator {
       left: calc(var(--space-2) + 3px);
       top: 0;
-      transform: translateY(-50%);
+      transform: translateY(calc(-50% + var(--indicator-dot-size)));
     }
 
     .page-indicator .dot {
-      width: 6px;
-      height: 6px;
+      width: var(--indicator-dot-size);
+      height: var(--indicator-dot-size);
       border-radius: 50%;
       background: #111;
       opacity: 0.92;
