@@ -637,13 +637,13 @@
     }
 
     .page-indicator.top-indicator {
-      right: calc(var(--space-2) + 2px);
+      right: calc(var(--space-2) + 3px);
       bottom: 0;
       transform: translateY(50%);
     }
 
     .page-indicator.bottom-indicator {
-      left: calc(var(--space-2) + 2px);
+      left: calc(var(--space-2) + 3px);
       top: 0;
       transform: translateY(-50%);
     }
@@ -1025,7 +1025,7 @@
       border: 0;
       border-radius: var(--radius-sm);
       padding: var(--space-2);
-      min-height: var(--dummy-top-card-height);
+      min-height: calc(var(--dummy-top-card-height) + 1em);
       text-align: center;
       color: var(--muted);
       font-size: 12px;
