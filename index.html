@@ -365,7 +365,15 @@
     }
 
     .top-summary {
-      margin-bottom: var(--space-2);
+      margin-bottom: 0;
+    }
+
+    .top-collapsible {
+      margin-top: var(--space-2);
+      max-height: 360px;
+      opacity: 1;
+      overflow: hidden;
+      transition: max-height 0.25s ease, opacity 0.2s ease, margin-top 0.2s ease;
     }
 
     .summary-box {
@@ -494,29 +502,11 @@
       display: none;
     }
 
-    .top-form.collapsed .top-advanced {
-      display: none;
-    }
-
-    .top-form.collapsed .top-summary {
-      margin-bottom: 0;
-    }
-
-    .sort-row {
-      max-height: 120px;
-      opacity: 1;
-      overflow: hidden;
-      transition: max-height 0.2s ease, opacity 0.2s ease;
-    }
-
-    .top-form.collapsed .sort-row {
+    .top-form.collapsed .top-collapsible {
       max-height: 0;
       opacity: 0;
+      margin-top: 0;
       pointer-events: none;
-    }
-
-    .top-form.collapsed .checkbox-row {
-      display: none;
     }
 
     .top-form.collapsed .top-expand-btn {
@@ -1068,34 +1058,36 @@
               </div>
             </div>
 
-            <div id="errorLogWrap" class="error-log-wrap" aria-live="polite">
-              <div class="error-log-head">
-                <strong>エラー情報</strong>
-                <button id="copyErrorLog" type="button">コピー</button>
+            <div class="top-collapsible">
+              <div id="errorLogWrap" class="error-log-wrap" aria-live="polite">
+                <div class="error-log-head">
+                  <strong>エラー情報</strong>
+                  <button id="copyErrorLog" type="button">コピー</button>
+                </div>
+                <pre id="errorLog" class="error-log">エラー時に情報を表示します。</pre>
               </div>
-              <pre id="errorLog" class="error-log">エラー時に情報を表示します。</pre>
-            </div>
 
-            <div class="top-advanced">
-              <div class="checkbox-row" aria-label="絞り込み">
-                  <label><input type="checkbox" id="kindLive" checked>歌枠</label>
-                  <label><input type="checkbox" id="kindCover" checked>歌ってみた</label>
-                  <label><input type="checkbox" id="kindShort" checked>ショート</label>
-              </div>
-              <div class="sort-row" aria-label="表示切替">
-                <label aria-label="並び替え項目">
-                  <select id="sortField" aria-label="並び替え項目">
-                    <option value="artist">アーティスト名</option>
-                    <option value="title">楽曲名</option>
-                    <option value="date" selected>投稿日</option>
-                  </select>
-                </label>
-                <label aria-label="並び順">
-                  <select id="sortOrder" aria-label="並び順">
-                    <option value="asc">昇順</option>
-                    <option value="desc" selected>降順</option>
-                  </select>
-                </label>
+              <div class="top-advanced">
+                <div class="checkbox-row" aria-label="絞り込み">
+                    <label><input type="checkbox" id="kindLive" checked>歌枠</label>
+                    <label><input type="checkbox" id="kindCover" checked>歌ってみた</label>
+                    <label><input type="checkbox" id="kindShort" checked>ショート</label>
+                </div>
+                <div class="sort-row" aria-label="表示切替">
+                  <label aria-label="並び替え項目">
+                    <select id="sortField" aria-label="並び替え項目">
+                      <option value="artist">アーティスト名</option>
+                      <option value="title">楽曲名</option>
+                      <option value="date" selected>投稿日</option>
+                    </select>
+                  </label>
+                  <label aria-label="並び順">
+                    <select id="sortOrder" aria-label="並び順">
+                      <option value="asc">昇順</option>
+                      <option value="desc" selected>降順</option>
+                    </select>
+                  </label>
+                </div>
               </div>
             </div>
           </section>
