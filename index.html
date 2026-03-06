@@ -1239,13 +1239,25 @@
     const statusShell = byId('statusShell');
     let toastTimer = null;
 
-    function setStatus(text, isError = false) {
+    function setStatus(text, state = 'ok') {
       status.textContent = text;
-      if (isError) {
-        statusShell.dataset.state = 'error';
-        return;
-      }
-      statusShell.dataset.state = text.includes('読込') ? 'loading' : 'ok';
+      statusShell.dataset.state = state;
+    }
+
+    function setLoadingStatus() {
+      setStatus('読込中…', 'loading');
+    }
+
+    function setRunningStatus(visibleCount, totalCount) {
+      setStatus(`サーバー稼働中(${visibleCount}/${totalCount}件 表示)`, 'ok');
+    }
+
+    function setStoppedStatus() {
+      setStatus('サーバー停止中', 'ok');
+    }
+
+    function setErrorStatus() {
+      setStatus('エラー', 'error');
     }
 
     function showToast(text, durationMs = 300) {
@@ -1295,12 +1307,12 @@
 
     async function copyErrorLog() {
       if (!latestErrorLogText) {
-        setStatus('ログなし', true);
+        showToast('ログなし');
         return;
       }
       const copied = await copyTextToClipboard(latestErrorLogText);
       if (!copied) {
-        setStatus('ログ失敗', true);
+        setErrorStatus();
       }
     }
 
@@ -2110,7 +2122,7 @@
     }
 
     async function load() {
-      setStatus('読込中…');
+      setLoadingStatus();
       clearErrorLog();
 
       const cached = loadCache();
@@ -2128,7 +2140,7 @@
         };
         setErrorLog(detail);
         rows.innerHTML = '<div class="error">データ取得先が未設定です。meta[name="songs-r2-json-url"] か localStorage("songs_r2_json_url") を設定してください。</div>';
-        setStatus('サーバーエラー', true);
+        setStoppedStatus();
         return;
       }
 
@@ -2187,7 +2199,7 @@
         if (res.status === 304 && cached?.payload) {
           const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
           render(cachedItems, { total: cached?.payload?.total ?? cachedItems.length });
-          setStatus(`通信成功（表示${cachedItems.length}曲）`);
+          setRunningStatus(cachedItems.length, cached?.payload?.total ?? cachedItems.length);
           return;
         }
 
@@ -2213,7 +2225,7 @@
           : (Array.isArray(payload?.items) ? payload.items : []);
         const filteredItems = filterItems(sourceItems);
         render(filteredItems, { total: payload?.total ?? sourceItems.length });
-        setStatus(`通信成功（表示${filteredItems.length}曲）`);
+        setRunningStatus(filteredItems.length, payload?.total ?? sourceItems.length);
 
         if (etag) saveCache({ etag, payload });
       } catch (err) {
@@ -2233,7 +2245,7 @@
         if (!cached?.payload) {
           rows.innerHTML = '<div class="error">データ取得に失敗しました。R2の公開URL設定を確認してください。</div>';
         }
-        setStatus('サーバーエラー', true);
+        setStoppedStatus();
       }
     }
 
@@ -2286,7 +2298,7 @@
       const type = byId('danmakuType').value;
       const isCustomDanmaku = type.startsWith('custom:');
       if (!isCustomDanmaku && type !== 'my') {
-        setStatus('対象なし', true);
+        showToast('対象なし');
         return;
       }
 
@@ -2295,7 +2307,7 @@
       if (isCustomDanmaku) text = type.slice('custom:'.length);
 
       if (!text.trim()) {
-        setStatus('対象なし', true);
+        showToast('対象なし');
         return;
       }
 
