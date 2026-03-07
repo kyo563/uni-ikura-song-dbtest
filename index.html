@@ -1941,7 +1941,7 @@
       totalCount.textContent = String(totals.total ?? items.length);
 
       if (!items.length) {
-        rows.innerHTML = '<div class="dummy-top-card">--- TOP ---</div><div class="muted">該当データがありません</div><div class="dummy-end-card">--- END ---</div>';
+        rows.innerHTML = '<div class="dummy-top-card">--- TOP ---</div><div class="muted">該当データがありません</div><div class="dummy-end-card">--- END --- <a href="https://lit.link/unisuke" target="_blank" rel="noopener noreferrer">https://lit.link/unisuke</a></div>';
         rows.dataset.selected = '{}';
         state.selectedSongId = '';
         return;
@@ -1996,7 +1996,7 @@
         `;
       }).join('');
 
-      rows.innerHTML = '<div class="dummy-top-card">--- TOP ---</div>' + cardsHtml + '<div class="dummy-end-card">--- END ---</div>';
+      rows.innerHTML = '<div class="dummy-top-card">--- TOP ---</div>' + cardsHtml + '<div class="dummy-end-card">--- END --- <a href="https://lit.link/unisuke" target="_blank" rel="noopener noreferrer">https://lit.link/unisuke</a></div>';
 
       rows.querySelectorAll('.song-card').forEach((el, idx) => {
         const item = items[idx] || {};
