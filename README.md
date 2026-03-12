@@ -16,6 +16,47 @@
 
 ---
 
+## 全体構成図
+
+```mermaid
+flowchart LR
+  subgraph DataSource[データソース]
+    Sheet[Googleスプレッドシート\nPerformance Record]
+    GAS[Apps Script\ngas/Code.gs]
+    Sheet --> GAS
+  end
+
+  subgraph Sync[定期同期]
+    GH[GitHub Actions\n.github/workflows/sync-songs-to-r2.yml]
+    Script[scripts/sync_songs_to_r2.sh]
+    GAS -->|JSON取得| GH
+    GH --> Script
+  end
+
+  subgraph Storage[配信ストレージ]
+    R2[Cloudflare R2\nsongs.json]
+    Script -->|アップロード| R2
+  end
+
+  subgraph Client[ユーザー向け配信]
+    Front[index.html\nGitHub Pagesなどで配信]
+    Browser[ユーザーのブラウザ]
+    Browser --> Front
+    Front -->|songs.jsonを直接取得| R2
+  end
+
+  subgraph Optional[任意(通常運用では未使用)]
+    Worker[Cloudflare Worker\nworker.js]
+    Browser -->|/api/songs, /api/health| Worker
+    Worker --> R2
+  end
+```
+
+- **通常経路**: `スプレッドシート → GAS → GitHub Actions → R2 → index.html(ブラウザ)`
+- **Worker経路（任意）**: API監視や補助用途で `worker.js` を経由可能
+
+---
+
 ## 1. GAS（スプレッドシート読み出し）
 
 対象シート名: `Performance Record`
