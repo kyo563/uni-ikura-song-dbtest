@@ -89,6 +89,22 @@ https://script.google.com/macros/s/AKfycbzU9lD1qRGocSkZvZJmh6FTw75XBnLMXgRIAyEDB
 - 定期実行: 毎日 JST 12:00（UTC 03:00）
 - 注記: GitHub Actions の cron は UTC 表記です。
 
+### Branch protection / Rulesets の必須チェック名を更新する
+
+`main` に対して古い必須チェック（例: `R2worker`）が残っていると、PR が常にブロックされます。  
+以下の手順で、現在の workflow/job 名に合わせて更新してください。
+
+1. GitHub の対象リポジトリで、次のいずれかを開く
+   - `Settings > Branches`（Branch protection rules）
+   - `Settings > Rules > Rulesets`
+2. `main` に適用されているルールを編集する。
+3. `Require status checks to pass before merging` の一覧から、旧チェック名（`R2worker` など）を削除する。
+4. 現行ワークフローに対応するチェックを追加する。
+   - Workflow 名: `Sync songs.json to Cloudflare R2`
+   - Job 名: `sync`
+   - 目安: チェック名は通常 `Sync songs.json to Cloudflare R2 / sync` の形式で表示されます。
+5. 保存後、PR を再実行して Required checks が上記チェックのみになっていることを確認する。
+
 ### 必要な GitHub Secrets
 
 - `GAS_SONGS_API_URL`（未設定時は以下のURLを使用）
