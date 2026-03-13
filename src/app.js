@@ -664,10 +664,6 @@ function headersToObject(headers) {
       bestExternalUrl,
     };
 
-    function cacheKey() {
-      return `${CACHE_PREFIX}:${state.q}|${state.kinds.join(',')}|${state.sortMode}`;
-    }
-
     function loadSongs() {
       const requestCandidates = [
         SONGS_JSON_URL_OVERRIDE,
