@@ -11,6 +11,10 @@ const SWIPE_HINT_INTERVAL_MS = 3 * 60 * 1000;
 const MAX_ERROR_BODY_CHARS = 4000;
 const ENABLE_ERROR_LOG_UI = true;
 
+function songsCacheKey() {
+  return `${CACHE_PREFIX}:${state.q}|${state.kinds.join(',')}|${state.sortMode}`;
+}
+
 const rows = byId('rows');
 const selectedCount = byId('selectedCount');
 const totalCount = byId('totalCount');
@@ -437,10 +441,6 @@ function headersToObject(headers) {
       }
     }
 
-    function cacheKey() {
-      return `${CACHE_PREFIX}:${state.q}|${state.kinds.join(',')}|${state.sortMode}`;
-    }
-
     function fmtDate(value) {
       if (!value) return '-';
       const d = new Date(value);
@@ -680,7 +680,7 @@ function headersToObject(headers) {
         render: (items, totals) => render(items, totals, renderDeps),
         headersToObject,
         clipText,
-        cacheKey,
+        cacheKey: songsCacheKey,
         requestCandidates,
         rows,
       });
