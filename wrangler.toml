@@ -1,4 +1,0 @@
-name = "uni-ikura-song-dbtest"
-main = "src/worker.js"
-compatibility_date = "2026-03-13"
-workers_dev = true

@@ -11,30 +11,17 @@
 - `.github/workflows/sync-songs-to-r2.yml`: GAS -> R2 定期同期
 - `scripts/sync_songs_to_r2.sh`: 同期用スクリプト
 - `index.html`: 楽曲検索UI
-- `wrangler.toml` / `src/worker.js`: Cloudflare Workers Builds 用の最小Worker（CI失敗回避用）
 
 ---
 
-## Cloudflare Workers Builds が失敗する理由と対応
+## Worker について
 
-このリポジトリは実運用で **Worker非依存（R2直接参照）** ですが、
-Cloudflare 側で Git 連携が有効だと `Cloudflare Workers and Pages / Workers Builds` が常に走ります。
+このリポジトリの実運用は **Worker非依存（R2直接参照）** です。
 
-従来は Worker エントリ設定（`wrangler.toml` + `main`）が無かったため、
-Workers Builds が「デプロイ対象のWorkerを解決できない」状態で失敗していました。
+- `index.html` は R2 の `songs.json` を直接 `fetch` します。
+- データ更新は GitHub Actions（GAS → R2）で完結します。
 
-### 影響
-
-- **アプリ本体（GitHub Pages + R2読み取り）には直接影響しません。**
-- ただし PR チェックとして失敗扱いになり、マージゲートを塞ぐ副作用があります。
-
-### 是正内容（このリポジトリでの方針）
-
-- `wrangler.toml` を追加し、ビルド対象を明示。
-- `src/worker.js` に最小のJSONレスポンスWorkerを配置。
-- これにより Workers Builds の失敗を防ぎ、PRチェックを安定化。
-
-> 実データ配信は引き続き R2 の `songs.json` を `index.html` が直接参照します。
+そのため、Worker エントリ（`wrangler.toml` / `src/worker.js`）は運用上必須ではありません。
 
 ---
 
