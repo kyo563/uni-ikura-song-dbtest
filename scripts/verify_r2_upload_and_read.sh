@@ -23,10 +23,26 @@ fi
 tmp_json="verify.songs.source.json"
 tmp_headers="verify.songs.headers"
 tmp_r2="verify.songs.r2.json"
-trap 'rm -f "$tmp_json" "$tmp_headers" "$tmp_r2"' EXIT
-
 run_id="$(date +%Y%m%d%H%M%S)"
 verify_key="${R2_OBJECT_KEY%.json}.verify.${run_id}.json"
+uploaded_verify_object=0
+
+cleanup() {
+  local exit_status=$?
+
+  rm -f "$tmp_json" "$tmp_headers" "$tmp_r2"
+
+  if [[ "$uploaded_verify_object" -eq 1 ]]; then
+    aws s3 rm "s3://${R2_BUCKET}/${verify_key}" --endpoint-url "$R2_ENDPOINT_URL" >/dev/null 2>&1 || {
+      echo "Warning: 検証用オブジェクトの削除に失敗しました: s3://${R2_BUCKET}/${verify_key}" >&2
+      true
+    }
+  fi
+
+  exit "$exit_status"
+}
+
+trap cleanup EXIT
 
 extract_http_status() {
   awk 'toupper($1) ~ /^HTTP\/.+/ { s=$2 } END { if (s != "") print s }' "$tmp_headers"
@@ -56,6 +72,7 @@ aws s3 cp "$tmp_json" "s3://${R2_BUCKET}/${verify_key}" \
   --endpoint-url "$R2_ENDPOINT_URL" \
   --content-type "application/json" \
   --cache-control "no-cache"
+uploaded_verify_object=1
 
 echo "[3/4] R2読み取り検証 (S3 API 経由)"
 aws s3 cp "s3://${R2_BUCKET}/${verify_key}" "$tmp_r2" --endpoint-url "$R2_ENDPOINT_URL"
