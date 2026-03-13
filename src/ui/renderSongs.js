@@ -66,6 +66,233 @@ export function extractVideoPreview(url) {
   return null;
 }
 
+const renderStateByRows = new WeakMap();
+
+function updatePreviewToggle(card, button, willShowPreview) {
+  card.classList.toggle('preview-visible', willShowPreview);
+  button.textContent = willShowPreview ? '▼リンクを閉じる' : '▶リンクを開く';
+  button.setAttribute('aria-expanded', String(willShowPreview));
+}
+
+function ensureRowsDelegatedEvents(rows, deps = {}) {
+  if (!rows || rows.dataset.delegatedEventsBound === '1') return;
+
+  const {
+    eventTargetElement,
+    isInteractiveTarget,
+    copyTextToClipboard,
+    showToast,
+    isMobileLayout,
+    collapseExpandedCards,
+  } = deps;
+
+  rows.addEventListener('click', (evt) => {
+    const targetEl = eventTargetElement(evt.target);
+    const card = targetEl?.closest?.('.song-card');
+    if (!card || !rows.contains(card)) return;
+
+    const renderState = renderStateByRows.get(rows);
+    if (!renderState) return;
+
+    const { state, itemById } = renderState;
+    const id = card.dataset.id || '';
+    const item = itemById.get(id) || {};
+
+    const previewToggleButton = targetEl?.closest?.('button[data-preview-toggle]');
+    if (previewToggleButton) {
+      updatePreviewToggle(card, previewToggleButton, !card.classList.contains('preview-visible'));
+      evt.stopPropagation();
+      return;
+    }
+
+    if (targetEl?.closest?.('a.song-detail-link, a.song-date-link')) {
+      evt.stopPropagation();
+      return;
+    }
+
+    if (targetEl?.closest?.('button[data-copy-kind]')) {
+      evt.preventDefault();
+      evt.stopPropagation();
+      const text = [String(item.title || '').trim(), String(item.artist || '').trim()].filter(Boolean).join(' / ');
+      copyTextToClipboard(text).then((copied) => { if (copied) showToast('コピーしました'); });
+      return;
+    }
+
+    state.selectedSongId = id;
+    rows.dataset.selected = JSON.stringify(item);
+
+    if (!isMobileLayout()) return;
+    const willExpand = !card.classList.contains('expanded');
+    collapseExpandedCards();
+    if (willExpand) card.classList.add('expanded');
+  });
+
+  rows.addEventListener('keydown', (evt) => {
+    const targetEl = eventTargetElement(evt.target);
+    const card = targetEl?.closest?.('.song-card');
+    if (!card || !rows.contains(card)) return;
+    if (isInteractiveTarget(evt.target)) return;
+    if (evt.key !== 'Enter' && evt.key !== ' ') return;
+
+    const renderState = renderStateByRows.get(rows);
+    if (!renderState) return;
+
+    const id = card.dataset.id || '';
+    const item = renderState.itemById.get(id) || {};
+    evt.preventDefault();
+    renderState.state.selectedSongId = id;
+    rows.dataset.selected = JSON.stringify(item);
+  });
+
+  rows.dataset.delegatedEventsBound = '1';
+}
+
+export function applySelectionState(items, deps = {}) {
+  const { rows, state, isMobileLayout } = deps;
+  if (!rows || !state) return;
+
+  if (!rows.querySelector(`.song-card[data-id="${CSS.escape(state.selectedSongId)}"]`)) {
+    const first = rows.querySelector('.song-card');
+    if (first) {
+      state.selectedSongId = first.dataset.id || '';
+      rows.dataset.selected = JSON.stringify(items[0] || {});
+    }
+  }
+
+  if (!isMobileLayout()) {
+    rows.querySelectorAll('.song-card').forEach((card) => card.classList.add('expanded'));
+  }
+}
+
+function buildCardElement(item, deps = {}) {
+  const { stableSongId, fmtDate, resolveSingingTag, bestExternalUrl } = deps;
+  const id = stableSongId(item);
+  const detailLinks = linksForExpanded(item, { resolveSingingTag, bestExternalUrl });
+
+  const article = document.createElement('article');
+  article.className = 'song-card';
+  article.dataset.id = id;
+  article.tabIndex = 0;
+
+  const main = document.createElement('div');
+  main.className = 'song-card-main';
+
+  const head = document.createElement('div');
+  head.className = 'song-head';
+
+  const summary = document.createElement('div');
+  summary.className = 'song-summary';
+  const title = document.createElement('div');
+  title.className = 'song-title';
+  title.textContent = String(item.title || '-');
+  const artist = document.createElement('div');
+  artist.className = 'song-artist';
+  artist.textContent = String(item.artist || '-');
+  summary.append(title, artist);
+
+  const copyButton = document.createElement('button');
+  copyButton.className = 'icon-btn copy-text-btn';
+  copyButton.type = 'button';
+  copyButton.dataset.copyKind = 'song-artist';
+  copyButton.title = '楽曲名 / アーティスト名をコピー';
+  copyButton.setAttribute('aria-label', '楽曲名 / アーティスト名をコピー');
+  copyButton.textContent = 'コピー';
+  head.append(summary, copyButton);
+
+  const details = document.createElement('div');
+  details.className = 'song-details';
+  const meta = document.createElement('div');
+  meta.className = 'song-meta';
+  const metaTop = document.createElement('div');
+  metaTop.className = 'song-meta-top';
+
+  const tagWrap = document.createElement('div');
+  if (detailLinks.singingTagLabel) {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = detailLinks.singingTagLabel;
+    tagWrap.appendChild(tag);
+  } else {
+    const muted = document.createElement('span');
+    muted.className = 'muted';
+    muted.textContent = '-';
+    tagWrap.appendChild(muted);
+  }
+
+  const latest = document.createElement('div');
+  latest.className = 'song-meta-latest';
+  latest.textContent = `Latest: ${fmtDate(item.lastSungDate || item.publishedAt)}`;
+  metaTop.append(tagWrap, latest);
+
+  const linkRow = document.createElement('div');
+  linkRow.className = 'song-link-row';
+  if (detailLinks.detailUrl) {
+    const linkInline = document.createElement('span');
+    linkInline.className = 'song-link-inline';
+
+    const toggleButton = document.createElement('button');
+    toggleButton.className = 'song-date-link toggle-preview-btn';
+    toggleButton.type = 'button';
+    toggleButton.dataset.previewToggle = '';
+    toggleButton.setAttribute('aria-expanded', 'false');
+    toggleButton.textContent = '▶リンクを開く';
+    linkInline.appendChild(toggleButton);
+
+    const rawLinkTitle = String(item.liveTitle || item.linkLabel || item.lastSungDate || '').trim();
+    if (rawLinkTitle) {
+      const titleLink = document.createElement('a');
+      titleLink.className = 'song-date-link song-link-title';
+      titleLink.target = '_blank';
+      titleLink.rel = 'noopener noreferrer';
+      titleLink.href = encodeURI(detailLinks.detailUrl);
+      titleLink.textContent = rawLinkTitle;
+      linkInline.appendChild(titleLink);
+    }
+
+    linkRow.appendChild(linkInline);
+
+    const preview = extractVideoPreview(detailLinks.detailUrl);
+    if (preview) {
+      const previewWrap = document.createElement('div');
+      previewWrap.className = 'song-preview-wrap';
+
+      const previewCard = document.createElement('a');
+      previewCard.className = 'song-preview-card song-detail-link';
+      previewCard.target = '_blank';
+      previewCard.rel = 'noopener noreferrer';
+      previewCard.title = rawLinkTitle || 'リンクなし';
+      previewCard.href = encodeURI(detailLinks.detailUrl);
+
+      const img = document.createElement('img');
+      img.className = 'song-preview-image';
+      img.src = preview.thumbnailUrl;
+      img.alt = `${preview.type}のサムネイル`;
+      img.loading = 'lazy';
+      img.referrerPolicy = 'no-referrer';
+
+      const previewLabel = document.createElement('p');
+      previewLabel.className = 'song-preview-label';
+      previewLabel.textContent = preview.type;
+
+      previewCard.append(img, previewLabel);
+      previewWrap.appendChild(previewCard);
+      meta.appendChild(previewWrap);
+    }
+  } else {
+    const muted = document.createElement('span');
+    muted.className = 'muted';
+    muted.textContent = 'リンクなし';
+    linkRow.appendChild(muted);
+  }
+
+  meta.append(metaTop, linkRow);
+  details.appendChild(meta);
+  main.append(head, details);
+  article.appendChild(main);
+
+  return { card: article, id };
+}
+
 export function render(items, totals = {}, deps = {}) {
   const {
     rows,
@@ -87,92 +314,57 @@ export function render(items, totals = {}, deps = {}) {
   selectedCount.textContent = String(items.length);
   totalCount.textContent = String(totals.total ?? items.length);
 
+  ensureRowsDelegatedEvents(rows, deps);
+
+  const fragment = document.createDocumentFragment();
+  const topDummy = document.createElement('div');
+  topDummy.className = 'dummy-top-card';
+  topDummy.textContent = '--- TOP ---';
+  fragment.appendChild(topDummy);
+
   if (!items.length) {
-    rows.innerHTML = '<div class="dummy-top-card">--- TOP ---</div><div class="muted">該当データがありません</div><div class="dummy-end-card">--- END --- <a href="https://lit.link/unisuke" target="_blank" rel="noopener noreferrer">https://lit.link/unisuke</a></div>';
+    const empty = document.createElement('div');
+    empty.className = 'muted';
+    empty.textContent = '該当データがありません';
+    fragment.appendChild(empty);
+
+    const endDummy = document.createElement('div');
+    endDummy.className = 'dummy-end-card';
+    endDummy.append('--- END --- ');
+    const endLink = document.createElement('a');
+    endLink.target = '_blank';
+    endLink.rel = 'noopener noreferrer';
+    endLink.href = 'https://lit.link/unisuke';
+    endLink.textContent = 'https://lit.link/unisuke';
+    endDummy.appendChild(endLink);
+    fragment.appendChild(endDummy);
+
+    rows.replaceChildren(fragment);
+    renderStateByRows.set(rows, { state, itemById: new Map() });
     rows.dataset.selected = '{}';
     state.selectedSongId = '';
     return;
   }
 
-  const cardsHtml = items.map((item) => {
-    const id = stableSongId(item);
-    const detailLinks = linksForExpanded(item, { resolveSingingTag, bestExternalUrl });
-    const singingTagHtml = detailLinks.singingTagLabel
-      ? `<span class="tag">${escapeHtml(detailLinks.singingTagLabel)}</span>`
-      : '<span class="muted">-</span>';
-    const latestDate = escapeHtml(fmtDate(item.lastSungDate || item.publishedAt));
-    const rawLinkTitle = String(item.liveTitle || item.linkLabel || item.lastSungDate || '').trim();
-    const fallbackLinkLabel = escapeHtml(rawLinkTitle || 'リンクなし');
-    const fallbackLinkTitle = rawLinkTitle
-      ? `<a class="song-date-link song-link-title" href="${escapeHtml(encodeURI(detailLinks.detailUrl || ''))}" target="_blank" rel="noopener noreferrer">${escapeHtml(rawLinkTitle)}</a>`
-      : '';
-    const fallbackLinkHtml = detailLinks.detailUrl
-      ? `<span class="song-link-inline"><button class="song-date-link toggle-preview-btn" type="button" data-preview-toggle aria-expanded="false">▶リンクを開く</button>${fallbackLinkTitle}</span>`
-      : '<span class="muted">リンクなし</span>';
-    const preview = extractVideoPreview(detailLinks.detailUrl);
-    const previewHtml = preview
-      ? `<div class="song-preview-wrap"><a class="song-preview-card song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}"><img class="song-preview-image" src="${escapeHtml(preview.thumbnailUrl)}" alt="${escapeHtml(preview.type)}のサムネイル" loading="lazy" referrerpolicy="no-referrer" /><p class="song-preview-label">${escapeHtml(preview.type)}</p></a></div>`
-      : '';
-    return `<article class="song-card" data-id="${id}" tabindex="0"><div class="song-card-main"><div class="song-head"><div class="song-summary"><div class="song-title">${escapeHtml(item.title || '-')}</div><div class="song-artist">${escapeHtml(item.artist || '-')}</div></div><button class="icon-btn copy-text-btn" type="button" data-copy-kind="song-artist" title="楽曲名 / アーティスト名をコピー" aria-label="楽曲名 / アーティスト名をコピー">コピー</button></div><div class="song-details"><div class="song-meta"><div class="song-meta-top"><div>${singingTagHtml}</div><div class="song-meta-latest">Latest: ${latestDate}</div></div><div class="song-link-row">${fallbackLinkHtml}</div>${previewHtml}</div></div></div></article>`;
-  }).join('');
-
-  rows.innerHTML = '<div class="dummy-top-card">--- TOP ---</div>' + cardsHtml + '<div class="dummy-end-card">--- END --- <a href="https://lit.link/unisuke" target="_blank" rel="noopener noreferrer">https://lit.link/unisuke</a></div>';
-
-  rows.querySelectorAll('.song-card').forEach((el, idx) => {
-    const item = items[idx] || {};
-    const id = el.dataset.id || '';
-    const select = () => {
-      state.selectedSongId = id;
-      rows.dataset.selected = JSON.stringify(item);
-    };
-
-    el.addEventListener('click', (evt) => {
-      const targetEl = eventTargetElement(evt.target);
-      const previewToggleButton = targetEl?.closest?.('button[data-preview-toggle]');
-      if (previewToggleButton) {
-        const willShowPreview = !el.classList.contains('preview-visible');
-        el.classList.toggle('preview-visible', willShowPreview);
-        previewToggleButton.textContent = willShowPreview ? '▼リンクを閉じる' : '▶リンクを開く';
-        previewToggleButton.setAttribute('aria-expanded', String(willShowPreview));
-        evt.stopPropagation();
-        return;
-      }
-      if (targetEl?.closest?.('a.song-detail-link, a.song-date-link')) {
-        evt.stopPropagation();
-        return;
-      }
-      if (targetEl?.closest?.('button[data-copy-kind]')) {
-        evt.preventDefault();
-        evt.stopPropagation();
-        const text = [String(item.title || '').trim(), String(item.artist || '').trim()].filter(Boolean).join(' / ');
-        copyTextToClipboard(text).then((copied) => { if (copied) showToast('コピーしました'); });
-        return;
-      }
-
-      select();
-      if (!isMobileLayout()) return;
-      const willExpand = !el.classList.contains('expanded');
-      collapseExpandedCards();
-      if (willExpand) el.classList.add('expanded');
-    });
-
-    el.addEventListener('keydown', (evt) => {
-      if (isInteractiveTarget(evt.target)) return;
-      if (evt.key !== 'Enter' && evt.key !== ' ') return;
-      evt.preventDefault();
-      select();
-    });
+  const itemById = new Map();
+  items.forEach((item) => {
+    const { card, id } = buildCardElement(item, { stableSongId, fmtDate, resolveSingingTag, bestExternalUrl });
+    itemById.set(id, item);
+    fragment.appendChild(card);
   });
 
-  if (!rows.querySelector(`.song-card[data-id="${CSS.escape(state.selectedSongId)}"]`)) {
-    const first = rows.querySelector('.song-card');
-    if (first) {
-      state.selectedSongId = first.dataset.id || '';
-      rows.dataset.selected = JSON.stringify(items[0] || {});
-    }
-  }
+  const endDummy = document.createElement('div');
+  endDummy.className = 'dummy-end-card';
+  endDummy.append('--- END --- ');
+  const endLink = document.createElement('a');
+  endLink.target = '_blank';
+  endLink.rel = 'noopener noreferrer';
+  endLink.href = 'https://lit.link/unisuke';
+  endLink.textContent = 'https://lit.link/unisuke';
+  endDummy.appendChild(endLink);
+  fragment.appendChild(endDummy);
 
-  if (!isMobileLayout()) {
-    rows.querySelectorAll('.song-card').forEach((card) => card.classList.add('expanded'));
-  }
+  rows.replaceChildren(fragment);
+  renderStateByRows.set(rows, { state, itemById });
+  applySelectionState(items, deps);
 }
