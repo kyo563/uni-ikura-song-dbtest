@@ -131,6 +131,9 @@ bash scripts/verify_r2_upload_and_read.sh
 3. R2から同じオブジェクトを読み戻せるか（S3 API経由）
 4. 任意でWorker `/api/health` と `/api/songs` が読めるか
 
+検証で作成したオブジェクト（`*.verify.<timestamp>.json`）は、終了時に自動削除されます（失敗時も削除を試行）。
+削除に失敗した場合は warning のみ表示し、検証本体の成功/失敗結果はそのまま維持されます。
+
 ### トラブルシュート（Workflow失敗時）
 
 - `Missing credentials` エラー
