@@ -10,8 +10,6 @@
 - `gas/Code.gs`: スプレッドシートを `songs.json` 形式で返すGASコード
 - `.github/workflows/sync-songs-to-r2.yml`: GAS -> R2 定期同期
 - `scripts/sync_songs_to_r2.sh`: 同期用スクリプト
-- `worker.js`: 補助API（`/api/songs`, `/api/health`）。**通常運用では未使用（任意）**で、フロント表示はR2公開URLを直接参照。
-- `wrangler.optional.toml`: Workerを使いたい場合のみ有効化して使う設定ファイル（既定では無効化）
 - `index.html`: 楽曲検索UI
 
 ---
@@ -45,15 +43,9 @@ flowchart LR
     Front -->|songs.jsonを直接取得| R2
   end
 
-  subgraph Optional[任意(通常運用では未使用)]
-    Worker[Cloudflare Worker\nworker.js]
-    Browser -->|/api/songs, /api/health| Worker
-    Worker --> R2
-  end
 ```
 
 - **通常経路**: `スプレッドシート → GAS → GitHub Actions → R2 → index.html(ブラウザ)`
-- **Worker経路（任意）**: API監視や補助用途で `worker.js` を経由可能
 
 ---
 
@@ -119,8 +111,6 @@ R2_BUCKET="<bucket>" \
 R2_OBJECT_KEY="songs.json" \
 AWS_ACCESS_KEY_ID="<access_key>" \
 AWS_SECRET_ACCESS_KEY="<secret_key>" \
-# 任意: Worker経由の読み取りも同時確認
-WORKER_BASE_URL="https://uni-ikura-songsDB.<account>.workers.dev" \
 bash scripts/verify_r2_upload_and_read.sh
 ```
 
@@ -129,10 +119,12 @@ bash scripts/verify_r2_upload_and_read.sh
 1. GASレスポンスがJSONとして妥当か（`.items` 配列を持つか）
 2. R2へアップロードできるか（検証用キーへ保存）
 3. R2から同じオブジェクトを読み戻せるか（S3 API経由）
-4. 任意でWorker `/api/health` と `/api/songs` が読めるか
+4. （廃止）`WORKER_BASE_URL` を使ったWorker読み取り検証
 
 検証で作成したオブジェクト（`*.verify.<timestamp>.json`）は、終了時に自動削除されます（失敗時も削除を試行）。
 削除に失敗した場合は warning のみ表示し、検証本体の成功/失敗結果はそのまま維持されます。
+
+※ `WORKER_BASE_URL` を使った検証は廃止済みです。指定しなければ通常のR2検証のみ実行されます。
 
 ### トラブルシュート（Workflow失敗時）
 
@@ -149,16 +141,15 @@ bash scripts/verify_r2_upload_and_read.sh
 
 ## リポジトリ譲渡（移設）時のチェックリスト
 
-このアプリは、設定値をSecrets / （任意で）`wrangler.optional.toml` / `index.html` に分離しているため、譲渡時は次だけ差し替えれば継続開発できます。
+このアプリは、設定値をSecrets / `index.html` に分離しているため、譲渡時は次だけ差し替えれば継続開発できます。
 
 1. GitHubでリポジトリを移設/rename
    - 例: `uni-ikura-songsDB`
 2. GitHub Secretsを新しいリポジトリへ再設定
    - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_OBJECT_KEY`, `GAS_SONGS_API_URL`
 3. `index.html` の `meta[name="songs-r2-json-url"]` を新しいR2公開URLへ変更
-4. （Workerを使う場合のみ）`wrangler.optional.toml` を `wrangler.toml` にリネームし、`name` / `bucket_name` が移設先の命名と一致しているか確認
-5. Actionsの手動実行（`workflow_dispatch`）で `songs.json` 同期を確認
-6. GitHub Pages / Workers URLで表示・検索・コピーの動作確認
+4. Actionsの手動実行（`workflow_dispatch`）で `songs.json` 同期を確認
+5. GitHub Pages URLで表示・検索・コピーの動作確認
 
 > GitHub上の譲渡自体は、対象リポジトリの **Settings > General > Transfer ownership** から実施できます。
 > 移設先アカウントに権限がある状態で、上記チェックリストを順に実施するとスムーズです。
@@ -208,12 +199,6 @@ bash scripts/verify_r2_upload_and_read.sh
 
 ## 4. 動作確認
 
-```bash
-cp wrangler.optional.toml wrangler.toml
-npx wrangler dev
-```
-
-- フロント: `index.html` からR2公開URLの `songs.json` を直接取得（Worker非依存）
-- （任意）Worker: `GET /api/health`, `GET /api/songs` で補助確認
+- フロント: `index.html` からR2公開URLの `songs.json` を直接取得
 
 フロントは `songs.json` が「配列形式」「{ items: [] } 形式」の両方を受け取れます。
