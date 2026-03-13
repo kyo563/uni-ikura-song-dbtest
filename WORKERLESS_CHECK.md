@@ -3,7 +3,7 @@
 ## 結論（先に要点）
 - **HTMLの取得先はR2公開JSON直接参照で成立**しています（Worker必須ではありません）。
 - ただし、**GAS→R2同期の既定GAS URLがworkflow内だけ別ID**になっており、ここがズレると `songs.json` 未更新や404の原因になります。
-- GAS出力は、HTMLが必要とする最低仕様（`items`配列、`title/artist/kind/memo/date/link`系）を満たしています。
+- GAS出力は、HTMLが必要とする最低仕様（`items`配列と、`title/artist/kind/memo/liveLink/liveTitle/lastSungDate/publishedAt`）を満たしています。
 
 ## 1) 現在の正しい導線（worker非依存）
 1. GAS (`doGet?api=songs`) が `{"items": [...]}` を返す。
@@ -22,18 +22,22 @@
   - `{"items": [...]}` 形式
 
 ### アイテム側の期待値
-- `title`, `artist`, `memo`, `kind`, `publishedAt`, `lastSungDate`, `liveLink`, `otherLink`, `url`, `linkLabel` などを参照。
-- ただし実装上は欠損に強く、未設定時はフォールバック表示されるため、厳密必須は `items` 配列が主。
+- 現行GAS出力の主フィールドとしては `title`, `artist`, `memo`, `kind`, `liveLink`, `liveTitle`, `lastSungDate`, `publishedAt` を参照可能。
+- HTML実装には `otherLink`, `url`, `linkLabel` 参照も残るが、未設定時フォールバックがあるため厳密必須は `items` 配列が主。
 
 ## 3) GAS出力のR2向け規格適合チェック
 ### 合格点
 - ルートがオブジェクトで `items` 配列を返している。
-- 各行で `title`, `artist`, `kind`, `memo`, `source`, `checked`, `liveLink`, `otherLink`, `url`, `publishedAt` を生成。
+- 各行で `title`, `artist`, `kind`, `memo`, `singingTag`, `liveLink`, `liveTitle`, `lastSungDate`, `publishedAt` を生成。
 - `ContentService.MimeType.JSON` を返しており、同期スクリプトのJSON検証条件に合致。
+
+### 過去仕様との整理
+- 現行の `gas/Code.gs` 実装では `source`, `checked`, `otherLink`, `url` は出力していない（過去仕様の列挙）。
 
 ### 注意点
 - 掲載チェック（F列）は、空欄や想定外記法を「非掲載」と判定するため、シート運用側でチェック記法を統一すること。
 - `lastSungDate/publishedAt` は8桁日付の先頭一致に依存するため、D列フォーマットが崩れると日付欠損になる。
+- 実装ソース: `gas/Code.gs` の `items.push` 定義を参照。
 
 ## 4) 今回の不具合に直結する主要ズレ
 - `sync-songs-to-r2.yml` のデフォルト `GAS_SONGS_API_URL` が、
