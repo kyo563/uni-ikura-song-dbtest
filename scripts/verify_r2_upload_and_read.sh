@@ -48,7 +48,7 @@ extract_http_status() {
   awk 'toupper($1) ~ /^HTTP\/.+/ { s=$2 } END { if (s != "") print s }' "$tmp_headers"
 }
 
-echo "[1/4] GASレスポンス検証: $GAS_SONGS_API_URL"
+echo "[1/3] GASレスポンス検証: $GAS_SONGS_API_URL"
 curl -fsSL -H 'Accept: application/json' -D "$tmp_headers" "$GAS_SONGS_API_URL" -o "$tmp_json"
 
 status="$(extract_http_status || true)"
@@ -67,32 +67,21 @@ jq -e '.items and (.items | type == "array")' "$tmp_json" >/dev/null
 items_count="$(jq '.items | length' "$tmp_json")"
 echo "  GAS JSON OK (.items count: $items_count)"
 
-echo "[2/4] R2アップロード検証: s3://${R2_BUCKET}/${verify_key}"
+echo "[2/3] R2アップロード検証: s3://${R2_BUCKET}/${verify_key}"
 aws s3 cp "$tmp_json" "s3://${R2_BUCKET}/${verify_key}" \
   --endpoint-url "$R2_ENDPOINT_URL" \
   --content-type "application/json" \
   --cache-control "no-cache"
 uploaded_verify_object=1
 
-echo "[3/4] R2読み取り検証 (S3 API 経由)"
+echo "[3/3] R2読み取り検証 (S3 API 経由)"
 aws s3 cp "s3://${R2_BUCKET}/${verify_key}" "$tmp_r2" --endpoint-url "$R2_ENDPOINT_URL"
 jq -e '.items and (.items | type == "array")' "$tmp_r2" >/dev/null
 r2_count="$(jq '.items | length' "$tmp_r2")"
 echo "  R2 read OK (.items count: $r2_count)"
 
 if [[ -n "${WORKER_BASE_URL:-}" ]]; then
-  worker_base="${WORKER_BASE_URL%/}"
-  echo "[4/4] Worker読み取り検証: ${worker_base}/api/health と /api/songs"
-  health="$(curl -fsSL "${worker_base}/api/health")"
-  songs="$(curl -fsSL "${worker_base}/api/songs")"
-
-  echo "$health" | jq -e '.ok == true' >/dev/null
-  echo "$songs" | jq -e '.items and (.items | type == "array")' >/dev/null
-  visible_count="$(echo "$songs" | jq '.count // (.items | length)')"
-  source_total="$(echo "$songs" | jq '.sourceTotal // .total // (.items | length)')"
-  echo "  Worker read OK (visible: $visible_count / source: $source_total)"
-else
-  echo "[4/4] Worker読み取り検証はスキップ (WORKER_BASE_URL 未指定)"
+  echo "Note: WORKER_BASE_URL は廃止済みのため無視します（R2検証のみ実施）。"
 fi
 
 echo "検証完了: upload/read ともに正常です。"
