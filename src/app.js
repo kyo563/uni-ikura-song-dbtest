@@ -5,6 +5,8 @@ import { render } from './ui/renderSongs.js';
 import { load } from './data/songsApi.js';
 
 const CACHE_PREFIX = 'songs-cache-v3';
+const DATA_CACHE_KEY = 'dataset';
+const DATA_REFRESH_TTL_MS = 6 * 60 * 60 * 1000;
 const MY_DANMAKU_CACHE_KEY = 'my-danmaku-cache-v1';
 const MY_DANMAKU_CACHE_MS = 15 * 60 * 1000;
 const SWIPE_HINT_INTERVAL_MS = 3 * 60 * 1000;
@@ -12,7 +14,7 @@ const MAX_ERROR_BODY_CHARS = 4000;
 const ENABLE_ERROR_LOG_UI = true;
 
 function songsCacheKey() {
-  return `${CACHE_PREFIX}:${state.q}|${state.kinds.join(',')}|${state.sortMode}`;
+  return `${CACHE_PREFIX}:${DATA_CACHE_KEY}`;
 }
 
 const rows = byId('rows');
@@ -25,6 +27,9 @@ const scrollBubbles = byId('scrollBubbles');
 
 let latestErrorLogText = '';
 let toastTimer = null;
+let sourceItemsCache = [];
+let sourceTotalCache = 0;
+let hasSourceItemsCache = false;
 
 function showToast(text, durationMs = 300) {
       if (!toast || !text) return;
@@ -681,9 +686,29 @@ function headersToObject(headers) {
         headersToObject,
         clipText,
         cacheKey: songsCacheKey,
+        cacheMaxAgeMs: DATA_REFRESH_TTL_MS,
         requestCandidates,
         rows,
+      }).then((result) => {
+        if (!result) return result;
+        sourceItemsCache = Array.isArray(result.sourceItems) ? result.sourceItems : [];
+        sourceTotalCache = Number(result.total ?? sourceItemsCache.length);
+        hasSourceItemsCache = true;
+        return result;
       });
+    }
+
+    function rerenderFromLocalCache() {
+      if (!hasSourceItemsCache) return false;
+      const filteredItems = filterItems(sourceItemsCache);
+      render(filteredItems, { total: sourceTotalCache }, renderDeps);
+      setRunningStatus(filteredItems.length, sourceTotalCache);
+      return true;
+    }
+
+    function rerenderOrLoadSongs() {
+      if (rerenderFromLocalCache()) return;
+      loadSongs();
     }
 
     async function copyMemo() {
@@ -766,7 +791,7 @@ function headersToObject(headers) {
         byId('kindShort').checked = true;
         byId('kindLive').checked = true;
       }
-      loadSongs();
+      rerenderOrLoadSongs();
     }
 
     function bind() {
@@ -776,7 +801,7 @@ function headersToObject(headers) {
 
       byId('q').addEventListener('input', (e) => {
         state.q = e.target.value.trim();
-        loadSongs();
+        rerenderOrLoadSongs();
       });
 
       byId('kindCover').addEventListener('change', () => toggleKind('cover'));
@@ -786,19 +811,19 @@ function headersToObject(headers) {
       byId('sortField').addEventListener('change', (e) => {
         state.sortField = e.target.value;
         state.sortMode = `${state.sortField}-${state.sortOrder}`;
-        loadSongs();
+        rerenderOrLoadSongs();
       });
 
       byId('sortOrder').addEventListener('change', (e) => {
         state.sortOrder = e.target.value;
         state.sortMode = `${state.sortField}-${state.sortOrder}`;
-        loadSongs();
+        rerenderOrLoadSongs();
       });
 
       byId('clear').addEventListener('click', () => {
         state.q = '';
         byId('q').value = '';
-        loadSongs();
+        rerenderOrLoadSongs();
       });
 
       byId('copyDanmaku').addEventListener('click', copyDanmaku);

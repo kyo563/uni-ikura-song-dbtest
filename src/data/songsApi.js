@@ -39,6 +39,7 @@ export async function load(ctx) {
     headersToObject,
     clipText,
     cacheKey,
+    cacheMaxAgeMs = 0,
     requestCandidates,
     rows,
   } = ctx;
@@ -62,6 +63,16 @@ export async function load(ctx) {
   if (cached?.payload?.items) {
     const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
     render(cachedItems, { total: cached?.payload?.total ?? cachedItems.length });
+
+    const fetchedAtMs = Number(cached?.fetchedAt || 0);
+    const hasFreshCache = cacheMaxAgeMs > 0 && fetchedAtMs > 0 && (Date.now() - fetchedAtMs) <= cacheMaxAgeMs;
+    if (hasFreshCache) {
+      setRunningStatus(cachedItems.length, cached?.payload?.total ?? cachedItems.length);
+      return {
+        sourceItems: Array.isArray(cached.payload.items) ? cached.payload.items : [],
+        total: cached?.payload?.total ?? cachedItems.length,
+      };
+    }
   }
 
   try {
@@ -110,7 +121,10 @@ export async function load(ctx) {
       const cachedItems = filterItems(Array.isArray(cached.payload.items) ? cached.payload.items : []);
       render(cachedItems, { total: cached?.payload?.total ?? cachedItems.length });
       setRunningStatus(cachedItems.length, cached?.payload?.total ?? cachedItems.length);
-      return;
+      return {
+        sourceItems: Array.isArray(cached.payload.items) ? cached.payload.items : [],
+        total: cached?.payload?.total ?? cachedItems.length,
+      };
     }
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -136,7 +150,11 @@ export async function load(ctx) {
     render(filteredItems, { total: payload?.total ?? sourceItems.length });
     setRunningStatus(filteredItems.length, payload?.total ?? sourceItems.length);
 
-    if (etag) saveCache({ etag, payload }, { cacheKey });
+    if (etag) saveCache({ etag, payload, fetchedAt: Date.now() }, { cacheKey });
+    return {
+      sourceItems,
+      total: payload?.total ?? sourceItems.length,
+    };
   } catch (err) {
     if (String(err?.message || '').includes('404')) {
       clearApiCache({ cacheKey });
@@ -155,5 +173,6 @@ export async function load(ctx) {
       rows.innerHTML = '<div class="error">データ取得に失敗しました。R2の公開URL設定を確認してください。</div>';
     }
     setStoppedStatus();
+    return null;
   }
 }
