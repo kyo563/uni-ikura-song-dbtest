@@ -631,6 +631,10 @@ function headersToObject(headers) {
       document.querySelector('meta[name="songs-gas-api-url"]')?.content
       || '';
 
+    // 一時的にブラウザからのGAS直フォールバックを無効化する。
+    // 再実装時は true に戻すだけで既存コードを再利用できる。
+    const ENABLE_GAS_FALLBACK = false;
+
     function isPlaceholderUrl(url) {
       const text = String(url || '').trim();
       return text.includes('xxxxxxxx') || text.includes('<') || text.includes('example.com');
@@ -673,7 +677,7 @@ function headersToObject(headers) {
       const requestCandidates = [
         SONGS_JSON_URL_OVERRIDE,
         ...SONGS_JSON_FALLBACK_URLS,
-        GAS_SONGS_API_URL,
+        ...(ENABLE_GAS_FALLBACK ? [GAS_SONGS_API_URL] : []),
       ].filter(Boolean);
       return load({
         setLoadingStatus,
