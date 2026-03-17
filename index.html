@@ -496,6 +496,16 @@
       min-width: 112px;
     }
 
+    .sort-row select.sort-compact {
+      min-height: calc(var(--control-height) - 4px);
+      padding: calc(var(--space-2) - 2px) var(--space-2);
+    }
+
+    .sort-row select.sort-compact:focus-visible {
+      outline-offset: 0;
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--focus) 58%, transparent);
+    }
+
     .top-fold-btn,
     .top-expand-btn {
       border: 0 !important;
@@ -702,8 +712,9 @@
       .top-summary { grid-template-columns: 1fr; }
       .top-advanced { grid-template-columns: 1fr; gap: var(--space-2); }
       .sort-row { grid-template-columns: auto auto; }
-      .sort-row select,
       .sort-row button { min-width: 96px; }
+      .sort-row select { min-width: 98px; }
+      .sort-row select.sort-compact { min-width: 102px; }
       .memo-actions { grid-template-columns: 1fr 1fr; }
       .ratio-8-2 { grid-template-columns: 1fr; }
       .bottom-static-controls .ratio-8-2 {
@@ -1125,14 +1136,14 @@
                 </div>
                 <div class="sort-row" aria-label="表示切替">
                   <label aria-label="並び替え項目">
-                    <select id="sortField" aria-label="並び替え項目">
+                    <select id="sortField" class="sort-compact" aria-label="並び替え項目">
                       <option value="artist">アーティスト名</option>
                       <option value="title">楽曲名</option>
                       <option value="date" selected>投稿日</option>
                     </select>
                   </label>
                   <label aria-label="並び順">
-                    <select id="sortOrder" aria-label="並び順">
+                    <select id="sortOrder" class="sort-compact" aria-label="並び順">
                       <option value="asc">昇順</option>
                       <option value="desc" selected>降順</option>
                     </select>
