@@ -1,6 +1,6 @@
-# uni-ikura-songsDB
+# uni-uta-db
 
-公開ページ: https://<your-github-user>.github.io/uni-ikura-songsDB/
+公開ページ: https://<your-github-user>.github.io/uni-uta-db/
 
 '**Cloudflare R2 + Static Assets** 構成です。  
 このリポジトリでは、`Performance Record` シートをGASでJSON化し、GitHub ActionsでR2へ定期同期する運用を想定しています。
@@ -155,7 +155,7 @@ bash scripts/verify_r2_upload_and_read.sh
 このアプリは、設定値をSecrets / `index.html` に分離しているため、譲渡時は次だけ差し替えれば継続開発できます。
 
 1. GitHubでリポジトリを移設/rename
-   - 例: `uni-ikura-songsDB`
+   - 例: `uni-uta-db`
 2. GitHub Secretsを新しいリポジトリへ再設定
    - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_OBJECT_KEY`, `GAS_SONGS_API_URL`
 3. `index.html` の `meta[name="songs-r2-json-url"]` を新しいR2公開URLへ変更
