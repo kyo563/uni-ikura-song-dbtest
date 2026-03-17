@@ -39,6 +39,8 @@
       --dummy-top-card-extra-expanded: 3px;
       --dummy-top-card-extra-collapsed: 7px;
       --layout-side-padding: var(--space-4);
+      --pc-fluid-width-enabled: 1; /* 1: PCでA案(フル幅寄せ) / 0: 従来の1080px上限 */
+      --pc-content-max-width: 1080px;
     }
 
     * { box-sizing: border-box; }
@@ -744,6 +746,15 @@
       .top-fold-btn,
       .top-expand-btn {
         display: none !important;
+      }
+
+      .top-form,
+      .middle-form,
+      .bottom-form {
+        width: min(
+          calc(100vw - (var(--layout-side-padding) * 2)),
+          max(var(--pc-content-max-width), calc(100vw * var(--pc-fluid-width-enabled)))
+        );
       }
 
       .top-swipe-wrap {
