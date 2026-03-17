@@ -2,7 +2,7 @@
 
 公開ページ: https://<your-github-user>.github.io/uni-ikura-songsDB/
 
-`kasane-3kHz-songs-dbTEST` を参考にした、**Cloudflare R2 + Static Assets** 構成です。  
+'**Cloudflare R2 + Static Assets** 構成です。  
 このリポジトリでは、`Performance Record` シートをGASでJSON化し、GitHub ActionsでR2へ定期同期する運用を想定しています。
 
 ## 構成
