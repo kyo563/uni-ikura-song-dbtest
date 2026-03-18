@@ -1,0 +1,335 @@
+# CODEX KIT ONE-FILE SPEC
+
+Version: 1.0.0  
+Target: GitHub + Cloudflare R2 + Google Spreadsheet + GAS + GitHub Actions + GitHub Pages  
+Purpose: Codexにこの1ファイルを読み込ませるだけで、同等仕様の新規アプリを再構築できるようにする。
+
+---
+
+## 0. 適用範囲（重要）
+
+- この仕様は「新規アプリ立ち上げ用キット」のための定義であり、既存アプリ本体の改変指示ではない。
+- 配布対象は **バニラ版**（装飾・演出なし）とする。
+- 以下は本仕様の対象外（実装不要）:
+  - 背景アニメーション
+  - UIアニメーション
+  - メモ帳機能
+  - カスタム弾幕機能
+
+---
+
+## 1. 全体アーキテクチャ骨子
+
+### 1.1 採用構成
+
+1. Google Spreadsheet（データソース）
+2. Google Apps Script（SpreadsheetをJSON API化）
+3. GitHub Actions（定期/手動同期）
+4. Cloudflare R2（songs.jsonを保存・公開）
+5. GitHub Pages（HTMLを配信し、R2 JSONを直接取得）
+
+### 1.2 経路（固定）
+
+`Spreadsheet -> GAS Web App (?api=songs) -> GitHub Actions -> R2(songs.json) -> GitHub Pages(index.html) -> Browser`
+
+### 1.3 設計意図
+
+- Worker非依存（R2直接参照）で構成を単純化。
+- データ更新をActionsに集約して運用点を減らす。
+- 障害切り分けを「GAS取得」「R2保存」「Pages読込」に分解できる。
+
+### 1.4 利用目的
+
+- ライブ/歌唱履歴データをSpreadsheetで管理し、公開サイトへ反映。
+- 非エンジニアがSpreadsheet更新のみで運用継続可能。
+
+---
+
+## 2. 固定仕様（Spreadsheet）
+
+### 2.1 シート定義
+
+- Sheet Name: `Performance Record`
+- Required Columns: `A-F`（6列）
+- Header Row: 1行目
+- Data Row: 2行目以降
+
+### 2.2 列マッピング（厳密）
+
+- A: artist
+- B: title
+- C: memo/tag
+- D: live field（配信情報: タイトル+URL or 8桁日付）
+- E: source info（現行フロント未使用）
+- F: publish check
+
+### 2.3 掲載判定（F列）
+
+以下を小文字化比較で許可:
+
+`true, 1, yes, y, on, checked, check, ✅, ☑, ✔`
+
+上記以外は非掲載。
+
+---
+
+## 3. 固定仕様（GAS API）
+
+### 3.1 エンドポイント
+
+- Method: GET
+- Path: `/exec?api=songs`
+- Response MIME: JSON (`ContentService.MimeType.JSON`)
+
+### 3.2 JSON契約
+
+```json
+{
+  "items": [
+    {
+      "title": "string",
+      "artist": "string",
+      "kind": "live|cover|short|other",
+      "memo": "string",
+      "singingTag": "string",
+      "liveLink": "string",
+      "liveTitle": "string",
+      "lastSungDate": "YYYY-MM-DD or empty",
+      "publishedAt": "YYYY-MM-DD or empty"
+    }
+  ],
+  "total": 0,
+  "generatedAt": "ISO-8601",
+  "schemaVersion": 1
+}
+```
+
+### 3.3 データ処理ロジック（厳密）
+
+1. A/B/Fが要件を満たさない行を除外。
+2. D列のリンク抽出優先順位:
+   - rich text link
+   - `=HYPERLINK("url", ...)` formula
+   - プレーンテキスト中URL
+3. D列先頭8桁日付 `^\d{8}` を抽出して `YYYY-MM-DD` 化。
+4. `kind` 決定:
+   - `liveLink` または 日付あり => `live`
+   - それ以外はC列の文字列推定（cover/short/live）
+   - 未判定 => `other`
+
+---
+
+## 4. 固定仕様（GitHub Actions -> R2 同期）
+
+### 4.1 Workflow
+
+- Trigger:
+  - `workflow_dispatch`
+  - `schedule.cron = '0 3 * * *'`（UTC、JST 12:00）
+- Runner: `ubuntu-latest`
+
+### 4.2 必須Secrets
+
+- `R2_ACCOUNT_ID`
+- `R2_BUCKET`
+- `R2_OBJECT_KEY`（推奨: `songs.json`）
+- `R2_ACCESS_KEY_ID` + `R2_SECRET_ACCESS_KEY`
+  - 代替: `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`
+- `GAS_SONGS_API_URL`
+
+任意:
+- `R2_PUBLIC_BASE_URL`
+
+### 4.3 同期処理（scripts/sync_songs_to_r2.sh準拠）
+
+1. GAS URLからJSON取得（`Accept: application/json`）
+2. レスポンス空を拒否
+3. 先頭非空白文字 `{` or `[` を検証
+4. `jq -e '.items and (.items | type == "array")'` を検証
+5. `aws s3 cp` でR2へアップロード
+   - content-type: `application/json`
+   - cache-control: `no-cache`
+6. 完了ログに `s3://<bucket>/<key>` を出力
+7. `R2_PUBLIC_BASE_URL` があれば公開URLを出力
+
+---
+
+## 5. 固定仕様（R2）
+
+### 5.1 エンドポイント
+
+- S3 API endpoint: `https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`
+- Public base URL: `https://<PUBLIC_ID>.r2.dev`
+
+### 5.2 オブジェクト
+
+- Key: `songs.json`
+- Public URL: `https://<PUBLIC_ID>.r2.dev/songs.json`
+
+### 5.3 検証スクリプト（scripts/verify_r2_upload_and_read.sh準拠）
+
+検証順序:
+
+1. GASレスポンスがJSONで `.items` 配列を持つ
+2. 検証用キーへアップロードできる
+3. 同キーをR2から再取得できる
+4. 生成した検証キーを削除
+
+---
+
+## 6. 固定仕様（GitHub Pages + HTML）
+
+### 6.1 メタタグ
+
+```html
+<meta name="songs-r2-json-url" content="https://<PUBLIC_ID>.r2.dev/songs.json">
+<meta name="songs-gas-api-url" content="https://script.google.com/macros/s/<DEPLOY_ID>/exec?api=songs">
+```
+
+### 6.2 バニラUI設計（数値固定）
+
+- 言語: `ja`
+- レイアウト最大幅: `1080px`
+- 基本余白: `16px`
+- コントロール高さ: `36px`
+- 角丸: `12px`
+- 3ブロック構成:
+  1. 上段: ステータス + 件数 + フィルタ
+  2. 中段: 楽曲一覧（スクロール）
+  3. 下段: 検索 + クリア
+
+### 6.3 必須DOM ID
+
+- status系: `status`, `statusShell`, `selectedCount`, `totalCount`
+- filter系: `kindLive`, `kindCover`, `kindShort`, `sortField`, `sortOrder`
+- search系: `q`, `clear`
+- list系: `rows`
+
+### 6.4 取得優先順
+
+1. `window.__SONGS_JSON_URL__`
+2. `localStorage('songs_r2_json_url')`
+3. `meta[name="songs-r2-json-url"]`
+4. `meta[name="songs-r2-fallbacks"]`
+5. `meta[name="songs-gas-api-url"]`
+
+---
+
+## 7. 可変値テンプレート（ハードコード置換ガイド）
+
+以下はテンプレート変数として扱い、導入時に置換する。
+
+- `<GITHUB_USER>`
+- `<REPO_NAME>`
+- `<GAS_DEPLOY_ID>`
+- `<SPREADSHEET_ID>`
+- `<R2_ACCOUNT_ID>`
+- `<R2_BUCKET>`
+- `<R2_OBJECT_KEY>`
+- `<R2_PUBLIC_ID>`
+
+---
+
+## 8. 取得方法ガイド（URL付き）
+
+### 8.1 GitHubアカウント作成
+
+- https://github.com/signup
+
+### 8.2 リポジトリ作成
+
+- https://github.com/new
+
+### 8.3 Googleアカウント作成
+
+- https://accounts.google.com/signup
+
+### 8.4 Google Spreadsheet作成
+
+- https://docs.google.com/spreadsheets/
+
+Spreadsheet IDの取得:
+
+`https://docs.google.com/spreadsheets/d/<SPREADSHEET_ID>/edit`
+
+### 8.5 GAS作成・デプロイ
+
+- https://script.google.com/
+- スプレッドシートから「拡張機能 -> Apps Script」でも可
+- デプロイ時設定:
+  - 実行ユーザー: 自分
+  - アクセス権: リンクを知っている全員
+- 発行URL末尾に `?api=songs` を付与
+
+### 8.6 Cloudflareアカウント/R2
+
+- Cloudflare signup/login: https://dash.cloudflare.com/sign-up
+- R2 dashboard: https://dash.cloudflare.com/?to=/:account/r2
+- API token管理: https://dash.cloudflare.com/profile/api-tokens
+
+取得対象:
+
+- Account ID
+- R2 Access Key ID
+- R2 Secret Access Key
+- Bucket名
+- Public dev URL (`<PUBLIC_ID>.r2.dev`)
+
+### 8.7 GitHub Secrets設定
+
+- `https://github.com/<GITHUB_USER>/<REPO_NAME>/settings/secrets/actions`
+
+### 8.8 GitHub Pages有効化
+
+- `https://github.com/<GITHUB_USER>/<REPO_NAME>/settings/pages`
+- Source: Deploy from a branch
+- Branch: `main` / `/root`
+
+---
+
+## 9. モック（バニラUIのみ）
+
+```text
++--------------------------------------------------+
+| [Status: 読込中/稼働中/停止]      [12/345 曲]      |
+| [x 歌枠] [x 歌ってみた] [x ショート]               |
+| [SortField▼] [SortOrder▼]                        |
++--------------------------------------------------+
+| [検索入力: 曲名 / アーティスト................] [クリア] |
++--------------------------------------------------+
+| Song Card 1                                      |
+|  - title                                         |
+|  - artist                                        |
+|  - kind                                           |
+|  - date                                           |
+|  - link                                           |
+| Song Card 2 ...                                   |
+| (scroll)                                          |
++--------------------------------------------------+
+```
+
+---
+
+## 10. Codex実装指示（このまま実行可能な文面）
+
+- この仕様を唯一のソースとして新規プロジェクトを作成せよ。
+- 既存のUI演出要素は実装しないこと（バニラUIのみ）。
+- GASコード、Spreadsheet列仕様、R2同期スクリプト、GitHub Actions、Pages表示HTMLを実装せよ。
+- すべての固定値（構造・項目・数値）を本仕様に一致させよ。
+- 可変値はテンプレート変数として宣言し、READMEに置換手順を追記せよ。
+- 実装後、以下を満たすこと:
+  1. GAS URL (`?api=songs`) で JSON を返す
+  2. ActionsでR2へ `songs.json` をアップロードできる
+  3. PagesでR2の `songs.json` を読み、件数表示できる
+
+---
+
+## 11. 受け入れ基準（再現性チェック）
+
+- R2公開URLの `songs.json` がHTTP 200を返す
+- JSONルートに `items` 配列が存在する
+- `selectedCount/totalCount` が0固定でなく変化する
+- フィルタ3種（live/cover/short）が機能する
+- 検索（q）が機能する
+- Actions定期実行後にR2オブジェクト更新時刻が更新される
+
