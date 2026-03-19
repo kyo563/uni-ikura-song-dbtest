@@ -504,8 +504,10 @@
     }
 
     .sort-row select.sort-compact:focus-visible {
-      outline-offset: 0;
-      box-shadow: 0 0 0 1px color-mix(in srgb, var(--focus) 58%, transparent);
+      outline: none;
+      box-shadow:
+        inset 0 0 0 2px var(--focus),
+        0 0 0 1px color-mix(in srgb, var(--focus) 58%, transparent);
     }
 
     .top-fold-btn,
