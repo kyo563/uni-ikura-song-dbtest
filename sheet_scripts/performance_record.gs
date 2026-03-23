@@ -33,6 +33,7 @@ const CFG_EXPORT = {
 /***** 追加：歌唱DB整理 用 設定 *****/
 const CFG_SONG_CLEANUP = {
   SHEET_NAME: 'Performance Record',
+  HEADER_ROW: 3,      // 見出し行（A3:G3）
   DATA_START_ROW: 4,   // 実データ開始行
   COL_ARTIST: 1,       // A列
   COL_TITLE: 2,        // B列
@@ -41,6 +42,7 @@ const CFG_SONG_CLEANUP = {
   COL_UPDATED: 7,      // G列（最新更新日）
   COL_START: 1,        // A列
   COL_END: 7,          // G列まで取得
+  ARCHIVE_SHEET_NAME: 'archive', // 退避先シート
   DRY_RUN: false,
   LOG_LIMIT: 200
 };
@@ -288,7 +290,7 @@ function exportSinceDates(selectedDateStrs) {
  * 判定ルール
  * 1) A列アーティスト名 + B列曲名 が一致する行を同一歌唱曲データとする
  * 2) 同一曲内で D列のURLが完全一致する行は重複
- *    → 新しい方のデータを削除
+ *    → 新しい方のデータを archive シートへ移動
  *    → 新しさ判定は G列（最新更新日）が新しい方
  *      同値/空欄なら下にある行を新しい方とみなす
  * 3) 同一曲内で C列またはD列が異なるものは別日歌唱候補
@@ -296,6 +298,7 @@ function exportSinceDates(selectedDateStrs) {
  *    → 同順位なら D列表示文字列の冒頭8桁(yyyymmdd) が新しい方を残す
  *    → さらに同値なら G列（最新更新日）が新しい方
  *    → さらに同値なら上にある行を残す
+ *    ※ 残さない行は archive シートへ移動
  */
 function cleanupSongRecords() {
   const sh = SpreadsheetApp.getActive().getSheetByName(CFG_SONG_CLEANUP.SHEET_NAME);
@@ -345,6 +348,7 @@ function cleanupSongRecords() {
 
     records.push({
       row,
+      rawRow: values[i].slice(),
       artist,
       title,
       key: artist + '\t' + title,
@@ -370,6 +374,8 @@ function cleanupSongRecords() {
   });
 
   const deleteMap = {}; // row => reason
+  const recordMap = {}; // row => record
+  records.forEach(rec => { recordMap[rec.row] = rec; });
   let exactDupDeleted = 0;
   let rankedDeleted = 0;
   const logs = [];
@@ -377,7 +383,7 @@ function cleanupSongRecords() {
   Object.keys(groups).forEach(key => {
     const group = groups[key];
 
-    /***** Step 1: 同一URL完全重複の削除（新しい方を削除） *****/
+    /***** Step 1: 同一URL完全重複（新しい方をarchiveへ移動） *****/
     const urlBuckets = {};
     group.forEach(rec => {
       if (!rec.linkUrl) return;
@@ -397,10 +403,10 @@ function cleanupSongRecords() {
         const rec = bucket[i];
         if (!deleteMap[rec.row]) {
           deleteMap[rec.row] =
-            `同一URL重複のため削除（残す行: ${keeper.row} / URL: ${url}）`;
+            `同一URL重複のためarchive移動（残す行: ${keeper.row} / URL: ${url}）`;
           exactDupDeleted++;
           if (logs.length < CFG_SONG_CLEANUP.LOG_LIMIT) {
-            logs.push(`Row ${rec.row} 削除: 同一URL重複 → keep Row ${keeper.row} [${rec.artist} / ${rec.title}]`);
+            logs.push(`Row ${rec.row} 移動: 同一URL重複 → keep Row ${keeper.row} [${rec.artist} / ${rec.title}]`);
           }
         }
       }
@@ -421,24 +427,40 @@ function cleanupSongRecords() {
       if (rec.row === keeper.row) return;
       if (!deleteMap[rec.row]) {
         deleteMap[rec.row] =
-          `同一曲の優先順位で削除（残す行: ${keeper.row} / 種別優先: ${_sourceRankLabel_(keeper.sourceRank)} / 日付: ${keeper.songDateNum || 'なし'}）`;
+          `同一曲の優先順位でarchive移動（残す行: ${keeper.row} / 種別優先: ${_sourceRankLabel_(keeper.sourceRank)} / 日付: ${keeper.songDateNum || 'なし'}）`;
         rankedDeleted++;
         if (logs.length < CFG_SONG_CLEANUP.LOG_LIMIT) {
-          logs.push(`Row ${rec.row} 削除: 同一曲整理 → keep Row ${keeper.row} [${rec.artist} / ${rec.title}]`);
+          logs.push(`Row ${rec.row} 移動: 同一曲整理 → keep Row ${keeper.row} [${rec.artist} / ${rec.title}]`);
         }
       }
     });
   });
 
-  const rowsToDelete = Object.keys(deleteMap).map(Number).sort((a, b) => b - a);
+  const rowsToArchive = Object.keys(deleteMap).map(Number);
+  const rowsToDeleteDesc = rowsToArchive.slice().sort((a, b) => b - a);
 
-  if (!CFG_SONG_CLEANUP.DRY_RUN && rowsToDelete.length > 0) {
-    _deleteRowsDescendingInChunks_(sh, rowsToDelete);
+  if (!CFG_SONG_CLEANUP.DRY_RUN && rowsToArchive.length > 0) {
+    const archiveSheet = _ensureArchiveSheetWithHeader_(sh);
+    const rowsToAppend = rowsToArchive
+      .slice()
+      .sort((a, b) => a - b)
+      .map(rowNum => {
+        const rec = recordMap[rowNum];
+        return rec ? rec.rawRow : null;
+      })
+      .filter(r => r != null);
+
+    if (rowsToAppend.length > 0) {
+      const startRow = archiveSheet.getLastRow() + 1;
+      archiveSheet.getRange(startRow, CFG_SONG_CLEANUP.COL_START, rowsToAppend.length, CFG_SONG_CLEANUP.COL_END)
+        .setValues(rowsToAppend);
+    }
+    _deleteRowsDescendingInChunks_(sh, rowsToDeleteDesc);
   }
 
   Logger.log('--- 歌唱DB整理 結果 ---');
   Logger.log(`対象曲キー数: ${Object.keys(groups).length}`);
-  Logger.log(`削除候補行数: ${rowsToDelete.length}${CFG_SONG_CLEANUP.DRY_RUN ? '（DRY RUN）' : ''}`);
+  Logger.log(`${CFG_SONG_CLEANUP.DRY_RUN ? '移動候補' : 'archive移動'}行数: ${rowsToArchive.length}${CFG_SONG_CLEANUP.DRY_RUN ? '（DRY RUN）' : ''}`);
   Logger.log(`  - 同一URL重複: ${exactDupDeleted}`);
   Logger.log(`  - 同一曲優先順位整理: ${rankedDeleted}`);
   logs.forEach(line => Logger.log(line));
@@ -447,10 +469,10 @@ function cleanupSongRecords() {
   SpreadsheetApp.getUi().alert(
     `歌唱DB整理 ${CFG_SONG_CLEANUP.DRY_RUN ? '（DRY RUN）' : '完了'}\n\n` +
     `対象曲キー数: ${Object.keys(groups).length}\n` +
-    `削除${CFG_SONG_CLEANUP.DRY_RUN ? '候補' : ''}行数: ${rowsToDelete.length}\n` +
+    `${CFG_SONG_CLEANUP.DRY_RUN ? '移動候補' : 'archive移動'}行数: ${rowsToArchive.length}\n` +
     `- 同一URL重複: ${exactDupDeleted}\n` +
     `- 同一曲優先順位整理: ${rankedDeleted}\n\n` +
-    (preview ? `詳細（先頭20件）:\n${preview}` : '削除対象はありません。')
+    (preview ? `詳細（先頭20件）:\n${preview}` : `${CFG_SONG_CLEANUP.DRY_RUN ? '移動候補' : 'archive移動対象'}はありません。`)
   );
 }
 
@@ -610,6 +632,35 @@ function _normalizeSongKeyText_(v) {
 function _toMsOrNull_(v) {
   const d = _toDateOrNull_(v);
   return d ? d.getTime() : null;
+}
+
+// archive シートを用意し、必要ならヘッダーを整備する
+function _ensureArchiveSheetWithHeader_(sourceSheet) {
+  const ss = sourceSheet.getParent();
+  let archive = ss.getSheetByName(CFG_SONG_CLEANUP.ARCHIVE_SHEET_NAME);
+  if (!archive) {
+    archive = ss.insertSheet(CFG_SONG_CLEANUP.ARCHIVE_SHEET_NAME);
+  }
+
+  const header = sourceSheet
+    .getRange(
+      CFG_SONG_CLEANUP.HEADER_ROW,
+      CFG_SONG_CLEANUP.COL_START,
+      1,
+      CFG_SONG_CLEANUP.COL_END
+    )
+    .getValues()[0];
+
+  const hasAnyHeaderValue = archive
+    .getRange(1, CFG_SONG_CLEANUP.COL_START, 1, CFG_SONG_CLEANUP.COL_END)
+    .getValues()[0]
+    .some(v => String(v == null ? '' : v).trim() !== '');
+
+  if (!hasAnyHeaderValue) {
+    archive.getRange(1, CFG_SONG_CLEANUP.COL_START, 1, CFG_SONG_CLEANUP.COL_END).setValues([header]);
+  }
+
+  return archive;
 }
 
 // 行削除は下からまとめて行う
