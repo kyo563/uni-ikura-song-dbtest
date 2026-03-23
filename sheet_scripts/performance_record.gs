@@ -289,10 +289,10 @@ function exportSinceDates(selectedDateStrs) {
  *
  * 判定ルール
  * 1) A列アーティスト名 + B列曲名 が一致する行を同一歌唱曲データとする
- * 2) 同一曲内で D列のURLが完全一致する行は重複
- *    → 新しい方のデータを archive シートへ移動
- *    → 新しさ判定は G列（最新更新日）が新しい方
- *      同値/空欄なら下にある行を新しい方とみなす
+ * 2) 同一曲内で D列リンクが完全一致する行は二重登録
+ *    → 1件だけ残し、重複分は行ごと削除（archiveへは移動しない）
+ *    → 残す行は古い方を優先
+ *      （G列が古い方。同値/空欄なら上にある行）
  * 3) 同一曲内で C列またはD列が異なるものは別日歌唱候補
  *    → 歌ってみた > 歌枠 > ショート
  *    → 同順位なら D列表示文字列の冒頭8桁(yyyymmdd) が新しい方を残す
@@ -373,17 +373,18 @@ function cleanupSongRecords() {
     groups[rec.key].push(rec);
   });
 
-  const deleteMap = {}; // row => reason
+  const hardDeleteMap = {}; // row => reason（完全一致重複で削除）
+  const archiveMap = {}; // row => reason（優先順位整理でarchive移動）
   const recordMap = {}; // row => record
   records.forEach(rec => { recordMap[rec.row] = rec; });
-  let exactDupDeleted = 0;
-  let rankedDeleted = 0;
+  let exactDupHardDeleted = 0;
+  let rankedArchived = 0;
   const logs = [];
 
   Object.keys(groups).forEach(key => {
     const group = groups[key];
 
-    /***** Step 1: 同一URL完全重複（新しい方をarchiveへ移動） *****/
+    /***** Step 1: D列リンク完全一致重複（重複分は削除） *****/
     const urlBuckets = {};
     group.forEach(rec => {
       if (!rec.linkUrl) return;
@@ -401,19 +402,19 @@ function cleanupSongRecords() {
       const keeper = bucket[0];
       for (let i = 1; i < bucket.length; i++) {
         const rec = bucket[i];
-        if (!deleteMap[rec.row]) {
-          deleteMap[rec.row] =
-            `同一URL重複のためarchive移動（残す行: ${keeper.row} / URL: ${url}）`;
-          exactDupDeleted++;
+        if (!hardDeleteMap[rec.row]) {
+          hardDeleteMap[rec.row] =
+            `D列リンク完全一致の二重登録として削除（残す行: ${keeper.row} / URL: ${url}）`;
+          exactDupHardDeleted++;
           if (logs.length < CFG_SONG_CLEANUP.LOG_LIMIT) {
-            logs.push(`Row ${rec.row} 移動: 同一URL重複 → keep Row ${keeper.row} [${rec.artist} / ${rec.title}]`);
+            logs.push(`Row ${rec.row} 削除: D列リンク完全一致重複 → keep Row ${keeper.row} [${rec.artist} / ${rec.title}]`);
           }
         }
       }
     });
 
     /***** Step 2: 同一曲内で最優先1件だけ残す *****/
-    const remain = group.filter(rec => !deleteMap[rec.row]);
+    const remain = group.filter(rec => !hardDeleteMap[rec.row] && !archiveMap[rec.row]);
     if (remain.length <= 1) return;
 
     let keeper = remain[0];
@@ -425,10 +426,10 @@ function cleanupSongRecords() {
 
     remain.forEach(rec => {
       if (rec.row === keeper.row) return;
-      if (!deleteMap[rec.row]) {
-        deleteMap[rec.row] =
+      if (!hardDeleteMap[rec.row] && !archiveMap[rec.row]) {
+        archiveMap[rec.row] =
           `同一曲の優先順位でarchive移動（残す行: ${keeper.row} / 種別優先: ${_sourceRankLabel_(keeper.sourceRank)} / 日付: ${keeper.songDateNum || 'なし'}）`;
-        rankedDeleted++;
+        rankedArchived++;
         if (logs.length < CFG_SONG_CLEANUP.LOG_LIMIT) {
           logs.push(`Row ${rec.row} 移動: 同一曲整理 → keep Row ${keeper.row} [${rec.artist} / ${rec.title}]`);
         }
@@ -436,43 +437,48 @@ function cleanupSongRecords() {
     });
   });
 
-  const rowsToArchive = Object.keys(deleteMap).map(Number);
-  const rowsToDeleteDesc = rowsToArchive.slice().sort((a, b) => b - a);
+  const hardDeleteRows = Object.keys(hardDeleteMap).map(Number);
+  const rowsToArchive = Object.keys(archiveMap).map(Number);
+  const rowsToDeleteDesc = [...new Set(hardDeleteRows.concat(rowsToArchive))].sort((a, b) => b - a);
 
-  if (!CFG_SONG_CLEANUP.DRY_RUN && rowsToArchive.length > 0) {
-    const archiveSheet = _ensureArchiveSheetWithHeader_(sh);
-    const rowsToAppend = rowsToArchive
-      .slice()
-      .sort((a, b) => a - b)
-      .map(rowNum => {
-        const rec = recordMap[rowNum];
-        return rec ? rec.rawRow : null;
-      })
-      .filter(r => r != null);
+  if (!CFG_SONG_CLEANUP.DRY_RUN) {
+    if (rowsToArchive.length > 0) {
+      const archiveSheet = _ensureArchiveSheetWithHeader_(sh);
+      const rowsToAppend = rowsToArchive
+        .slice()
+        .sort((a, b) => a - b)
+        .map(rowNum => {
+          const rec = recordMap[rowNum];
+          return rec ? rec.rawRow : null;
+        })
+        .filter(r => r != null);
 
-    if (rowsToAppend.length > 0) {
-      const startRow = archiveSheet.getLastRow() + 1;
-      archiveSheet.getRange(startRow, CFG_SONG_CLEANUP.COL_START, rowsToAppend.length, CFG_SONG_CLEANUP.COL_END)
-        .setValues(rowsToAppend);
+      if (rowsToAppend.length > 0) {
+        const startRow = archiveSheet.getLastRow() + 1;
+        archiveSheet.getRange(startRow, CFG_SONG_CLEANUP.COL_START, rowsToAppend.length, CFG_SONG_CLEANUP.COL_END)
+          .setValues(rowsToAppend);
+      }
     }
-    _deleteRowsDescendingInChunks_(sh, rowsToDeleteDesc);
+    if (rowsToDeleteDesc.length > 0) {
+      _deleteRowsDescendingInChunks_(sh, rowsToDeleteDesc);
+    }
   }
 
   Logger.log('--- 歌唱DB整理 結果 ---');
   Logger.log(`対象曲キー数: ${Object.keys(groups).length}`);
-  Logger.log(`${CFG_SONG_CLEANUP.DRY_RUN ? '移動候補' : 'archive移動'}行数: ${rowsToArchive.length}${CFG_SONG_CLEANUP.DRY_RUN ? '（DRY RUN）' : ''}`);
-  Logger.log(`  - 同一URL重複: ${exactDupDeleted}`);
-  Logger.log(`  - 同一曲優先順位整理: ${rankedDeleted}`);
+  Logger.log(`削除/移動対象行数: ${rowsToDeleteDesc.length}${CFG_SONG_CLEANUP.DRY_RUN ? '（DRY RUN）' : ''}`);
+  Logger.log(`  - D列リンク完全一致重複（削除）: ${exactDupHardDeleted}`);
+  Logger.log(`  - 同一曲優先順位整理（archive移動）: ${rankedArchived}`);
   logs.forEach(line => Logger.log(line));
 
   const preview = logs.slice(0, 20).join('\n');
   SpreadsheetApp.getUi().alert(
     `歌唱DB整理 ${CFG_SONG_CLEANUP.DRY_RUN ? '（DRY RUN）' : '完了'}\n\n` +
     `対象曲キー数: ${Object.keys(groups).length}\n` +
-    `${CFG_SONG_CLEANUP.DRY_RUN ? '移動候補' : 'archive移動'}行数: ${rowsToArchive.length}\n` +
-    `- 同一URL重複: ${exactDupDeleted}\n` +
-    `- 同一曲優先順位整理: ${rankedDeleted}\n\n` +
-    (preview ? `詳細（先頭20件）:\n${preview}` : `${CFG_SONG_CLEANUP.DRY_RUN ? '移動候補' : 'archive移動対象'}はありません。`)
+    `削除/移動対象行数: ${rowsToDeleteDesc.length}\n` +
+    `- D列リンク完全一致重複（削除）: ${exactDupHardDeleted}\n` +
+    `- 同一曲優先順位整理（archive移動）: ${rankedArchived}\n\n` +
+    (preview ? `詳細（先頭20件）:\n${preview}` : `${CFG_SONG_CLEANUP.DRY_RUN ? '対象候補' : '対象'}はありません。`)
   );
 }
 
