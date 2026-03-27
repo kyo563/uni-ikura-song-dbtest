@@ -51,15 +51,20 @@ export function extractVideoPreview(url) {
     return {
       type: 'YouTube',
       thumbnailUrl: `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`,
+      referrerPolicy: 'no-referrer',
     };
   }
 
   if (host.includes('nicovideo.jp') || host.includes('nico.ms')) {
-    const idMatch = `${parsed.pathname}${parsed.search}${parsed.hash}`.match(/(?:sm|nm|so)(\d+)/i);
+    const idMatch = `${parsed.pathname}${parsed.search}${parsed.hash}`.match(/(?:sm|nm|so)\d+/i);
     if (!idMatch) return null;
+    const videoId = idMatch[0].toLowerCase();
+    const numericId = videoId.replace(/^[a-z]+/i, '');
     return {
       type: 'ニコニコ動画',
-      thumbnailUrl: `https://tn.smilevideo.jp/smile?i=${encodeURIComponent(idMatch[1])}`,
+      thumbnailUrl: `https://nicovideo.cdn.nimg.jp/thumbnails/${encodeURIComponent(numericId)}/${encodeURIComponent(numericId)}`,
+      fallbackThumbnailUrl: `https://tn.smilevideo.jp/smile?i=${encodeURIComponent(numericId)}`,
+      referrerPolicy: 'strict-origin-when-cross-origin',
     };
   }
 
@@ -111,7 +116,7 @@ export function render(items, totals = {}, deps = {}) {
       : '<span class="muted">リンクなし</span>';
     const preview = extractVideoPreview(detailLinks.detailUrl);
     const previewHtml = preview
-      ? `<div class="song-preview-wrap"><a class="song-preview-card song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}"><img class="song-preview-image" src="${escapeHtml(preview.thumbnailUrl)}" alt="${escapeHtml(preview.type)}のサムネイル" loading="lazy" referrerpolicy="no-referrer" /><p class="song-preview-label">${escapeHtml(preview.type)}</p></a></div>`
+      ? `<div class="song-preview-wrap"><a class="song-preview-card song-detail-link" href="${escapeHtml(encodeURI(detailLinks.detailUrl))}" target="_blank" rel="noopener noreferrer" title="${fallbackLinkLabel}"><img class="song-preview-image" src="${escapeHtml(preview.thumbnailUrl)}" alt="${escapeHtml(preview.type)}のサムネイル" loading="lazy" referrerpolicy="${escapeHtml(preview.referrerPolicy || 'no-referrer')}" data-fallback-thumbnail="${escapeHtml(preview.fallbackThumbnailUrl || '')}" /><p class="song-preview-label">${escapeHtml(preview.type)}</p></a></div>`
       : '';
     return `<article class="song-card" data-id="${id}" tabindex="0"><div class="song-card-main"><div class="song-head"><div class="song-summary"><div class="song-title">${escapeHtml(item.title || '-')}</div><div class="song-artist">${escapeHtml(item.artist || '-')}</div></div><button class="icon-btn copy-text-btn" type="button" data-copy-kind="song-artist" title="楽曲名 / アーティスト名をコピー" aria-label="楽曲名 / アーティスト名をコピー">コピー</button></div><div class="song-details"><div class="song-meta"><div class="song-meta-top"><div>${singingTagHtml}</div><div class="song-meta-latest">Latest: ${latestDate}</div></div><div class="song-link-row">${fallbackLinkHtml}</div>${previewHtml}</div></div></div></article>`;
   }).join('');
@@ -161,6 +166,20 @@ export function render(items, totals = {}, deps = {}) {
       if (evt.key !== 'Enter' && evt.key !== ' ') return;
       evt.preventDefault();
       select();
+    });
+  });
+
+  rows.querySelectorAll('.song-preview-image').forEach((img) => {
+    img.addEventListener('error', () => {
+      const fallbackUrl = String(img.dataset.fallbackThumbnail || '').trim();
+      const hasTriedFallback = img.dataset.fallbackTried === '1';
+      if (fallbackUrl && !hasTriedFallback) {
+        img.dataset.fallbackTried = '1';
+        img.src = fallbackUrl;
+        return;
+      }
+      const wrap = img.closest('.song-preview-wrap');
+      if (wrap) wrap.remove();
     });
   });
 
