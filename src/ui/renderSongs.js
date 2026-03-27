@@ -7,6 +7,27 @@ export function escapeHtml(text) {
     .replaceAll("'", '&#39;');
 }
 
+function splitSingingTags(text) {
+  return String(text || '')
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+function tagClassForLabel(label) {
+  const normalized = String(label || '').trim().toLowerCase();
+  if (normalized === '歌ってみた' || normalized === '歌みた' || normalized === 'cover') {
+    return 'tag-utattemita';
+  }
+  if (normalized === '歌枠' || normalized === 'live' || normalized === 'stream') {
+    return 'tag-utawaku';
+  }
+  if (normalized === 'ショート' || normalized === 'short') {
+    return 'tag-short';
+  }
+  return '';
+}
+
 export function linksForExpanded(item, deps = {}) {
   const { resolveSingingTag = () => ({ label: '' }), bestExternalUrl = () => '' } = deps;
   const rawTagText = String(item.singingTag || item.memo || '').trim();
@@ -102,8 +123,16 @@ export function render(items, totals = {}, deps = {}) {
   const cardsHtml = items.map((item) => {
     const id = stableSongId(item);
     const detailLinks = linksForExpanded(item, { resolveSingingTag, bestExternalUrl });
-    const singingTagHtml = detailLinks.singingTagLabel
-      ? `<span class="tag">${escapeHtml(detailLinks.singingTagLabel)}</span>`
+    const rawTagText = detailLinks.singingTagLabel || String(item.singingTag || item.memo || '').trim();
+    const tagLabels = splitSingingTags(rawTagText);
+    const singingTagHtml = tagLabels.length
+      ? tagLabels
+        .map((label) => {
+          const extraClass = tagClassForLabel(label);
+          const className = extraClass ? `tag ${extraClass}` : 'tag';
+          return `<span class="${className}">${escapeHtml(label)}</span>`;
+        })
+        .join(' ')
       : '<span class="muted">-</span>';
     const latestDate = escapeHtml(fmtDate(item.lastSungDate || item.publishedAt));
     const rawLinkTitle = String(item.liveTitle || item.linkLabel || item.lastSungDate || '').trim();
